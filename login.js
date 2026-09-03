@@ -6,10 +6,10 @@
 
 // ── Role → landing page + demo credential map ────────────────
 const ROLE_CONFIG = {
-  swimmer:       { label:'Swimmer / Parent',      landing:'profile.html',     demoEmail:'arun.parent@gmail.com',   demoName:'Arun Kumar (Parent)' },
-  event_manager: { label:'Event Manager',         landing:'emdashboard.html', demoEmail:'em04@swimfest.in',        demoName:'Event Manager EM-TN-04' },
-  organizer:     { label:'Tournament Organizer',  landing:'orgdashboard.html',demoEmail:'kovai@swimclub.org',      demoName:'Kovai Amateur Aquatic Club' },
-  super_admin:   { label:'Super Admin',           landing:'superadmin.html',  demoEmail:'admin@swimfest.in',       demoName:'Super Admin' },
+  swimmer:       { label:'Swimmer / Parent',      landing:'profile.html',     demoEmail:'arun.parent@gmail.com',   demoName:'Arun Kumar (Parent)',      demoPass:'demo1234' },
+  event_manager: { label:'Event Manager',         landing:'emdashboard.html', demoEmail:'thangavishnuvardhanreddy@gmail.com', demoName:'Event Manager', demoPass:'vishnu@123' },
+  organizer:     { label:'Tournament Organizer',  landing:'orgdashboard.html',demoEmail:'kovai@swimclub.org',      demoName:'Kovai Amateur Aquatic Club', demoPass:'demo1234' },
+  super_admin:   { label:'Super Admin',           landing:'superadmin.html',  demoEmail:'superadmin@swimfest.in',  demoName:'SwimFest Super Admin',     demoPass:'SwimFest@2026' },
 };
 
 let selectedRole   = 'swimmer';
@@ -152,7 +152,7 @@ function updateSignupDerived() {
 window.fillDemo = function() {
   const cfg = ROLE_CONFIG[selectedRole];
   $('loginEmail').value    = cfg.demoEmail;
-  $('loginPassword').value = 'demo1234';
+  $('loginPassword').value = cfg.demoPass || 'demo1234';
   clearAllErrors();
   showToast(`Demo credentials for ${cfg.label} filled in.`, 'info');
 };
