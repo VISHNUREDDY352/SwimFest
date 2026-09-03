@@ -86,8 +86,10 @@ document.addEventListener('keydown', (e) => {
     const regUrl = `register.html?tournament=${encodeURIComponent(t.title)}&from=event`;
     const btn  = document.getElementById('evRegisterBtn');
     const btnM = document.getElementById('evRegisterBtnMobile');
+    const btnC = document.getElementById('evContinueBtn');
     if (btn)  btn.setAttribute('href', regUrl);
     if (btnM) btnM.setAttribute('href', regUrl);
+    if (btnC) btnC.setAttribute('href', regUrl);
 
     document.title = `${t.title} | SwimFest`;
   }
