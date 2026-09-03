@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create New Event — SwimFest EM Portal</title>
+    <script src="guard.js" data-roles="event_manager,super_admin"></script>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="admin.css">
     <link rel="stylesheet" href="dashboard.css">
@@ -224,6 +225,9 @@
         </div>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
     <script>
     'use strict';
     const AE_STROKES = [
@@ -260,13 +264,84 @@
       window.scrollTo({top:0,behavior:'smooth'});
     };
 
-    window.saveDraftAE=function(){showToast('Event saved as draft. Status: DRAFT','info');};
-    window.submitAE=function(){
-      [1,2,3].forEach(i=>document.getElementById(`aeStep${i}`).style.display='none');
-      document.getElementById('aeSuccess').style.display='';
-      document.getElementById('aeTournamentId').textContent='TRN-TN-2026-0'+Math.floor(10+Math.random()*90);
-      window.scrollTo({top:0,behavior:'smooth'});
-      showToast('Event submitted — Status: PENDING_APPROVAL','success');
+    // ── Gather form values into a tournaments row ──────────────
+    function collectAE(status) {
+      const val   = (id) => (document.getElementById(id)?.value || '').trim();
+      const radio = (name) => document.querySelector(`input[name="${name}"]:checked`);
+      const gw    = radio('gatewayModel');
+      const pool  = radio('aePoolStd');
+      const lanes = radio('aeLanes');
+      // Swim-Up toggle is the 2nd toggle in the rules block; non-medalist is the 1st
+      const toggles = document.querySelectorAll('.mc-toggle input[type="checkbox"]');
+      const nonMedalist = toggles[0] ? toggles[0].checked : true;
+      const swimUp      = toggles[1] ? toggles[1].checked : false;
+
+      return {
+        title:                 val('aeTitle'),
+        host_organization:     val('aeHost'),
+        state:                 val('aeState') || 'Tamil Nadu',
+        city:                  val('aeCity'),
+        venue_name:            val('aeVenue'),
+        pool_length:           pool ? pool.value : '50m',
+        lane_count:            lanes ? parseInt(lanes.value, 10) : 8,
+        start_date:            val('aeStart') || null,
+        end_date:              val('aeEnd') || null,
+        registration_deadline: val('aeDeadline') || null,
+        allow_swim_up:         swimUp,
+        non_medalist_rule:     nonMedalist,
+        gateway_option:        gw && gw.value === 'A' ? 'OPTION_A_PLATFORM_GATEWAY' : 'OPTION_B_NO_GATEWAY',
+        status:                status,
+      };
+    }
+
+    function validateAE(row) {
+      const missing = [];
+      if (!row.title)      missing.push('Event Title');
+      if (!row.city)       missing.push('City');
+      if (!row.venue_name) missing.push('Venue Name');
+      if (!row.start_date) missing.push('Start Date');
+      if (!row.end_date)   missing.push('End Date');
+      return missing;
+    }
+
+    async function saveTournament(status) {
+      if (!window.sb) { showToast('Database not connected — refresh the page.', 'warn'); return; }
+
+      const row = collectAE(status);
+      const missing = validateAE(row);
+      if (missing.length) { showToast('Please fill: ' + missing.join(', '), 'warn'); aeGoStep(1); return; }
+
+      // Attach the logged-in creator
+      const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
+      if (session && session.userId) row.created_by = session.userId;
+
+      const { data, error } = await window.sb
+        .from('tournaments')
+        .insert(row)
+        .select('tournament_id')
+        .single();
+
+      if (error) {
+        console.error('[SwimFest] create tournament:', error.message);
+        showToast('Save failed: ' + error.message, 'warn');
+        return;
+      }
+      return data ? data.tournament_id : null;
+    }
+
+    window.saveDraftAE = async function () {
+      const id = await saveTournament('DRAFT');
+      if (id) showToast('Event saved as draft. Status: DRAFT', 'info');
+    };
+
+    window.submitAE = async function () {
+      const id = await saveTournament('PENDING_APPROVAL');
+      if (!id) return; // error toast already shown
+      [1,2,3].forEach(i => document.getElementById(`aeStep${i}`).style.display = 'none');
+      document.getElementById('aeSuccess').style.display = '';
+      document.getElementById('aeTournamentId').textContent = id;
+      window.scrollTo({ top:0, behavior:'smooth' });
+      showToast('Event submitted — Status: PENDING_APPROVAL', 'success');
     };
 
     // Gateway option style

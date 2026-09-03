@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EM Dashboard — SwimFest Event Manager Portal</title>
+    <script src="guard.js" data-roles="event_manager,super_admin"></script>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="admin.css">
     <link rel="stylesheet" href="dashboard.css">
@@ -16,20 +17,17 @@
     <!-- Main Navbar -->
     <header class="navbar" id="navbar">
         <div class="nav-container">
-            <a href="index.html" class="logo"><i class="fas fa-swimmer"></i> SwimFest</a>
-            <button class="state-selector">
-                <i class="fas fa-map-marker-alt"></i> Tamil Nadu <i class="fas fa-caret-down"></i>
-            </button>
+            <a href="emdashboard.html" class="logo"><i class="fas fa-swimmer"></i> SwimFest <span style="font-size:0.7rem;font-weight:600;color:var(--gray);">EM Console</span></a>
             <nav class="nav-links">
-                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
-                <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
-                <a href="index.html#past-events-archives" class="nav-link">Past</a>
-                <a href="academy.html" class="nav-link">Academy</a>
+                <a href="emdashboard.html" class="nav-link">Dashboard</a>
+                <a href="admin.html" class="nav-link">Master List</a>
+                <a href="heatgen.html" class="nav-link">Heat Gen</a>
+                <a href="results.html" class="nav-link">Results</a>
+                <a href="racecontrol.html" class="nav-link">Race Control</a>
             </nav>
             <div style="display:flex;align-items:center;gap:10px;margin-left:auto;">
-                <span style="font-size:0.78rem;color:var(--gray);font-weight:600;">Signed in as EM-TN-04</span>
-                <a href="emdashboard.html" class="btn-register-login" style="background:var(--primary);">
-                    <i class="fas fa-cog"></i> EM Dashboard
+                <a href="#" class="btn-register-login dash-logout" style="background:var(--primary);">
+                    <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
             </div>
         </div>
@@ -63,25 +61,25 @@
                     <div class="em-welcome-icon"><i class="fas fa-cogs"></i></div>
                     <div>
                         <h1 class="em-welcome-title">Welcome back, Event Manager</h1>
-                        <p class="em-welcome-id">ID: EM-TN-04 &nbsp;·&nbsp; Tamil Nadu Operations Team</p>
+                        <p class="em-welcome-id" id="emIdentity">Tamil Nadu Operations Team</p>
                         <p class="em-welcome-sub">Manage assigned meets, create online/bulk offline events, submit academies and coaches for verification, and run poolside race operations.</p>
                     </div>
                 </div>
                 <div class="em-stats-row">
                     <div class="em-stat-pill">
                         <i class="fas fa-trophy"></i>
-                        <div class="em-stat-val">3</div>
-                        <div class="em-stat-label">Assigned Meets</div>
+                        <div class="em-stat-val" id="emStatMeets">0</div>
+                        <div class="em-stat-label">Internal Meets</div>
                     </div>
                     <div class="em-stat-pill">
                         <i class="fas fa-list"></i>
-                        <div class="em-stat-val">462</div>
+                        <div class="em-stat-val" id="emStatEntries">0</div>
                         <div class="em-stat-label">Roster Entries</div>
                     </div>
                     <div class="em-stat-pill orange">
                         <i class="fas fa-fire"></i>
-                        <div class="em-stat-val">18</div>
-                        <div class="em-stat-label">Heats Pending Results</div>
+                        <div class="em-stat-val" id="emStatActive">0</div>
+                        <div class="em-stat-label">Active Meets</div>
                     </div>
                 </div>
             </div>
@@ -147,17 +145,18 @@
             </div>
             <div class="modal-body" style="padding:20px 24px;">
                 <div class="mc-grid" style="gap:14px 20px;">
-                    <div class="mc-field mc-full"><label class="mc-label">Academy Name *</label><input class="mc-input" placeholder="e.g. Poseidon Aquatic Center"></div>
-                    <div class="mc-field"><label class="mc-label">City *</label><input class="mc-input" placeholder="Madurai"></div>
-                    <div class="mc-field"><label class="mc-label">State *</label><input class="mc-input" value="Tamil Nadu"></div>
-                    <div class="mc-field"><label class="mc-label">Registration No.</label><input class="mc-input" placeholder="TN-REG-2026-XXXX"></div>
-                    <div class="mc-field"><label class="mc-label">Head Coach Name</label><input class="mc-input" placeholder="Coach Name"></div>
-                    <div class="mc-field"><label class="mc-label">Contact Phone</label><input class="mc-input" placeholder="+91 98765 43210"></div>
+                    <div class="mc-field mc-full"><label class="mc-label">Academy Name *</label><input class="mc-input" id="acName" placeholder="e.g. Poseidon Aquatic Center"></div>
+                    <div class="mc-field"><label class="mc-label">City *</label><input class="mc-input" id="acCity" placeholder="Madurai"></div>
+                    <div class="mc-field"><label class="mc-label">State *</label><input class="mc-input" id="acState" value="Tamil Nadu"></div>
+                    <div class="mc-field"><label class="mc-label">Registration No.</label><input class="mc-input" id="acRegNo" placeholder="TN-REG-2026-XXXX"></div>
+                    <div class="mc-field"><label class="mc-label">Head Coach Name</label><input class="mc-input" id="acContact" placeholder="Coach Name"></div>
+                    <div class="mc-field"><label class="mc-label">Contact Phone</label><input class="mc-input" id="acPhone" placeholder="+91 98765 43210"></div>
                     <div class="mc-field mc-full">
                         <label class="mc-label">Document Proof (PDF)</label>
                         <div class="mc-upload-zone" onclick="this.querySelector('input').click()">
-                            <i class="fas fa-file-pdf"></i> <span>Choose registration document</span>
-                            <input type="file" accept=".pdf" style="display:none;">
+                            <i class="fas fa-file-pdf"></i> <span id="acDocLabel">Choose registration document</span>
+                            <input type="file" id="acDoc" accept=".pdf,.jpg,.jpeg,.png" style="display:none;"
+                                   onchange="document.getElementById('acDocLabel').textContent=this.files[0]?.name||'Choose registration document'">
                         </div>
                     </div>
                 </div>
@@ -178,12 +177,12 @@
             </div>
             <div class="modal-body" style="padding:20px 24px;">
                 <div class="mc-grid" style="gap:14px 20px;">
-                    <div class="mc-field mc-full"><label class="mc-label">Full Name *</label><input class="mc-input" placeholder="Coach Full Name"></div>
+                    <div class="mc-field mc-full"><label class="mc-label">Full Name *</label><input class="mc-input" id="coName" placeholder="Coach Full Name"></div>
                     <div class="mc-field"><label class="mc-label">Certification Body *</label>
-                        <select class="mc-select"><option>ASCA</option><option>NIS</option><option>SFI</option><option>World Aquatics</option></select>
+                        <select class="mc-select" id="coCertBody"><option>ASCA</option><option>NIS</option><option>SFI</option><option>World Aquatics</option></select>
                     </div>
-                    <div class="mc-field"><label class="mc-label">License Number *</label><input class="mc-input" placeholder="ASCA-XXXX-2026"></div>
-                    <div class="mc-field"><label class="mc-label">Contact Phone</label><input class="mc-input" placeholder="+91 98765 43210"></div>
+                    <div class="mc-field"><label class="mc-label">License Number *</label><input class="mc-input" id="coLicense" placeholder="ASCA-XXXX-2026"></div>
+                    <div class="mc-field"><label class="mc-label">Contact Phone</label><input class="mc-input" id="coPhone" placeholder="+91 98765 43210"></div>
                     <div class="mc-field"><label class="mc-label">Affiliated Academy</label>
                         <select class="mc-select">
                             <option value="">None / Self</option>
@@ -195,8 +194,9 @@
                     <div class="mc-field mc-full">
                         <label class="mc-label">Certification Document (PDF)</label>
                         <div class="mc-upload-zone" onclick="this.querySelector('input').click()">
-                            <i class="fas fa-certificate"></i> <span>Choose certification document</span>
-                            <input type="file" accept=".pdf" style="display:none;">
+                            <i class="fas fa-certificate"></i> <span id="coDocLabel">Choose certification document</span>
+                            <input type="file" id="coDoc" accept=".pdf,.jpg,.jpeg,.png" style="display:none;"
+                                   onchange="document.getElementById('coDocLabel').textContent=this.files[0]?.name||'Choose certification document'">
                         </div>
                     </div>
                 </div>
@@ -208,6 +208,9 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
     <script src="emdashboard.js"></script>
 </body>
 </html>

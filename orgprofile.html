@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizer Profile — SwimFest</title>
+    <script src="guard.js" data-roles="organizer,super_admin"></script>
+    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="orgprofile.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <header class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo"><i class="fas fa-swimmer"></i> SwimFest</a>
+            <button class="state-selector"><i class="fas fa-map-marker-alt"></i> Tamil Nadu <i class="fas fa-caret-down"></i></button>
+            <nav class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="orgdashboard.html" class="nav-link">Dashboard</a>
+                <a href="orgcreate.html" class="nav-link">Create Event</a>
+                <a href="academy.html" class="nav-link">Academy</a>
+            </nav>
+            <a href="orgprofile.html" class="btn-profile"><i class="fas fa-user"></i> Profile</a>
+            <a href="#" class="btn-register-login dash-logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </header>
+
+    <main class="op-page">
+        <!-- Header card -->
+        <div class="op-hero">
+            <div class="op-hero-inner">
+                <div class="op-avatar" id="opAvatar">O</div>
+                <div class="op-hero-info">
+                    <h1 class="op-name" id="opName">Loading…</h1>
+                    <p class="op-role"><i class="fas fa-building"></i> Event Organizer</p>
+                    <p class="op-sub" id="opOrgLine">—</p>
+                </div>
+                <button class="op-edit-btn" id="opEditBtn"><i class="fas fa-pen"></i> Edit Profile</button>
+            </div>
+        </div>
+
+        <div class="op-container">
+            <!-- Stats -->
+            <div class="op-stats" id="opStats"></div>
+
+            <!-- Account details -->
+            <div class="op-card">
+                <h2 class="op-card-title"><i class="fas fa-id-card"></i> Account Details</h2>
+                <div class="op-detail-grid" id="opDetails"></div>
+            </div>
+
+            <!-- Organization -->
+            <div class="op-card">
+                <h2 class="op-card-title"><i class="fas fa-building"></i> Organization</h2>
+                <div class="op-detail-grid" id="opOrg"></div>
+            </div>
+
+            <!-- Quick actions -->
+            <div class="op-card">
+                <h2 class="op-card-title"><i class="fas fa-bolt"></i> Quick Actions</h2>
+                <div class="op-actions">
+                    <a href="orgcreate.html" class="op-action"><i class="fas fa-plus-circle"></i> Create New Event</a>
+                    <a href="orgdashboard.html" class="op-action"><i class="fas fa-gauge"></i> Host Dashboard</a>
+                    <a href="orgracecontrol.html" class="op-action"><i class="fas fa-flag-checkered"></i> Race Control</a>
+                    <a href="results.html" class="op-action"><i class="fas fa-broadcast-tower"></i> Results Console</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Edit modal -->
+    <div class="op-modal-overlay" id="opEditModal">
+        <div class="op-modal">
+            <div class="op-modal-header">
+                <h3><i class="fas fa-pen"></i> Edit Profile</h3>
+                <button class="op-modal-close" id="opModalClose"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="op-modal-body">
+                <div class="op-field"><label>Contact Person Name</label><input id="editName" class="op-input"></div>
+                <div class="op-field"><label>Phone</label><input id="editPhone" class="op-input"></div>
+                <div class="op-field"><label>Organization / Club Name</label><input id="editOrgName" class="op-input"></div>
+                <div class="op-field"><label>City</label><input id="editCity" class="op-input"></div>
+            </div>
+            <div class="op-modal-footer">
+                <button class="op-btn-ghost" id="opCancelBtn">Cancel</button>
+                <button class="op-btn-primary" id="opSaveBtn"><i class="fas fa-save"></i> Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
+    <script src="orgprofile.js"></script>
+</body>
+</html>

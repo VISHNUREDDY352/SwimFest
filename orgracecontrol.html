@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Organizer Race Control — SwimFest</title>
+    <script src="guard.js" data-roles="organizer,super_admin"></script>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="admin.css">
     <link rel="stylesheet" href="dashboard.css">
@@ -172,7 +173,7 @@
                     <button class="admin-btn admin-btn-outline" onclick="showToast('Draft timings saved.','info')">
                         <i class="fas fa-save"></i> Publish Official Results
                     </button>
-                    <button class="admin-btn res-publish-btn" onclick="showToast('Results published. Rankings & PDF available.','success')">
+                    <button class="admin-btn res-publish-btn" onclick="window.location.href='results.html'">
                         <i class="fas fa-print"></i> Print PDF Result Book for Posting
                     </button>
                 </div>
@@ -210,6 +211,9 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
     <script>
     'use strict';
     const ORG_LANES = [

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create New Meet — SwimFest Organizer Portal</title>
+    <script src="guard.js" data-roles="organizer,super_admin"></script>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="admin.css">
     <link rel="stylesheet" href="dashboard.css">
@@ -309,6 +310,9 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
     <script>
     'use strict';
     const OC_STROKES = [
@@ -356,7 +360,63 @@
       window.scrollTo({top:0,behavior:'smooth'});
     };
 
-    window.saveDraftOC=function(){showToast('Meet saved as draft.','info');};
+    // ── Gather form values into a tournaments row ──────────────
+    function collectOC(status){
+      const val   = (id)=>(document.getElementById(id)?.value || '').trim();
+      const radio = (name)=>document.querySelector(`input[name="${name}"]:checked`);
+      const gw    = radio('ocGateway');
+      const pool  = radio('ocPoolStd');
+      const lanes = radio('ocLanes');
+      const baseFee  = parseFloat(val('ocBaseFee'));
+      const relayFee = parseFloat(val('ocRelayFee'));
+      return {
+        title:                 val('ocTitle'),
+        host_organization:     val('ocHostClub'),
+        state:                 val('ocState') || 'Tamil Nadu',
+        city:                  val('ocCity'),
+        venue_name:            val('ocVenue'),
+        pool_length:           pool ? pool.value : '50m',
+        lane_count:            lanes ? parseInt(lanes.value,10) : 8,
+        start_date:            val('ocStart') || null,
+        end_date:              val('ocEnd') || null,
+        registration_deadline: val('ocDeadline') || null,
+        reg_fee_amount:        isNaN(baseFee)  ? 800 : baseFee,
+        relay_add_on_fee:      isNaN(relayFee) ? 300 : relayFee,
+        allow_swim_up:         !!document.getElementById('ocSwimUp')?.checked,
+        non_medalist_rule:     !!document.getElementById('ocNmRule')?.checked,
+        gateway_option:        gw && gw.value === 'A' ? 'OPTION_A_PLATFORM_GATEWAY' : 'OPTION_B_NO_GATEWAY',
+        status:                status,
+      };
+    }
+
+    function validateOC(row){
+      const miss=[];
+      if(!row.title)      miss.push('Meet Title');
+      if(!row.city)       miss.push('City');
+      if(!row.venue_name) miss.push('Venue Name');
+      if(!row.start_date) miss.push('Start Date');
+      if(!row.end_date)   miss.push('End Date');
+      return miss;
+    }
+
+    async function saveMeet(status){
+      if(!window.sb){ showToast('Database not connected — refresh the page.','warn'); return null; }
+      const row = collectOC(status);
+      const miss = validateOC(row);
+      if(miss.length){ showToast('Please fill: '+miss.join(', '),'warn'); ocGoStep(1); return null; }
+      const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
+      if(session && session.userId) row.created_by = session.userId;
+
+      const { data, error } = await window.sb
+        .from('tournaments').insert(row).select('tournament_id').single();
+      if(error){ console.error('[SwimFest] create meet:', error.message); showToast('Save failed: '+error.message,'warn'); return null; }
+      return data ? data.tournament_id : null;
+    }
+
+    window.saveDraftOC = async function(){
+      const id = await saveMeet('DRAFT');
+      if(id) showToast('Meet saved as draft. Status: DRAFT','info');
+    };
 
     window.showPaymentModal=function(){
       const isB = document.querySelector('input[name="ocGateway"]:checked')?.value === 'B';
@@ -381,10 +441,16 @@
       setTimeout(()=>submitOC(true), 2500);
     };
 
-    function submitOC(paid){
+    async function submitOC(paid){
+      const id = await saveMeet('PENDING_APPROVAL');
       document.getElementById('ocPayment').style.display='none';
+      if(!id){
+        // Save failed — return to the form so the user can retry
+        document.getElementById('ocStep3').style.display='';
+        return;
+      }
       document.getElementById('ocSuccess').style.display='';
-      document.getElementById('ocTrnId').textContent = 'TRN-TN-2026-0'+Math.floor(80+Math.random()*20);
+      document.getElementById('ocTrnId').textContent = id;
       document.getElementById('ocPayId').textContent = paid ? 'pay_'+Math.random().toString(36).substr(2,12) : 'N/A (Option A)';
       window.scrollTo({top:0,behavior:'smooth'});
       showToast(paid?'Payment confirmed. Meet submitted for Super Admin approval.':'Meet submitted for Super Admin approval.','success');

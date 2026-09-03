@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Organizer Dashboard — SwimFest Host Portal</title>
+    <script src="guard.js" data-roles="organizer,super_admin"></script>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="admin.css">
     <link rel="stylesheet" href="dashboard.css">
@@ -16,22 +17,17 @@
     <!-- Main Navbar -->
     <header class="navbar" id="navbar">
         <div class="nav-container">
-            <a href="index.html" class="logo"><i class="fas fa-swimmer"></i> SwimFest</a>
-            <button class="state-selector">
-                <i class="fas fa-map-marker-alt"></i> Tamil Nadu <i class="fas fa-caret-down"></i>
-            </button>
+            <a href="orgdashboard.html" class="logo"><i class="fas fa-swimmer"></i> SwimFest <span style="font-size:0.7rem;font-weight:600;color:var(--gray);">Organizer</span></a>
             <nav class="nav-links">
-                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
-                <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
-                <a href="index.html#past-events-archives" class="nav-link">Past</a>
-                <a href="academy.html" class="nav-link">Academy</a>
+                <a href="orgdashboard.html" class="nav-link">Dashboard</a>
+                <a href="orgcreate.html" class="nav-link">Create Event</a>
+                <a href="orgracecontrol.html" class="nav-link">Race Control</a>
+                <a href="results.html" class="nav-link">Results</a>
             </nav>
             <div style="display:flex;align-items:center;gap:10px;margin-left:auto;">
-                <span style="font-size:0.75rem;color:var(--gray);font-weight:600;">
-                    <i class="fas fa-building" style="color:var(--primary);"></i> Kovai Amateur Aquatic Club
-                </span>
-                <a href="orgdashboard.html" class="btn-register-login" style="background:var(--warning);color:var(--white);">
-                    <i class="fas fa-cog"></i> Host Dashboard
+                <a href="orgprofile.html" class="btn-profile"><i class="fas fa-user"></i> Profile</a>
+                <a href="#" class="btn-register-login dash-logout" style="background:var(--warning);color:var(--white);">
+                    <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
             </div>
         </div>
@@ -67,29 +63,29 @@
                     </div>
                     <div>
                         <h1 class="em-welcome-title">Organizer Host Metrics &amp; Summary</h1>
-                        <p class="em-welcome-id">Organization: Kovai Amateur Aquatic Club &nbsp;·&nbsp; ID: ORG-TN-882</p>
+                        <p class="em-welcome-id" id="orgIdentity">Organization: —</p>
                         <p class="em-welcome-sub">Third-party host portal — manage your swimming competitions, view financial analytics, and run poolside race operations for your owned meets.</p>
                     </div>
                 </div>
                 <div class="em-stats-row">
                     <div class="em-stat-pill">
                         <i class="fas fa-trophy" style="color:#4ade80;"></i>
-                        <div class="em-stat-val">8</div>
+                        <div class="em-stat-val" id="orgStatEvents">0</div>
                         <div class="em-stat-label">Events Conducted</div>
                     </div>
                     <div class="em-stat-pill">
                         <i class="fas fa-users" style="color:#4ade80;"></i>
-                        <div class="em-stat-val">1,420</div>
+                        <div class="em-stat-val" id="orgStatAthletes">0</div>
                         <div class="em-stat-label">Athletes Hosted</div>
                     </div>
                     <div class="em-stat-pill orange">
                         <i class="fas fa-rupee-sign"></i>
-                        <div class="em-stat-val">₹40K</div>
+                        <div class="em-stat-val" id="orgStatFees">₹0</div>
                         <div class="em-stat-label">Software Fees Paid</div>
                     </div>
                     <div class="em-stat-pill">
                         <i class="fas fa-fire" style="color:#4ade80;"></i>
-                        <div class="em-stat-val">1</div>
+                        <div class="em-stat-val" id="orgStatActive">0</div>
                         <div class="em-stat-label">Active Meet Running</div>
                     </div>
                 </div>
@@ -132,6 +128,9 @@
         </div>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
     <script src="orgdashboard.js"></script>
 </body>
 </html>

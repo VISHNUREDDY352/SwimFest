@@ -307,13 +307,11 @@
                 </div>
             </div>
 
-            <!-- Permission Overview (text only — no matrix) -->
+            <!-- Approval State Machine (overview) -->
             <div class="sa-section">
                 <div class="sa-section-header">
-                    <span class="sa-section-title"><i class="fas fa-shield-alt"></i> Universal Permission Enforcement — Super Admin Scope</span>
+                    <span class="sa-section-title"><i class="fas fa-project-diagram"></i> Approval Workflow Overview</span>
                 </div>
-                <div class="perm-overview" id="permOverview"></div>
-                <!-- State Machine -->
                 <div class="sa-state-machine">
                     <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--gray);margin-bottom:12px;">System Architecture &amp; Approval State Machine</div>
                     <div class="sa-sm-grid" id="saSmGrid"></div>
@@ -484,6 +482,9 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
     <script src="superadmin.js"></script>
 </body>
 </html>

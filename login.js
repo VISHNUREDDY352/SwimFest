@@ -14,6 +14,7 @@ const ROLE_CONFIG = {
 
 let selectedRole   = 'swimmer';
 let selectedGender = 'Boy';
+let accountType    = 'swimmer';  // 'swimmer' | 'organizer' (signup form)
 
 const TOURNAMENT_YEAR = 2026;
 const AGE_CATEGORIES = [
@@ -87,19 +88,46 @@ function initRoleButtons() {
 
 // ── Signup gender toggle + DOB category derive ────────────────
 function initSignupExtras() {
-  document.querySelectorAll('.signup-gender-btn').forEach(btn => {
+  // Gender toggle (scoped so it doesn't clash with the account-type toggle)
+  document.querySelectorAll('#signupGenderToggle .signup-gender-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.signup-gender-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#signupGenderToggle .signup-gender-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       selectedGender = btn.dataset.gender;
       updateSignupDerived();
     });
   });
+
+  // Account-type toggle: Swimmer vs Organizer
+  document.querySelectorAll('#signupTypeToggle .signup-gender-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#signupTypeToggle .signup-gender-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      accountType = btn.dataset.acctype;
+      applyAccountType();
+    });
+  });
+
   const dob = $('signupDob');
   if (dob) {
     dob.max = `${TOURNAMENT_YEAR - 8}-12-31`;   // youngest eligible
     dob.addEventListener('change', updateSignupDerived);
   }
+}
+
+// Show/hide fields + relabel based on the chosen account type
+function applyAccountType() {
+  const isOrg = accountType === 'organizer';
+  const swimmerFields   = $('swimmerFields');
+  const organizerFields = $('organizerFields');
+  if (swimmerFields)   swimmerFields.style.display   = isOrg ? 'none' : '';
+  if (organizerFields) organizerFields.style.display = isOrg ? '' : 'none';
+
+  if ($('signupSub'))        $('signupSub').textContent        = isOrg
+    ? 'Register as an organizer to host and manage your own swimming events.'
+    : 'Join SwimFest to register for competitions.';
+  if ($('signupPhoneLabel')) $('signupPhoneLabel').textContent = isOrg ? 'Contact Phone' : 'Phone (Parent / Guardian)';
+  if ($('signupNameLabel'))  $('signupNameLabel').textContent  = isOrg ? 'Contact Person Name' : 'Full Name';
 }
 
 function updateSignupDerived() {
@@ -201,8 +229,14 @@ window.handleSignup = async function(e) {
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('signupEmail', 'Enter a valid email.'); ok = false; }
   if (!phone) { showError('signupPhone', 'Phone number is required.'); ok = false; }
   else if (!/^[\d\s\+\-]{8,15}$/.test(phone)) { showError('signupPhone', 'Enter a valid phone number.'); ok = false; }
-  if (!dob) { showError('signupDob', 'Date of birth is required.'); ok = false; }
-  else if (!deriveCategory(dob)) { showError('signupDob', 'Swimmer age must fall within U-10 to U-16.'); ok = false; }
+  const isOrg = accountType === 'organizer';
+  if (isOrg) {
+    // Organizer path: require org name, skip swimmer DOB/gender checks
+    if (!$('signupOrgName') || !$('signupOrgName').value.trim()) { showError('signupOrgName', 'Organization / club name is required.'); ok = false; }
+  } else {
+    if (!dob) { showError('signupDob', 'Date of birth is required.'); ok = false; }
+    else if (!deriveCategory(dob)) { showError('signupDob', 'Swimmer age must fall within U-10 to U-16.'); ok = false; }
+  }
   if (!pass)  { showError('signupPassword', 'Password is required.'); ok = false; }
   else if (pass.length < 6) { showError('signupPassword', 'Password must be at least 6 characters.'); ok = false; }
   if (!terms) { $('signupTermsErr').textContent = 'You must agree to the terms to continue.'; ok = false; }
@@ -217,18 +251,57 @@ window.handleSignup = async function(e) {
 
   if (!window.SwimAuth) { showError('signupEmail', 'Auth not loaded — refresh the page.'); btn.innerHTML=orig; btn.disabled=false; return; }
 
-  // New account — always swimmer role
-  const res = await window.SwimAuth.signUp({ email, password: pass, fullName: name, phone, role: 'swimmer' });
+  // Role depends on the chosen account type
+  const newRole = isOrg ? 'organizer' : 'swimmer';
+  let res = await window.SwimAuth.signUp({ email, password: pass, fullName: name, phone, role: newRole });
   console.log('[SwimFest] signUp result:', res);
 
-  if (!res.ok) {
+  // Same email already exists?
+  const alreadyExists = res && res.error && /already\s*(registered|exists)|user already/i.test(res.error);
+
+  if (!res.ok && alreadyExists && isOrg) {
+    // Existing account (e.g. a swimmer) wants to ALSO become an organizer.
+    // Verify with their password and upgrade the account to organizer.
+    const up = await window.SwimAuth.becomeOrganizer({ email, password: pass, fullName: name, phone });
+    if (up.ok) {
+      res = up; // continue the organizer flow below with this session
+      showToast('Existing account found — adding organizer access.', 'info');
+    } else if (up.error === 'wrong_password') {
+      btn.innerHTML = orig; btn.disabled = false;
+      showError('signupPassword', 'This email is already registered. Enter its password to add organizer access, or use a different email.');
+      return;
+    } else {
+      btn.innerHTML = orig; btn.disabled = false;
+      showError('signupEmail', 'Could not upgrade this account. Try logging in instead.');
+      return;
+    }
+  } else if (!res.ok) {
     btn.innerHTML = orig; btn.disabled = false;
-    showError('signupEmail', res.error || 'Could not create account.');
+    if (alreadyExists) {
+      showError('signupEmail', 'This email is already registered. Please log in instead.');
+    } else {
+      showError('signupEmail', res.error || 'Could not create account.');
+    }
     return;
   }
 
-  // Create the swimmer record with gender + DOB + derived category
-  if (window.sb && res.session && res.session.userId) {
+  if (isOrg) {
+    // Organizer: create/update their record in the dedicated organizers
+    // table (upsert on owner_id so a swimmer-turned-organizer isn't dupled)
+    if (window.sb && res.session && res.session.userId) {
+      try {
+        await window.sb.from('organizers').upsert({
+          owner_id      : res.session.userId,
+          org_name      : $('signupOrgName').value.trim(),
+          contact_person: name,
+          email_id      : email,
+          phone_number  : phone,
+          status        : 'PENDING_VERIFICATION',
+        }, { onConflict: 'owner_id' });
+      } catch (err) { console.warn('[SwimFest] organizer upsert:', err.message); }
+    }
+  } else if (window.sb && res.session && res.session.userId) {
+    // Swimmer: create the swimmer record with gender + DOB + derived category
     try {
       await window.sb.from('swimmers').insert({
         owner_id     : res.session.userId,
@@ -253,7 +326,7 @@ window.handleSignup = async function(e) {
   }
 
   const returnTo = getReturnTo();
-  const dest = returnTo || 'profile.html';
+  const dest = returnTo || (isOrg ? 'orgdashboard.html' : 'profile.html');
   showToast('Account created! Redirecting…', 'success');
   setTimeout(() => { window.location.href = dest; }, 1000);
 };

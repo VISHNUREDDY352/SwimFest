@@ -111,6 +111,47 @@ const SwimAuth = {
     return { ok: true, session };
   },
 
+  // ── Add organizer capability to an EXISTING account ───────
+  // Used when someone who already signed up (e.g. as a swimmer)
+  // wants to also become an organizer with the SAME email.
+  // Verifies ownership by signing in with the given password,
+  // then upgrades the profile role to 'organizer'.
+  async becomeOrganizer({ email, password, fullName, phone }) {
+    if (!this.hasSupabase()) return { ok: false, error: 'Auth unavailable.' };
+
+    const signInRes = await window.sb.auth.signInWithPassword({ email, password });
+    if (signInRes.error || !signInRes.data.session) {
+      return { ok: false, error: 'wrong_password' };
+    }
+    const user = signInRes.data.user;
+
+    // Upgrade the profile role to organizer via the safe RPC
+    // (direct profile update is blocked by the no-self-escalate policy).
+    try { await window.sb.rpc('become_organizer'); } catch (_) {}
+    // Best-effort keep name/phone current (allowed by self-update policy)
+    try {
+      await window.sb.from('profiles').update({ full_name: fullName || user.email, phone }).eq('id', user.id);
+    } catch (_) {}
+
+    const session = {
+      role: 'organizer', roleLabel: 'organizer', email,
+      name: fullName || (user.user_metadata && user.user_metadata.full_name) || email.split('@')[0],
+      phone, userId: user.id, loginAt: new Date().toISOString(),
+    };
+    this.setSession(session, true);
+    return { ok: true, session, upgraded: true };
+  },
+
+  // ── Logout, then route to the right place ─────────────────
+  // Staff (super_admin / organizer / event_manager) → login.html
+  // Swimmers / public → index.html
+  async logoutAndRedirect() {
+    const role = this.getRole();
+    const staff = ['super_admin', 'organizer', 'event_manager'];
+    await this.logout();
+    window.location.href = staff.includes(role) ? 'login.html' : 'index.html';
+  },
+
   // ── Logout ────────────────────────────────────────────────
   async logout() {
     if (this.hasSupabase()) { try { await window.sb.auth.signOut(); } catch (_) {} }
@@ -137,12 +178,17 @@ const SwimAuth = {
   // ── Nav button updater ────────────────────────────────────
   updateNavButtons() {
     const session = this.getSession();
-    const dash = { event_manager:'emdashboard.html', organizer:'orgdashboard.html', super_admin:'superadmin.html', swimmer:'profile.html' };
+    // Each role's profile page (organizer has its own; EM/super_admin use dashboards)
+    const profilePage = {
+      swimmer:'profile.html', organizer:'orgprofile.html',
+      event_manager:'emdashboard.html', super_admin:'superadmin.html',
+    };
 
     document.querySelectorAll('.btn-profile').forEach(btn => {
       if (session) {
-        btn.setAttribute('href', dash[session.role] || 'profile.html');
-        btn.innerHTML = `<i class="fas fa-user"></i> ${session.role === 'swimmer' ? 'Profile' : 'Dashboard'}`;
+        btn.setAttribute('href', profilePage[session.role] || 'profile.html');
+        const label = (session.role === 'swimmer' || session.role === 'organizer') ? 'Profile' : 'Dashboard';
+        btn.innerHTML = `<i class="fas fa-user"></i> ${label}`;
       } else {
         btn.setAttribute('href', 'profile.html');
         btn.innerHTML = `<i class="fas fa-user"></i> Profile`;
@@ -153,7 +199,7 @@ const SwimAuth = {
       if (session) {
         btn.setAttribute('href', '#');
         btn.innerHTML = `<i class="fas fa-sign-out-alt"></i> Logout`;
-        btn.onclick = async (e) => { e.preventDefault(); await SwimAuth.logout(); window.location.href = 'index.html'; };
+        btn.onclick = async (e) => { e.preventDefault(); await SwimAuth.logoutAndRedirect(); };
       } else {
         btn.setAttribute('href', 'login.html');
         btn.textContent = 'Register / Login';
@@ -167,4 +213,14 @@ window.SwimAuth = SwimAuth;
 
 document.addEventListener('DOMContentLoaded', () => {
   try { SwimAuth.updateNavButtons(); } catch (_) {}
+
+  // Wire any staff-page logout control to a real logout + redirect.
+  // Covers superadmin (.sa-logout), admin (.admin-logout-btn),
+  // and dashboards (.dash-logout).
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.sa-logout, .admin-logout-btn, .dash-logout, [data-logout]');
+    if (!btn) return;
+    e.preventDefault();
+    SwimAuth.logoutAndRedirect();
+  });
 });

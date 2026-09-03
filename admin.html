@@ -34,7 +34,12 @@
         <div class="admin-tournament-banner" id="tournamentBanner">
             <div class="admin-tournament-inner">
                 <div class="admin-t-info">
-                    <div class="admin-t-name" id="adminTournamentName">Golden Non-Medalist Championship 2026</div>
+                    <div class="admin-t-name" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <span>Tournament:</span>
+                        <select id="adminTournamentSelect" style="font:inherit;font-weight:700;padding:6px 10px;border-radius:6px;border:1px solid var(--gray-light);max-width:420px;">
+                            <option value="">Loading tournaments…</option>
+                        </select>
+                    </div>
                     <div class="admin-t-meta">
                         <span class="admin-status-chip" id="regStatusChip">
                             <i class="fas fa-lock"></i> Registration Closed
@@ -281,7 +286,9 @@
         </div>
     </div>
 
-    <script src="academy.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
     <script src="admin.js"></script>
 </body>
 </html>

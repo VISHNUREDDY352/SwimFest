@@ -78,10 +78,10 @@
                 <div class="event-header-block">
                     <div class="event-header-top">
                         <div>
-                            <h1 class="event-main-title">Golden Non-Medalist Swimming Championship 2026</h1>
-                            <p class="event-hosted-by">Hosted by: Tamil Nadu Amateur Aquatic Association</p>
+                            <h1 class="event-main-title" id="evTitle">Golden Non-Medalist Swimming Championship 2026</h1>
+                            <p class="event-hosted-by" id="evHostedBy">Hosted by: Tamil Nadu Amateur Aquatic Association</p>
                         </div>
-                        <span class="event-status-badge status-open">Entries Open</span>
+                        <span class="event-status-badge status-open" id="evStatusBadge">Entries Open</span>
                     </div>
                 </div>
 
@@ -91,19 +91,19 @@
                     <div class="detail-grid">
                         <div class="detail-item">
                             <span class="detail-label"><i class="fas fa-swimming-pool"></i> Pool Venue</span>
-                            <span class="detail-value">SRM University Swimming Pool, Kattankulathur, Chennai</span>
+                            <span class="detail-value" id="evVenue">SRM University Swimming Pool, Kattankulathur, Chennai</span>
                         </div>
                         <div class="detail-item">
                             <span class="detail-label"><i class="fas fa-ruler-combined"></i> Pool Specs</span>
-                            <span class="detail-value">50m Olympic Size | 8 Lanes | Electronic Touch-Pad Ready</span>
+                            <span class="detail-value" id="evSpecs">50m Olympic Size | 8 Lanes | Electronic Touch-Pad Ready</span>
                         </div>
                         <div class="detail-item">
                             <span class="detail-label"><i class="fas fa-calendar-alt"></i> Event Dates</span>
-                            <span class="detail-value">15th – 16th October 2026</span>
+                            <span class="detail-value" id="evDates">15th – 16th October 2026</span>
                         </div>
                         <div class="detail-item">
                             <span class="detail-label"><i class="fas fa-clock"></i> Deadline</span>
-                            <span class="detail-value">30th September 2026 (11:59 PM IST)</span>
+                            <span class="detail-value" id="evDeadline">30th September 2026 (11:59 PM IST)</span>
                         </div>
                     </div>
                 </div>
@@ -273,7 +273,7 @@
                     <p><strong>Base Fee:</strong> ₹800 (Up to 3 Events)</p>
                     <p><strong>Relay Add-On:</strong> ₹300 per team</p>
                 </div>
-                <a href="register.html?tournament=Golden%20Non-Medalist%20Championship%202026&from=event" class="btn-register-tournament">
+                <a href="register.html?tournament=Golden%20Non-Medalist%20Championship%202026&from=event" class="btn-register-tournament" id="evRegisterBtn">
                     <i class="fas fa-pen-fancy"></i> Register for Tournament
                 </a>
             </div>
@@ -327,9 +327,11 @@
         <div class="mobile-register-info">
             <span>₹800 (3 Events)</span>
         </div>
-        <a href="register.html?tournament=Golden%20Non-Medalist%20Championship%202026&from=event" class="mobile-register-btn"><i class="fas fa-pen-fancy"></i> Register Now</a>
+        <a href="register.html?tournament=Golden%20Non-Medalist%20Championship%202026&from=event" class="mobile-register-btn" id="evRegisterBtnMobile"><i class="fas fa-pen-fancy"></i> Register Now</a>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
     <script src="auth.js"></script>
     <script src="event.js"></script>
 </body>

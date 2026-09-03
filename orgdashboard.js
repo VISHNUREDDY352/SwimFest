@@ -3,34 +3,79 @@
    ============================================================ */
 'use strict';
 
-const ORG_TOURNAMENTS = [
-  {
-    title   : "Coimbatore District Meet '26",
-    sub     : "SDAT Pool, Kovai · 142 swimmers",
-    dates   : "Nov 12-13",
-    payType : "B",
-    status  : "PENDING_APPROVAL",
-    upfront : true,
-  },
-  {
-    title   : "Kovai Winter Short Course",
-    sub     : "SDAT Aquatic Complex, Kovai · 198 swimmers",
-    dates   : "Dec 20-21",
-    payType : "A",
-    status  : "PUBLISHED",
-    upfront : false,
-  },
-  {
-    title   : "Kanyakumari Sprint Gala '25",
-    sub     : "YMCA Nagercoil · 312 swimmers",
-    dates   : "Dec 05-06",
-    payType : "B",
-    status  : "COMPLETED",
-    upfront : true,
-  },
-];
+let ORG_TOURNAMENTS = [];
 
 const $ = id => document.getElementById(id);
+
+function fmtDates(s, e) {
+  const f = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short' }) : '';
+  return s ? `${f(s)}${e ? ' – ' + f(e) : ''}` : '—';
+}
+
+// Load only THIS organizer's tournaments (created_by = current user)
+async function loadOrgPipeline() {
+  const body = $('orgPipelineBody');
+  if (!window.sb) { body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray);">Database not connected.</td></tr>'; return; }
+
+  const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
+  const userId = session ? session.userId : null;
+
+  if (!userId) {
+    body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray);">Please sign in as an organizer.</td></tr>';
+    return;
+  }
+
+  // An organizer is an outsider — this dashboard ALWAYS shows only the
+  // meets they personally created. (Global view lives in Super Admin.)
+  const { data, error } = await window.sb.from('tournaments')
+    .select('tournament_id, title, venue_name, city, start_date, end_date, gateway_option, status, created_by')
+    .eq('created_by', userId)
+    .order('start_date', { ascending: false });
+  if (error) { console.error('[SwimFest] org pipeline:', error.message); return; }
+
+  const rows = data || [];
+  const myIds = rows.map(t => t.tournament_id);
+
+  // Entries for this organizer's tournaments only
+  const counts = {};                 // entry rows per tournament
+  const athleteSet = new Set();      // distinct swimmers hosted
+  if (myIds.length) {
+    try {
+      const { data: entries } = await window.sb
+        .from('event_entries').select('tournament_id, swimmer_id').in('tournament_id', myIds);
+      (entries || []).forEach(e => {
+        counts[e.tournament_id] = (counts[e.tournament_id] || 0) + 1;
+        if (e.swimmer_id) athleteSet.add(e.swimmer_id);
+      });
+    } catch (_) {}
+  }
+
+  ORG_TOURNAMENTS = rows.map(t => ({
+    title: t.title,
+    sub: `${t.venue_name || ''}${t.city ? ', ' + t.city : ''} · ${counts[t.tournament_id] || 0} entries`,
+    dates: fmtDates(t.start_date, t.end_date),
+    payType: t.gateway_option === 'OPTION_A_PLATFORM_GATEWAY' ? 'A' : 'B',
+    status: t.status,
+    upfront: t.gateway_option !== 'OPTION_A_PLATFORM_GATEWAY',
+  }));
+
+  // ── Real header metrics ── (reuse `session` from above)
+  const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const orgName = (session && session.name) ? session.name : 'My Organization';
+  setTxt('orgIdentity', `Organization: ${orgName}`);
+  setTxt('orgStatEvents', rows.length);
+  setTxt('orgStatAthletes', athleteSet.size.toLocaleString('en-IN'));
+  // Option B meets carry the ₹5,000 upfront software fee
+  const optionBCount = rows.filter(t => t.gateway_option !== 'OPTION_A_PLATFORM_GATEWAY').length;
+  setTxt('orgStatFees', '₹' + (optionBCount * 5000).toLocaleString('en-IN'));
+  setTxt('orgStatActive', rows.filter(t => t.status === 'LOCKED' || t.status === 'PUBLISHED').length);
+
+  if (!ORG_TOURNAMENTS.length) {
+    body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray);">No meets yet. Click “Create Event” to host your first meet.</td></tr>';
+    return;
+  }
+  renderPipeline();
+}
 function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function payChip(t){
@@ -43,7 +88,10 @@ function statusChip(s){
   const map = {
     PENDING_APPROVAL: { cls:'chip-pending',   dot:'warning',   label:'Pending Approval' },
     PUBLISHED:        { cls:'chip-published',  dot:'success',   label:'Published (Live)' },
+    LOCKED:           { cls:'chip-published',  dot:'success',   label:'Locked (Heats Set)' },
+    CLOSED:           { cls:'chip-pending',    dot:'warning',   label:'Registration Closed' },
     COMPLETED:        { cls:'chip-completed',  dot:'dark',      label:'Completed (Archived)' },
+    REJECTED_DRAFT:   { cls:'chip-draft',      dot:'gray',      label:'Rejected' },
     DRAFT:            { cls:'chip-draft',      dot:'gray',      label:'Draft' },
   };
   const c = map[s] || map.DRAFT;
@@ -56,10 +104,10 @@ function actionBtns(t){
       <a href="orgcreate.html"     class="em-action-btn em-btn-view"><i class="fas fa-eye"></i> View Summary</a>
       <a href="orgcreate.html"     class="em-action-btn em-btn-edit"><i class="fas fa-pen"></i> Edit Draft</a>
     </div>`;
-  if (t.status === 'PUBLISHED') return `
+  if (t.status === 'PUBLISHED' || t.status === 'LOCKED' || t.status === 'CLOSED') return `
     <div class="em-action-group">
-      <a href="organizer.html"     class="em-action-btn em-btn-manage"><i class="fas fa-cogs"></i> Manage</a>
-      <a href="orgracecontrol.html" class="em-action-btn em-btn-race"><i class="fas fa-broadcast-tower"></i> Race Control</a>
+      <a href="orgracecontrol.html" class="em-action-btn em-btn-manage"><i class="fas fa-cogs"></i> Manage</a>
+      <a href="results.html" class="em-action-btn em-btn-race"><i class="fas fa-broadcast-tower"></i> Results</a>
     </div>`;
   if (t.status === 'COMPLETED') return `
     <div class="em-action-group">
@@ -145,6 +193,6 @@ window.showToast = showToast;
 })();
 
 document.addEventListener('DOMContentLoaded', ()=>{
-  renderPipeline();
   renderLifecycle();
+  loadOrgPipeline();
 });

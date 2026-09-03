@@ -10,10 +10,15 @@
 const SPEARHEAD_8 = { 1:4, 2:5, 3:3, 4:6, 5:2, 6:7, 7:1, 8:8 };
 const SPEARHEAD_6 = { 1:3, 2:4, 3:2, 4:5, 5:1, 6:6 };
 
-// ─── Master Roster (imported from Chapter 7 lock state) ──────
-// In production this comes from the locked admin roster.
-// Here we seed 50 realistic entries across all categories.
-const MASTER_ROSTER = [
+// ─── Master Roster ───────────────────────────────────────────
+// Populated live from Supabase event_entries for the selected
+// tournament (see loadRosterForTournament). Falls back to the
+// SAMPLE_ROSTER below when no DB entries are available so the
+// engine can still be demoed.
+let MASTER_ROSTER = [];
+let currentTournamentId = null;
+
+const SAMPLE_ROSTER = [
   // ── U-12 Boys ──
   { swimId:'SWM-001', name:'Arun Kumar',      gender:'Boy', category:'U-12', event:'50m Freestyle',    seedTime:'00:39.20', academy:'Chennai SC' },
   { swimId:'SWM-002', name:'Vikram Nair',      gender:'Boy', category:'U-12', event:'50m Freestyle',    seedTime:'00:41.50', academy:'SRM Aquatics' },
@@ -79,9 +84,145 @@ const MASTER_ROSTER = [
   { swimId:'SWM-050', name:'Anirudh Raja',     gender:'Boy', category:'U-10', event:'25m Backstroke',   seedTime:'00:25.60', academy:'Chennai SC' },
 ];
 
+// Start with the sample so the page renders before DB load.
+MASTER_ROSTER = SAMPLE_ROSTER;
+
 // ─── App State ────────────────────────────────────────────────
 let generatedHeats = [];    // All heat objects after generation
 let isPublished    = false;
+
+// ─── Supabase: load tournaments into the selector ─────────────
+async function loadTournamentOptions() {
+  const sel = document.getElementById('hgTournamentSelect');
+  if (!sel) return;
+  if (!window.sb) { sel.innerHTML = '<option value="">DB not connected</option>'; return; }
+
+  const { data, error } = await window.sb
+    .from('tournaments')
+    .select('tournament_id, title, status')
+    .order('start_date', { ascending: false });
+
+  if (error || !data || !data.length) {
+    sel.innerHTML = '<option value="">No tournaments found</option>';
+    return;
+  }
+
+  sel.innerHTML = data.map(t =>
+    `<option value="${t.tournament_id}">${escHtml(t.title)} — ${t.status}</option>`
+  ).join('');
+
+  sel.addEventListener('change', () => loadRosterForTournament(sel.value));
+  await loadRosterForTournament(sel.value);
+}
+
+// ─── Supabase: pull event_entries → MASTER_ROSTER shape ───────
+function msToSeedStr(ms) {
+  if (!ms || ms <= 0) return 'NT';
+  const totalSec = ms / 1000;
+  const min = Math.floor(totalSec / 60);
+  const sec = (totalSec % 60).toFixed(2).padStart(5, '0');
+  return `${String(min).padStart(2,'0')}:${sec}`;
+}
+
+async function loadRosterForTournament(tournamentId) {
+  currentTournamentId = tournamentId || null;
+  if (!window.sb || !tournamentId) { MASTER_ROSTER = SAMPLE_ROSTER; refreshRosterCounts(); return; }
+
+  const { data, error } = await window.sb
+    .from('event_entries')
+    .select('entry_id, event_name, category, gender, seed_time_ms, swimmer_id')
+    .eq('tournament_id', tournamentId);
+
+  if (error) { console.error('[SwimFest] load entries:', error.message); MASTER_ROSTER = SAMPLE_ROSTER; refreshRosterCounts(); return; }
+
+  if (!data || !data.length) {
+    // No real entries yet — nothing to seed for this tournament.
+    MASTER_ROSTER = [];
+    refreshRosterCounts();
+    showToast('No confirmed entries for this tournament yet.', 'warn');
+    return;
+  }
+
+  // Swimmer names/academies come from the public swimmer_directory view
+  // (the swimmers table RLS blocks reading swimmers you don't own).
+  const swimmerIds = [...new Set(data.map(e => e.swimmer_id).filter(Boolean))];
+  const nameMap = {};
+  if (swimmerIds.length) {
+    const { data: dir } = await window.sb
+      .from('swimmer_directory')
+      .select('swimmer_id, full_name, academy_name')
+      .in('swimmer_id', swimmerIds);
+    (dir || []).forEach(s => { nameMap[s.swimmer_id] = s; });
+  }
+
+  MASTER_ROSTER = data.map(e => {
+    const s = nameMap[e.swimmer_id] || {};
+    return {
+      entryId:  e.entry_id,
+      swimId:   e.swimmer_id,
+      name:     s.full_name || 'Unknown Swimmer',
+      gender:   e.gender,
+      category: e.category,
+      event:    e.event_name,
+      seedTime: msToSeedStr(e.seed_time_ms),
+      academy:  s.academy_name || 'Unattached',
+    };
+  });
+
+  refreshRosterCounts();
+  showToast(`Loaded ${MASTER_ROSTER.length} entries for this tournament.`, 'success');
+}
+
+function refreshRosterCounts() {
+  const rows = document.getElementById('totalEventRows');
+  const ath  = document.getElementById('totalAthletes');
+  if (rows) rows.textContent = MASTER_ROSTER.length;
+  if (ath)  ath.textContent  = new Set(MASTER_ROSTER.map(r => r.swimId)).size;
+}
+
+// ─── Supabase: save generated heats to heat_rows ──────────────
+async function saveHeatsToDB() {
+  if (!window.sb)              { showToast('DB not connected — cannot save.', 'warn'); return false; }
+  if (!currentTournamentId)    { showToast('Select a tournament first.', 'warn'); return false; }
+  if (!generatedHeats.length)  { showToast('Generate heat sheets first.', 'warn'); return false; }
+
+  // Build heat_rows only for lanes that map to a real event_entry
+  const rows = [];
+  generatedHeats.forEach(ev => {
+    ev.heats.forEach(heat => {
+      heat.lanes.forEach((lane, i) => {
+        if (lane.empty || !lane.entryId) return;
+        rows.push({
+          tournament_id:  currentTournamentId,
+          event_entry_id: lane.entryId,
+          pool_label:     ev.poolLabel,
+          event_no:       ev.eventNum,
+          heat_number:    heat.heatNumber,
+          lane_number:    i + 1,
+          status:         'OK',
+        });
+      });
+    });
+  });
+
+  if (!rows.length) {
+    showToast('No real entries to save (using sample data). Load a tournament with entries.', 'warn');
+    return false;
+  }
+
+  // Clear any previous heat rows for this tournament, then insert fresh
+  const del = await window.sb.from('heat_rows').delete().eq('tournament_id', currentTournamentId);
+  if (del.error) { console.error('[SwimFest] clear heats:', del.error.message); }
+
+  const { error } = await window.sb.from('heat_rows').insert(rows);
+  if (error) { console.error('[SwimFest] save heats:', error.message); showToast('Save failed: ' + error.message, 'warn'); return false; }
+
+  // Mark the tournament as LOCKED (heats generated)
+  await window.sb.from('tournaments').update({ status: 'LOCKED' }).eq('tournament_id', currentTournamentId);
+
+  showToast(`Saved ${rows.length} heat lane rows to the database.`, 'success');
+  return true;
+}
 
 // ─── Utilities ────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -557,13 +698,18 @@ function publishHeatSheets() {
   openModal('publishModal');
 }
 
-function confirmPublish() {
+async function confirmPublish() {
+  const saved = await saveHeatsToDB();
+  if (!saved) { closeModal('publishModal'); return; }
   isPublished = true;
   closeModal('publishModal');
-  $('publishBtn').innerHTML = '<i class="fas fa-check-circle"></i> Published';
-  $('publishBtn').style.background = '#219a52';
-  $('publishBtn').disabled = true;
-  showToast('Heat sheets published and visible on the event page.', 'success');
+  const btn = $('publishBtn');
+  if (btn) {
+    btn.innerHTML = '<i class="fas fa-check-circle"></i> Published';
+    btn.style.background = '#219a52';
+    btn.disabled = true;
+  }
+  showToast('Heat sheets published to the database — now visible on Heat Sheets & Results.', 'success');
 }
 
 // ─── Toast ────────────────────────────────────────────────────
@@ -618,8 +764,9 @@ function initPoolToggles() {
 
 // ─── Bootstrap ────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  $('totalEventRows').textContent = MASTER_ROSTER.length;
+  refreshRosterCounts();
   initPoolToggles();
+  loadTournamentOptions();
 
   $('generateBtn').addEventListener('click', generateHeatSheets);
   $('exportCTSBtn').addEventListener('click', exportCTS);

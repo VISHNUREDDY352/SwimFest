@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Universal Override Engine — SwimFest Super Admin</title>
     <script src="guard.js" data-roles="super_admin"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="admin.css">
     <link rel="stylesheet" href="dashboard.css">
@@ -99,11 +102,7 @@
                         <div class="ov-field" style="margin-bottom:0;">
                             <label class="ov-label">Tournament</label>
                             <select class="ov-select" id="ovTournamentSelect" onchange="loadTournamentDetails()">
-                                <option value="">— Select a tournament —</option>
-                                <option value="TRN-TN-2026-004" data-status="COMPLETED">Golden Non-Medalist Championship 2026 (TRN-TN-2026-004)</option>
-                                <option value="TRN-TN-2026-011" data-status="PUBLISHED">District Schools Meet '26 (TRN-TN-2026-011)</option>
-                                <option value="TRN-TN-2026-009" data-status="COMPLETED">Inter-Club Sprint Gala '26 (TRN-TN-2026-009)</option>
-                                <option value="TRN-TN-2026-003" data-status="PUBLISHED">State Masters Meet 2026 (TRN-TN-2026-003)</option>
+                                <option value="">Loading tournaments…</option>
                             </select>
                         </div>
                         <button class="admin-btn admin-btn-outline" onclick="loadTournamentDetails()" style="height:42px;">
@@ -223,21 +222,23 @@
     <script>
     'use strict';
 
-    const TOURNAMENTS_DATA = {
-        'TRN-TN-2026-004': { name:'Golden Non-Medalist Championship 2026', status:'COMPLETED' },
-        'TRN-TN-2026-011': { name:"District Schools Meet '26",             status:'PUBLISHED' },
-        'TRN-TN-2026-009': { name:"Inter-Club Sprint Gala '26",            status:'COMPLETED' },
-        'TRN-TN-2026-003': { name:'State Masters Meet 2026',               status:'PUBLISHED' },
-    };
-
-    const AUDIT_LOG = [
-        { id:'LOG-TN-2026-9921', action:'EVENT_REOPENED', trn:'TRN-TN-2026-004', notes:'Age cutoff correction in Heat 2 — Boys U-12', admin:'SA-001', ts:'2026-09-02 17:44' },
-        { id:'LOG-TN-2026-9920', action:'FEE_OVERRIDE',   trn:'TRN-TN-2026-003', notes:'Platform fee adjusted to ₹50/booking',          admin:'SA-001', ts:'2026-09-01 16:20' },
-        { id:'LOG-TN-2026-9919', action:'COACH_VERIFIED', trn:'—',               notes:'Coach V. Raman — ASCA-IND-883 verified',        admin:'SA-001', ts:'2026-09-01 14:30' },
-        { id:'LOG-TN-2026-9918', action:'EVENT_APPROVED', trn:'TRN-TN-2026-011', notes:'District Schools Meet approved for publishing',  admin:'SA-001', ts:'2026-08-31 10:12' },
-    ];
-
+    let TOURNAMENTS_DATA = {};   // { tournament_id: { name, status } } — loaded from DB
     let selectedAction = null;
+
+    // ── Load real tournaments into the picker ──────────────────
+    async function loadOverrideTournaments(){
+        const sel = document.getElementById('ovTournamentSelect');
+        if (!sel || !window.sb) return;
+        const { data, error } = await window.sb
+            .from('tournaments')
+            .select('tournament_id, title, status')
+            .order('start_date', { ascending: false });
+        if (error || !data) { console.error('[SwimFest] override tournaments:', error && error.message); return; }
+        TOURNAMENTS_DATA = {};
+        data.forEach(t => { TOURNAMENTS_DATA[t.tournament_id] = { name: t.title, status: t.status }; });
+        sel.innerHTML = '<option value="">— Select a tournament —</option>' +
+            data.map(t => `<option value="${t.tournament_id}">${escHtml(t.title)} (${t.status})</option>`).join('');
+    }
 
     function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -314,36 +315,75 @@
         showToast('Override cancelled.','info');
     };
 
-    window.saveOverride = function(){
+    window.saveOverride = async function(){
         const reason = document.getElementById('ovReason').value.trim();
         const trnId  = document.getElementById('ovTrnId').textContent;
         if (!selectedAction) { showToast('Select an override action first.','warn'); return; }
         if (!reason)         { showToast('Override reason is mandatory for audit log.','warn'); return; }
+        if (!window.sb)      { showToast('Database not connected.','warn'); return; }
 
         const actionLabels = { reopen:'EVENT_REOPENED', fees:'FEE_OVERRIDE', cutoff:'AGE_CUTOFF_EDITED', cancel:'EVENT_CANCELLED' };
-        const logId = 'LOG-TN-2026-' + Math.floor(9900+Math.random()*99);
-        const now   = new Date().toLocaleString('en-IN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
 
-        // Prepend to audit log
-        AUDIT_LOG.unshift({ id:logId, action:actionLabels[selectedAction], trn:trnId, notes:reason, admin:'SA-001', ts:now });
-        renderAuditLog();
+        // Apply the real change to the tournament where applicable
+        const patch = {};
+        if (selectedAction === 'reopen') patch.status = 'PUBLISHED';
+        if (selectedAction === 'cancel') patch.status = 'REJECTED_DRAFT';
+        if (selectedAction === 'fees') {
+            const base  = parseFloat(document.getElementById('newBaseFee')?.value);
+            const relay = parseFloat(document.getElementById('newRelayFee')?.value);
+            if (!isNaN(base))  patch.reg_fee_amount   = base;
+            if (!isNaN(relay)) patch.relay_add_on_fee = relay;
+        }
+        if (selectedAction === 'cutoff') {
+            patch.allow_swim_up = document.getElementById('newSwimUp')?.value === 'swimup';
+        }
+
+        if (Object.keys(patch).length) {
+            const { error } = await window.sb.from('tournaments').update(patch).eq('tournament_id', trnId);
+            if (error) { console.error('[SwimFest] override apply:', error.message); showToast('Override failed: ' + error.message, 'warn'); return; }
+        }
+
+        // Write the immutable audit entry
+        const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
+        await window.sb.from('system_audit_logs').insert({
+            admin_id: session ? session.userId : null,
+            action_type: actionLabels[selectedAction],
+            target_entity: 'TOURNAMENT',
+            target_entity_id: trnId,
+            notes: reason,
+        });
+
+        await renderAuditLog();
         document.getElementById('ovReason').value = '';
         selectedAction = null;
         document.querySelectorAll('.ov-action-card').forEach(c=>c.classList.remove('selected'));
         document.getElementById('ovActionFields').innerHTML = '';
-        showToast(`Override saved. Audit log ID: ${logId}`, 'success');
+        showToast('Override saved & logged to the immutable audit ledger.', 'success');
+        loadOverrideTournaments(); // refresh statuses in the picker
     };
 
-    function renderAuditLog(){
-        const actionClass = { EVENT_REOPENED:'log-reopen', FEE_OVERRIDE:'log-fees', EVENT_CANCELLED:'log-cancel', COACH_VERIFIED:'log-verify', ACADEMY_VERIFIED:'log-verify', EVENT_APPROVED:'log-verify', AGE_CUTOFF_EDITED:'log-fees' };
-        document.getElementById('ovLogBody').innerHTML = AUDIT_LOG.map(r=>`
+    async function renderAuditLog(){
+        if (!window.sb) return;
+        const { data, error } = await window.sb
+            .from('system_audit_logs')
+            .select('log_id, admin_id, action_type, target_entity_id, notes, created_at')
+            .order('created_at', { ascending: false })
+            .limit(50);
+        const body = document.getElementById('ovLogBody');
+        if (error) { console.error('[SwimFest] audit log:', error.message); return; }
+        if (!data || !data.length) {
+            body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--gray);">No override actions logged yet.</td></tr>';
+            return;
+        }
+        const actionClass = { EVENT_REOPENED:'log-reopen', FEE_OVERRIDE:'log-fees', EVENT_CANCELLED:'log-cancel', COACH_VERIFIED:'log-verify', ACADEMY_VERIFIED:'log-verify', EVENT_APPROVED:'log-verify', EVENT_REJECTED:'log-cancel', AGE_CUTOFF_EDITED:'log-fees' };
+        body.innerHTML = data.map(r=>`
             <tr>
-                <td style="font-family:monospace;font-size:0.72rem;">${escHtml(r.id)}</td>
-                <td><span class="log-action-badge ${actionClass[r.action]||''}">${escHtml(r.action)}</span></td>
-                <td style="font-family:monospace;font-size:0.72rem;">${escHtml(r.trn)}</td>
-                <td style="max-width:240px;">${escHtml(r.notes)}</td>
-                <td>${escHtml(r.admin)}</td>
-                <td style="font-size:0.75rem;color:var(--gray);">${escHtml(r.ts)}</td>
+                <td style="font-family:monospace;font-size:0.72rem;">${escHtml(String(r.log_id).slice(0,8))}</td>
+                <td><span class="log-action-badge ${actionClass[r.action_type]||''}">${escHtml(r.action_type)}</span></td>
+                <td style="font-family:monospace;font-size:0.72rem;">${escHtml(String(r.target_entity_id||'—').slice(0,8))}</td>
+                <td style="max-width:240px;">${escHtml(r.notes||'')}</td>
+                <td style="font-family:monospace;font-size:0.72rem;">${escHtml(String(r.admin_id||'—').slice(0,8))}</td>
+                <td style="font-size:0.75rem;color:var(--gray);">${escHtml(new Date(r.created_at).toLocaleString('en-IN'))}</td>
             </tr>`).join('');
     }
 
@@ -368,7 +408,10 @@
         document.head.appendChild(s);
     })();
 
-    document.addEventListener('DOMContentLoaded', renderAuditLog);
+    document.addEventListener('DOMContentLoaded', () => {
+        loadOverrideTournaments();
+        renderAuditLog();
+    });
     </script>
 </body>
 </html>

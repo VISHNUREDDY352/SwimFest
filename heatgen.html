@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Heat Generation Console — SwimFest</title>
+    <script src="guard.js" data-roles="event_manager,super_admin"></script>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="admin.css">
     <link rel="stylesheet" href="heatgen.css">
@@ -43,11 +44,16 @@
         <div class="admin-tournament-banner">
             <div class="admin-tournament-inner">
                 <div class="admin-t-info">
-                    <div class="admin-t-name">Tournament: Golden Non-Medalist Swimming Championship 2026</div>
+                    <div class="admin-t-name" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <span>Tournament:</span>
+                        <select id="hgTournamentSelect" style="font:inherit;font-weight:700;padding:6px 10px;border-radius:6px;border:1px solid var(--gray-light);max-width:420px;">
+                            <option value="">Loading tournaments…</option>
+                        </select>
+                    </div>
                     <div class="admin-t-meta">
                         <span class="admin-status-chip locked"><i class="fas fa-lock"></i> Player List Locked</span>
-                        <span class="admin-t-meta-item"><i class="fas fa-users"></i> Total Athletes: <strong>248</strong></span>
-                        <span class="admin-t-meta-item"><i class="fas fa-list-ol"></i> Total Event Rows: <strong id="totalEventRows">612</strong></span>
+                        <span class="admin-t-meta-item"><i class="fas fa-users"></i> Total Athletes: <strong id="totalAthletes">0</strong></span>
+                        <span class="admin-t-meta-item"><i class="fas fa-list-ol"></i> Total Event Rows: <strong id="totalEventRows">0</strong></span>
                         <span class="admin-t-meta-item" id="heatsGeneratedBadge" style="display:none;">
                             <i class="fas fa-fire" style="color:var(--success)"></i> <strong style="color:var(--success)">Heats Generated</strong>
                         </span>
@@ -269,7 +275,9 @@
         </div>
     </div>
 
-    <script src="academy.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
     <script src="heatgen.js"></script>
 </body>
 </html>

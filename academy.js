@@ -5,8 +5,8 @@
 
 'use strict';
 
-// ─── Academy Master Data (Entity 1) ──────────────────────────
-const ACADEMIES = [
+// ─── Academy Master Data (Entity 1) — replaced from Supabase ──
+let ACADEMIES = [
   {
     academy_id   : 'ACD-TN-001',
     academy_name : 'Chennai Swim Club',
@@ -123,8 +123,8 @@ const ACADEMIES = [
   },
 ];
 
-// ─── Coach Master Data (Entity 2) ─────────────────────────────
-const COACHES = [
+// ─── Coach Master Data (Entity 2) — replaced from Supabase ────
+let COACHES = [
   {
     coach_id        : 'CCH-TN-101',
     full_name       : 'K. Ramesh',
@@ -570,12 +570,81 @@ function closeModal(id) {
   m.style.display = 'none';
 }
 
+// ─── Supabase: load real academies + coaches + swimmer counts ─
+async function loadDirectoryFromDB() {
+  if (!window.sb) return; // keep sample data if DB unavailable
+
+  const [acRes, coRes, dirRes] = await Promise.all([
+    window.sb.from('academies').select('*').order('academy_name'),
+    window.sb.from('coaches').select('*'),
+    window.sb.from('swimmer_directory').select('swimmer_id, full_name, academy_id'),
+  ]);
+
+  if (acRes.error || !acRes.data || !acRes.data.length) {
+    console.info('[SwimFest] no academies in DB — keeping sample directory.');
+    return;
+  }
+
+  // Group swimmers by academy
+  const swimmersByAcademy = {};
+  (dirRes.data || []).forEach(s => {
+    if (!s.academy_id) return;
+    (swimmersByAcademy[s.academy_id] = swimmersByAcademy[s.academy_id] || [])
+      .push({ name: s.full_name, id: String(s.swimmer_id).slice(0, 8), category: '', events: 0 });
+  });
+
+  const initialsOf = (name) => {
+    const p = String(name || '').trim().split(/\s+/).filter(Boolean);
+    return ((p[0]?.[0] || '') + (p[1]?.[0] || '')).toUpperCase() || 'AC';
+  };
+
+  ACADEMIES = acRes.data.map(a => ({
+    academy_id   : a.academy_id,
+    academy_name : a.academy_name,
+    address_line : a.address_line || '',
+    city         : a.city || '',
+    state        : a.state || 'Tamil Nadu',
+    contact_person: a.contact_person || '—',
+    phone_number : a.phone_number || '—',
+    email_id     : a.email_id || '—',
+    pool_length  : a.pool_length || '—',
+    lane_count   : a.lane_count ? `${a.lane_count}_lanes` : '—',
+    pool_type    : a.pool_type || '—',
+    status       : a.status === 'APPROVED_ACTIVE' ? 'Active' : (a.status === 'PENDING_VERIFICATION' ? 'Pending' : 'Inactive'),
+    initials     : initialsOf(a.academy_name),
+    swimmers     : swimmersByAcademy[a.academy_id] || [],
+  }));
+
+  COACHES = (coRes.data || []).map(c => ({
+    coach_id     : c.coach_id,
+    full_name    : c.full_name,
+    gender       : c.gender || '',
+    mobile_number: c.mobile_number || '—',
+    email_id     : c.email_id || '—',
+    academy_id   : c.academy_id,
+    designation  : c.designation || 'Coach',
+    certifications: Array.isArray(c.certifications) ? c.certifications : [],
+    experience_years: c.experience_years || 0,
+    status       : c.status === 'APPROVED_ACTIVE' ? 'Active' : 'Pending',
+  }));
+
+  window.SWIMFEST_ACADEMIES = ACADEMIES;
+  window.SWIMFEST_COACHES   = COACHES;
+
+  // Re-render with real data
+  renderHeroStats();
+  populateCityFilter();
+  renderGrid(ACADEMIES);
+  $('acdResultsCount').textContent = `Showing ${ACADEMIES.length} academies`;
+}
+
 // ─── Bootstrap ────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   renderHeroStats();
   populateCityFilter();
   renderGrid(ACADEMIES);
   $('acdResultsCount').textContent = `Showing ${ACADEMIES.length} academies`;
+  loadDirectoryFromDB();  // replace sample data with real academies/coaches
 
   // Search
   $('acdSearch').addEventListener('input', applyFilters);

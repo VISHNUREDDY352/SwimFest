@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Race Control — SwimFest EM Portal</title>
+    <script src="guard.js" data-roles="event_manager,super_admin"></script>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="admin.css">
     <link rel="stylesheet" href="dashboard.css">
@@ -164,7 +165,9 @@
         </div>
     </main>
 
-    <script src="results.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
     <script>
     'use strict';
     const DQ_CODES_RC = {'':'— No DQ —','FS':'FS — False Start','IT':'IT — Illegal Turn','IS':'IS — Illegal Stroke','IK':'IK — Illegal Kick','OT':'OT — One-Hand Touch','LV':'LV — Lane Violation','ET':'ET — Relay Early Takeoff'};
@@ -231,8 +234,12 @@
       setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400);},3200);
     }
 
-    window.saveTimings = () => showToast('Draft timings saved for Pool 1 — Event 3, Heat 3.','info');
-    window.convertPublish = () => showToast('Results aggregated and published. Rankings awarded.','success');
+    window.saveTimings = () => showToast('Draft timings saved locally. Use the Live Results console to publish to the database.','info');
+    // Publishing official results is handled by the DB-backed Results console.
+    window.convertPublish = () => {
+      showToast('Opening the Live Results console to publish to the database…','info');
+      setTimeout(() => { window.location.href = 'results.html'; }, 900);
+    };
 
     window.handleRosterUpload = function(input) {
       if (!input.files[0]) return;

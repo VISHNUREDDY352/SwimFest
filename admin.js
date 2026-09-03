@@ -35,12 +35,96 @@ let ROSTER = [
   { id:'015', swimId:'SWM-2026-08494', name:'Rahul Menon',    gender:'Boy',  dob:'2010-04-25', age:15, category:'U-16', genderCat:'Boys',  academy:'Chennai Swim Club',   coach:'K. Ramesh',   event:'200m Freestyle',   seedTime:'02:14.50', flags:[], manual:false },
 ];
 
-let isLocked       = false;
+// ROSTER starts empty; filled from Supabase for the selected tournament
+ROSTER = [];
+
+let isLocked        = false;
 let pendingDeleteId = null;
-let nextManualId   = 16;
+let nextManualId    = 16;
+let currentTournamentId = null;
 
 // ─── Utilities ────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
+
+// ── Supabase: load tournaments into the selector ──────────────
+async function loadAdminTournaments() {
+  const sel = $('adminTournamentSelect');
+  if (!sel || !window.sb) { if (sel) sel.innerHTML = '<option value="">DB not connected</option>'; return; }
+  const { data, error } = await window.sb
+    .from('tournaments')
+    .select('tournament_id, title, status')
+    .order('start_date', { ascending: false });
+  if (error || !data || !data.length) { sel.innerHTML = '<option value="">No tournaments found</option>'; return; }
+  sel.innerHTML = data.map(t => `<option value="${t.tournament_id}">${escHtml(t.title)} — ${t.status}</option>`).join('');
+  sel.addEventListener('change', () => loadRoster(sel.value));
+
+  // Honor ?t=<tournament_id> deep link (e.g. from EM/Org dashboard "Manage")
+  const wanted = new URLSearchParams(location.search).get('t');
+  if (wanted && data.some(t => t.tournament_id === wanted)) sel.value = wanted;
+
+  await loadRoster(sel.value);
+}
+
+function msToSeed(ms) {
+  if (!ms || ms <= 0) return 'NT';
+  const min = Math.floor(ms / 60000);
+  const sec = ((ms % 60000) / 1000).toFixed(2).padStart(5, '0');
+  return `${String(min).padStart(2,'0')}:${sec}`;
+}
+
+// ── Supabase: load event_entries for a tournament into ROSTER ─
+async function loadRoster(tournamentId, silent = false) {
+  currentTournamentId = tournamentId || null;
+  if (!window.sb || !tournamentId) { ROSTER = []; renderGrid(); return; }
+
+  const { data, error } = await window.sb
+    .from('event_entries')
+    .select('entry_id, event_name, category, gender, seed_time_ms, swimmer_id')
+    .eq('tournament_id', tournamentId);
+
+  if (error) { console.error('[SwimFest] roster load:', error.message); ROSTER = []; renderGrid(); return; }
+  if (!data || !data.length) { ROSTER = []; populateAcademyFilter(); renderGrid(); if (!silent) showToast('No entries for this tournament yet.', 'info'); return; }
+
+  // Swimmer details from the public directory + swimmers table (DOB via directory not available; use entries)
+  const swimmerIds = [...new Set(data.map(e => e.swimmer_id).filter(Boolean))];
+  const nameMap = {};
+  if (swimmerIds.length) {
+    const { data: dir } = await window.sb
+      .from('swimmer_directory').select('swimmer_id, full_name, academy_name').in('swimmer_id', swimmerIds);
+    (dir || []).forEach(s => { nameMap[s.swimmer_id] = s; });
+  }
+
+  ROSTER = data.map((e, i) => {
+    const s = nameMap[e.swimmer_id] || {};
+    return {
+      id: e.entry_id,
+      swimId: e.swimmer_id ? String(e.swimmer_id).slice(0, 8) : '—',
+      name: s.full_name || 'Unknown Swimmer',
+      gender: e.gender,
+      dob: '',
+      age: '',
+      category: e.category,
+      genderCat: e.gender === 'Girl' ? 'Girls' : 'Boys',
+      academy: s.academy_name || 'Unattached',
+      coach: '—',
+      event: e.event_name,
+      seedTime: msToSeed(e.seed_time_ms),
+      flags: [],
+      manual: false,
+    };
+  });
+
+  populateAcademyFilter();
+  renderGrid();
+  if (!silent) showToast(`Loaded ${ROSTER.length} entries.`, 'success');
+}
+
+// ── Supabase: lock the tournament (set status LOCKED) ─────────
+async function lockTournamentInDB() {
+  if (!window.sb || !currentTournamentId) return;
+  const { error } = await window.sb.from('tournaments').update({ status: 'LOCKED' }).eq('tournament_id', currentTournamentId);
+  if (error) console.error('[SwimFest] lock tournament:', error.message);
+}
 
 function escHtml(s) {
   return String(s)
@@ -545,8 +629,9 @@ function triggerFinalLock() {
   openModal('lockConfirmModal');
 }
 
-function executeLock() {
+async function executeLock() {
   isLocked = true;
+  await lockTournamentInDB();
   closeModal('lockConfirmModal');
 
   // Update UI
@@ -607,10 +692,21 @@ function showToast(msg, type = 'info') {
 })();
 
 // ─── Bootstrap ────────────────────────────────────────────────
+function refreshRosterLive() {
+  // Don't disrupt an open modal, an inline edit, or a locked list
+  if (isLocked) return;
+  if (document.querySelector('.modal-overlay.active')) return;
+  if (document.querySelector('tr.row-editing')) return;
+  if (!currentTournamentId) return;
+  loadRoster(currentTournamentId, true);  // silent — no toast spam
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   populateAcademyFilter();
   updateBanner();
   renderGrid();
+  loadAdminTournaments();  // replace seed ROSTER with real event_entries
+  setInterval(refreshRosterLive, 3000);  // auto-refresh roster every 3s
 
   // Search
   $('rosterSearch').addEventListener('input', renderGrid);

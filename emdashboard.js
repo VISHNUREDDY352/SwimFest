@@ -3,36 +3,61 @@
    ============================================================ */
 'use strict';
 
-// ── Tournament Pipeline Data ──────────────────────────────────
-const TOURNAMENTS = [
-  {
-    id: 'TRN-TN-2026-010',
-    title: "Golden Non-Medalist '26",
-    sub:   "Matha Aquatic Arena, Chennai",
-    dates: "Oct 15-16, 2026",
-    mode:  "A",
-    status: "PENDING_APPROVAL",
-    swimmers: "9 entries",
-  },
-  {
-    id: 'TRN-TN-2026-011',
-    title: "District Schools Meet '26",
-    sub:   "SDAT Aquatic Complex, Velachery, Chennai",
-    dates: "Nov 05-07, 2026",
-    mode:  "B",
-    status: "PUBLISHED",
-    swimmers: "184 swimmers · 462 entries",
-  },
-  {
-    id: 'TRN-TN-2026-009',
-    title: "Inter-Club Sprint Gala '26",
-    sub:   "Anna Nagar Town Pool, Chennai",
-    dates: "Jun 20-22, 2026",
-    mode:  "A",
-    status: "COMPLETED",
-    swimmers: "132 swimmers · 389 entries",
-  },
-];
+// ── Tournament Pipeline Data (loaded from Supabase) ───────────
+let TOURNAMENTS = [];
+
+function fmtDates(s, e) {
+  const f = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '';
+  return s ? `${f(s)}${e ? ' – ' + f(e) : ''}` : '—';
+}
+
+async function loadPipeline() {
+  if (!window.sb) { $('pipelineBody').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray);">Database not connected.</td></tr>'; return; }
+
+  // EM is the internal admin: this pipeline shows the platform's own
+  // (internal) meets — Option A / platform-gateway — not third-party
+  // organizer meets (Option B), which live on the Organizer dashboard.
+  const { data, error } = await window.sb
+    .from('tournaments')
+    .select('tournament_id, title, venue_name, city, start_date, end_date, gateway_option, status')
+    .eq('gateway_option', 'OPTION_A_PLATFORM_GATEWAY')
+    .order('start_date', { ascending: false });
+
+  if (error) { console.error('[SwimFest] pipeline:', error.message); return; }
+
+  // Entry counts per tournament
+  const counts = {};
+  try {
+    const { data: entries } = await window.sb.from('event_entries').select('tournament_id');
+    (entries || []).forEach(e => { counts[e.tournament_id] = (counts[e.tournament_id] || 0) + 1; });
+  } catch (_) {}
+
+  TOURNAMENTS = (data || []).map(t => ({
+    id: t.tournament_id,
+    title: t.title,
+    sub: `${t.venue_name || ''}${t.city ? ', ' + t.city : ''}`,
+    dates: fmtDates(t.start_date, t.end_date),
+    mode: t.gateway_option === 'OPTION_A_PLATFORM_GATEWAY' ? 'A' : 'B',
+    status: t.status,
+    swimmers: `${counts[t.tournament_id] || 0} entries`,
+  }));
+
+  // ── Real header metrics ──
+  const rows = data || [];
+  const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const emSession = window.SwimAuth ? window.SwimAuth.getSession() : null;
+  if (emSession && emSession.name) setTxt('emIdentity', `${emSession.name} · Tamil Nadu Operations Team`);
+  const totalEntries = rows.reduce((s, t) => s + (counts[t.tournament_id] || 0), 0);
+  setTxt('emStatMeets', rows.length);
+  setTxt('emStatEntries', totalEntries.toLocaleString('en-IN'));
+  setTxt('emStatActive', rows.filter(t => t.status === 'LOCKED' || t.status === 'PUBLISHED').length);
+
+  if (!TOURNAMENTS.length) {
+    $('pipelineBody').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray);">No internal meets yet. Click “Add Event” to create one.</td></tr>';
+    return;
+  }
+  renderPipeline();
+}
 
 // ── Utilities ─────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -45,7 +70,10 @@ function statusChip(s) {
   const map = {
     PENDING_APPROVAL: { cls:'chip-pending',   icon:'clock',       label:'Pending Approval' },
     PUBLISHED:        { cls:'chip-published',  icon:'check-circle',label:'Published (Live)' },
+    LOCKED:           { cls:'chip-published',  icon:'lock',        label:'Locked (Heats Set)' },
+    CLOSED:           { cls:'chip-pending',    icon:'clock',       label:'Registration Closed' },
     COMPLETED:        { cls:'chip-completed',  icon:'lock',        label:'Completed / Archived' },
+    REJECTED_DRAFT:   { cls:'chip-draft',      icon:'times-circle',label:'Rejected' },
     DRAFT:            { cls:'chip-draft',      icon:'edit',        label:'Draft' },
   };
   const c = map[s] || map.DRAFT;
@@ -62,19 +90,21 @@ function modeChip(m) {
 }
 
 function actionBtns(t) {
+  const tid = encodeURIComponent(t.id || '');
   if (t.status === 'PENDING_APPROVAL') return `
     <div class="em-action-group">
-      <a href="addevent.html" class="em-action-btn em-btn-view"><i class="fas fa-eye"></i> View Summary</a>
+      <a href="admin.html?t=${tid}" class="em-action-btn em-btn-view"><i class="fas fa-eye"></i> View Summary</a>
       <a href="addevent.html" class="em-action-btn em-btn-edit"><i class="fas fa-pen"></i> Edit Draft</a>
     </div>`;
-  if (t.status === 'PUBLISHED') return `
+  if (t.status === 'PUBLISHED' || t.status === 'LOCKED' || t.status === 'CLOSED') return `
     <div class="em-action-group">
-      <a href="admin.html" class="em-action-btn em-btn-manage"><i class="fas fa-cogs"></i> Manage</a>
-      <a href="racecontrol.html" class="em-action-btn em-btn-race"><i class="fas fa-broadcast-tower"></i> Race Control</a>
+      <a href="admin.html?t=${tid}" class="em-action-btn em-btn-manage"><i class="fas fa-cogs"></i> Manage</a>
+      <a href="heatgen.html" class="em-action-btn em-btn-race"><i class="fas fa-bolt"></i> Heat Gen</a>
+      <a href="results.html" class="em-action-btn em-btn-race"><i class="fas fa-broadcast-tower"></i> Results</a>
     </div>`;
   if (t.status === 'COMPLETED') return `
     <div class="em-action-group">
-      <a href="#" class="em-action-btn em-btn-archive"><i class="fas fa-archive"></i> View Archive</a>
+      <a href="heatsheets.html?tournament=${encodeURIComponent(t.title)}" class="em-action-btn em-btn-archive"><i class="fas fa-archive"></i> View Archive</a>
     </div>`;
   return '';
 }
@@ -141,14 +171,61 @@ window.openAddCoachModal   = () => openModal('addCoachModal');
 function openModal(id)  { const m=$(id); m.classList.add('active'); m.style.display='flex'; }
 window.closeModal = function(id) { const m=$(id); m.classList.remove('active'); m.style.display='none'; }
 
-window.submitAcademy = function() {
+// Upload a verification document to Supabase Storage; return its public URL
+async function uploadVerificationDoc(file, prefix) {
+  if (!file || !window.sb) return null;
+  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${prefix}/${Date.now()}_${safe}`;
+  const { error } = await window.sb.storage.from('verification-docs').upload(path, file, { upsert: false });
+  if (error) { console.error('[SwimFest] doc upload:', error.message); showToast('Document upload failed: ' + error.message, 'warn'); return null; }
+  const { data } = window.sb.storage.from('verification-docs').getPublicUrl(path);
+  return data ? data.publicUrl : null;
+}
+
+window.submitAcademy = async function() {
+  const name = $('acName')?.value.trim();
+  const city = $('acCity')?.value.trim();
+  if (!name || !city) { showToast('Academy name and city are required.', 'warn'); return; }
+  if (!window.sb) { showToast('Database not connected.', 'warn'); return; }
+
+  const file = $('acDoc')?.files?.[0] || null;
+  const docUrl = await uploadVerificationDoc(file, 'academies');
+
+  const { error } = await window.sb.from('academies').insert({
+    academy_name: name,
+    city,
+    state: $('acState')?.value.trim() || 'Tamil Nadu',
+    registration_no: $('acRegNo')?.value.trim() || null,
+    contact_person: $('acContact')?.value.trim() || null,
+    phone_number: $('acPhone')?.value.trim() || null,
+    document_url: docUrl,
+    status: 'PENDING_VERIFICATION',
+  });
+  if (error) { console.error('[SwimFest] academy submit:', error.message); showToast('Submit failed: ' + error.message, 'warn'); return; }
   closeModal('addAcademyModal');
-  showToast('Academy submitted to Super Admin verification queue. ID: ACAD-TN-2026-' + Math.floor(100+Math.random()*900), 'success');
+  showToast('Academy submitted to Super Admin verification queue.', 'success');
 };
 
-window.submitCoach = function() {
+window.submitCoach = async function() {
+  const name = $('coName')?.value.trim();
+  const license = $('coLicense')?.value.trim();
+  if (!name || !license) { showToast('Coach name and license number are required.', 'warn'); return; }
+  if (!window.sb) { showToast('Database not connected.', 'warn'); return; }
+
+  const file = $('coDoc')?.files?.[0] || null;
+  const docUrl = await uploadVerificationDoc(file, 'coaches');
+
+  const certBody = $('coCertBody')?.value || '';
+  const { error } = await window.sb.from('coaches').insert({
+    full_name: name,
+    mobile_number: $('coPhone')?.value.trim() || null,
+    certifications: [`${certBody} · ${license}`],
+    document_url: docUrl,
+    status: 'PENDING_VERIFICATION',
+  });
+  if (error) { console.error('[SwimFest] coach submit:', error.message); showToast('Submit failed: ' + error.message, 'warn'); return; }
   closeModal('addCoachModal');
-  showToast('Coach submitted to Super Admin verification queue. Status: PENDING_VERIFICATION', 'success');
+  showToast('Coach submitted to Super Admin verification queue.', 'success');
 };
 
 // ── Toast ─────────────────────────────────────────────────────
@@ -182,6 +259,6 @@ function showToast(msg, type='info') {
 
 // ── Bootstrap ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  renderPipeline();
   renderLifecycle();
+  loadPipeline();
 });

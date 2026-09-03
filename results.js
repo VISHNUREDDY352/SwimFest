@@ -21,9 +21,10 @@ const INDIV_POINTS = { 1:9, 2:7, 3:6, 4:5, 5:4, 6:3, 7:2, 8:1 };
 const RELAY_POINTS = { 1:18, 2:14, 3:12, 4:10, 5:8, 6:6, 7:4, 8:2 };
 const MAX_SCORERS_PER_ACADEMY = 2; // Individual cap (Rule 9.4)
 
-// ─── Event Master — all events with seed heats ───────────────
-// Derived from heatgen.js MASTER_ROSTER grouped by category/gender/event
-const EVENTS = [
+// ─── Event Master — sample seed heats (fallback/demo) ─────────
+// Replaced at runtime by heat_rows loaded from Supabase for the
+// selected tournament (see loadResultsForTournament).
+let EVENTS = [
   {
     id:'E01', num:1, category:'U-10', gender:'Boy',  name:'25m Freestyle',
     pool:'Competition Pool A', poolLanes:8, totalHeats:1,
@@ -156,6 +157,8 @@ const state = {
   academyPoints   : {},
 };
 
+state.currentTournamentId = null;
+
 // ─── Utilities ────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
@@ -163,6 +166,126 @@ function escHtml(s) {
   return String(s || '')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function msToClock(ms) {
+  if (!ms || ms <= 0) return 'NT';
+  const min = Math.floor(ms / 60000);
+  const sec = ((ms % 60000) / 1000).toFixed(2).padStart(5, '0');
+  return `${String(min).padStart(2,'0')}:${sec}`;
+}
+
+// ─── Supabase: tournament selector ────────────────────────────
+async function loadResultTournaments() {
+  const sel = $('resTournamentSelect');
+  if (!sel || !window.sb) { if (sel) sel.innerHTML = '<option value="">DB not connected</option>'; return; }
+
+  const { data, error } = await window.sb
+    .from('tournaments')
+    .select('tournament_id, title, status')
+    .in('status', ['LOCKED','PUBLISHED','COMPLETED'])
+    .order('start_date', { ascending: false });
+
+  if (error || !data || !data.length) {
+    sel.innerHTML = '<option value="">No tournaments with heats</option>';
+    return;
+  }
+  sel.innerHTML = data.map(t => `<option value="${t.tournament_id}">${escHtml(t.title)} — ${t.status}</option>`).join('');
+  sel.addEventListener('change', () => loadResultsForTournament(sel.value));
+  await loadResultsForTournament(sel.value);
+}
+
+// ─── Supabase: heat_rows → EVENTS structure ───────────────────
+async function loadResultsForTournament(tournamentId) {
+  state.currentTournamentId = tournamentId || null;
+  if (!window.sb || !tournamentId) return;
+
+  const { data, error } = await window.sb
+    .from('heat_rows')
+    .select(`
+      heat_row_id, pool_label, event_no, heat_number, lane_number,
+      finish_time_ms, status, dq_code, official_rank, points_awarded,
+      event_entries ( event_name, category, gender, seed_time_ms, swimmer_id )
+    `)
+    .eq('tournament_id', tournamentId)
+    .order('event_no').order('heat_number').order('lane_number');
+
+  if (error) { console.error('[SwimFest] results load:', error.message); showToast('Load failed: ' + error.message, 'warn'); return; }
+  if (!data || !data.length) {
+    EVENTS = [];
+    showToast('No heats generated for this tournament yet. Run Heat Generation first.', 'warn');
+    populateSelectors(); return;
+  }
+
+  // Swimmer names via public directory view
+  const swimmerIds = [...new Set(data.map(r => r.event_entries && r.event_entries.swimmer_id).filter(Boolean))];
+  const nameMap = {};
+  if (swimmerIds.length) {
+    const { data: dir } = await window.sb
+      .from('swimmer_directory').select('swimmer_id, full_name, academy_name').in('swimmer_id', swimmerIds);
+    (dir || []).forEach(s => { nameMap[s.swimmer_id] = s; });
+  }
+
+  // Group rows into EVENTS[ { heats[ { lanes[] } ] } ]
+  const evMap = new Map();
+  data.forEach(r => {
+    const ee = r.event_entries || {};
+    const evKey = `${r.event_no}|${ee.category}|${ee.gender}|${ee.event_name}`;
+    if (!evMap.has(evKey)) {
+      evMap.set(evKey, {
+        id: `E${String(r.event_no).padStart(2,'0')}`, num: r.event_no,
+        category: ee.category || '—', gender: ee.gender || 'Boy',
+        name: ee.event_name || 'Event', pool: r.pool_label || 'Pool',
+        poolLanes: 8, totalHeats: 0, _heats: new Map(),
+      });
+    }
+    const ev = evMap.get(evKey);
+    if (!ev._heats.has(r.heat_number)) ev._heats.set(r.heat_number, []);
+    const s = nameMap[ee.swimmer_id] || {};
+    ev._heats.get(r.heat_number).push({
+      lane: r.lane_number,
+      heatRowId: r.heat_row_id,
+      swimId: ee.swimmer_id,
+      name: s.full_name || 'Unknown',
+      academy: s.academy_name || 'Unattached',
+      seedTime: msToClock(ee.seed_time_ms),
+      // Pre-load any previously saved result so re-entry shows them
+      _savedTime: msToClock(r.finish_time_ms) === 'NT' ? '' : msToClock(r.finish_time_ms),
+      _savedStatus: r.status || 'OK',
+      _savedDq: r.dq_code || '',
+    });
+  });
+
+  EVENTS = [...evMap.values()].sort((a,b) => a.num - b.num).map(ev => {
+    const heatNos = [...ev._heats.keys()].sort((a,b) => a - b);
+    ev.totalHeats = heatNos.length;
+    ev.heats = heatNos.map((hn, i) => {
+      const lanes = ev._heats.get(hn).sort((a,b) => a.lane - b.lane);
+      // Pad to 8 lanes
+      const laneArr = [];
+      for (let l = 1; l <= (ev.poolLanes || 8); l++) {
+        const found = lanes.find(x => x.lane === l);
+        laneArr.push(found || { lane: l, swimId: null, name: null, academy: null, seedTime: null });
+      }
+      // Seed the results store from saved values
+      laneArr.forEach(ln => {
+        if (ln.swimId && (ln._savedTime || ln._savedStatus !== 'OK')) {
+          setResult(ev.id, hn, ln.lane, { finishTime: ln._savedTime || '', status: ln._savedStatus || 'OK', dqCode: ln._savedDq || '' });
+        }
+      });
+      return { heatNo: hn, isFinal: i === heatNos.length - 1, startTime: '—', lanes: laneArr };
+    });
+    delete ev._heats;
+    return ev;
+  });
+
+  state.currentEventIdx = 0;
+  state.currentHeatIdx = EVENTS[0] ? EVENTS[0].heats.length - 1 : 0;
+  populateSelectors();
+  updateBannerLabels();
+  renderGrid();
+  $('resultSheetCard').style.display = 'none';
+  showToast(`Loaded ${EVENTS.length} events from heat sheets.`, 'success');
 }
 
 function openModal(id)  { const m=$(id); m.classList.add('active'); m.style.display='flex'; }
@@ -216,7 +339,9 @@ function populateHeatSelector() {
 
 function updateBannerLabels() {
   const ev   = EVENTS[state.currentEventIdx];
+  if (!ev) { $('liveEventName').textContent = 'No events loaded'; $('liveHeatName').textContent = '—'; return; }
   const heat = ev.heats[state.currentHeatIdx];
+  if (!heat) return;
   $('liveEventName').textContent =
     `Event ${ev.num} — ${ev.gender === 'Girl' ? 'Girls' : 'Boys'} ${ev.category} ${ev.name} (${ev.pool} — ${ev.poolLanes} Lanes)`;
   $('liveHeatName').textContent  = `Heat ${heat.heatNo} of ${ev.totalHeats}${heat.isFinal ? ' — Main Heat' : ''}`;
@@ -227,8 +352,10 @@ function updateBannerLabels() {
 // ─── Render Entry Grid ────────────────────────────────────────
 function renderGrid() {
   const ev   = EVENTS[state.currentEventIdx];
-  const heat = ev.heats[state.currentHeatIdx];
   const tbody = $('resultGridBody');
+  if (!ev) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray);">No heats for this tournament. Generate heats first.</td></tr>'; return; }
+  const heat = ev.heats[state.currentHeatIdx];
+  if (!heat) { tbody.innerHTML = ''; return; }
   tbody.innerHTML = '';
 
   let filledCount = 0;
@@ -481,7 +608,7 @@ function triggerPublish() {
   openModal('publishConfirmModal');
 }
 
-function executePublish() {
+async function executePublish() {
   const ev           = EVENTS[state.currentEventIdx];
   const ranked       = aggregateEventResults(ev);
   const withPoints   = calcPointsForEvent(ranked, ev.name.toLowerCase().includes('relay'));
@@ -490,7 +617,45 @@ function executePublish() {
   state.published[ev.id] = withPoints;
   closeModal('publishConfirmModal');
   renderResultSheet(ev, withPoints);
+
+  // Persist each ranked entry back to its heat_rows row
+  await saveResultsToDB(ev, withPoints);
+
   showToast(`Official results published: ${ev.gender === 'Girl' ? 'Girls' : 'Boys'} ${ev.category} ${ev.name}`, 'success');
+}
+
+// ─── Supabase: write finish times / status / points / rank ────
+async function saveResultsToDB(ev, ranked) {
+  if (!window.sb || !state.currentTournamentId) return;
+
+  // Build a lane -> heatRowId lookup for this event
+  const rowIdByKey = {};
+  ev.heats.forEach(h => h.lanes.forEach(l => {
+    if (l.heatRowId) rowIdByKey[`${h.heatNo}_${l.lane}`] = l.heatRowId;
+  }));
+
+  const updates = ranked.map(entry => {
+    const heatRowId = rowIdByKey[`${entry.heatNo}_${entry.lane}`];
+    if (!heatRowId) return null;
+    return window.sb.from('heat_rows').update({
+      finish_time_ms: (entry.status === 'OK' && isValidTime(entry.finishTime)) ? timeToMs(entry.finishTime) : null,
+      status:         entry.status || 'OK',
+      dq_code:        entry.dqCode || null,
+      official_rank:  entry.rank || null,
+      points_awarded: entry.points || 0,
+      updated_at:     new Date().toISOString(),
+    }).eq('heat_row_id', heatRowId);
+  }).filter(Boolean);
+
+  try {
+    const results = await Promise.all(updates);
+    const failed = results.filter(r => r.error);
+    if (failed.length) { console.error('[SwimFest] result save errors:', failed.map(f=>f.error.message)); showToast('Some rows failed to save — check permissions.', 'warn'); }
+    else showToast('Results saved to database ✓', 'success');
+
+    // Mark tournament completed once results are published
+    await window.sb.from('tournaments').update({ status: 'COMPLETED' }).eq('tournament_id', state.currentTournamentId);
+  } catch (e) { console.error('[SwimFest] saveResultsToDB:', e.message); }
 }
 
 // ─── Render Official Result Sheet ─────────────────────────────
@@ -648,6 +813,7 @@ document.addEventListener('DOMContentLoaded', () => {
   populateSelectors();
   updateBannerLabels();
   renderGrid();
+  loadResultTournaments();  // replace sample EVENTS with real heat_rows
 
   // Mode toggle
   document.querySelectorAll('input[name="entryMode"]').forEach(radio => {

@@ -110,10 +110,19 @@
                 <!-- SIGNUP FORM -->
                 <form class="login-form" id="signupForm" style="display:none;" onsubmit="handleSignup(event)">
                     <h2 class="login-form-title">Create your account</h2>
-                    <p class="login-form-sub">Join SwimFest to register for competitions.</p>
+                    <p class="login-form-sub" id="signupSub">Join SwimFest to register for competitions.</p>
+
+                    <!-- Account type toggle -->
+                    <div class="login-field">
+                        <label class="login-label">I want to join as</label>
+                        <div class="signup-gender-toggle" id="signupTypeToggle">
+                            <button type="button" class="signup-gender-btn active" data-acctype="swimmer"><i class="fas fa-person-swimming"></i> Swimmer / Parent</button>
+                            <button type="button" class="signup-gender-btn" data-acctype="organizer"><i class="fas fa-building"></i> Event Organizer</button>
+                        </div>
+                    </div>
 
                     <div class="login-field">
-                        <label class="login-label">Full Name</label>
+                        <label class="login-label" id="signupNameLabel">Full Name</label>
                         <div class="login-input-wrap">
                             <i class="fas fa-user"></i>
                             <input type="text" id="signupName" class="login-input" placeholder="Your full name">
@@ -131,7 +140,7 @@
                     </div>
 
                     <div class="login-field">
-                        <label class="login-label">Phone (Parent / Guardian)</label>
+                        <label class="login-label" id="signupPhoneLabel">Phone (Parent / Guardian)</label>
                         <div class="login-input-wrap">
                             <i class="fas fa-phone"></i>
                             <input type="tel" id="signupPhone" class="login-input" placeholder="+91 98765 43210">
@@ -139,23 +148,38 @@
                         <div class="login-error" id="signupPhoneErr"></div>
                     </div>
 
-                    <div class="login-field">
-                        <label class="login-label">Swimmer Gender</label>
-                        <div class="signup-gender-toggle" id="signupGenderToggle">
-                            <button type="button" class="signup-gender-btn active" data-gender="Boy"><i class="fas fa-mars"></i> Boy</button>
-                            <button type="button" class="signup-gender-btn" data-gender="Girl"><i class="fas fa-venus"></i> Girl</button>
+                    <!-- Swimmer-only fields (hidden for organizer signup) -->
+                    <div id="swimmerFields">
+                        <div class="login-field">
+                            <label class="login-label">Swimmer Gender</label>
+                            <div class="signup-gender-toggle" id="signupGenderToggle">
+                                <button type="button" class="signup-gender-btn active" data-gender="Boy"><i class="fas fa-mars"></i> Boy</button>
+                                <button type="button" class="signup-gender-btn" data-gender="Girl"><i class="fas fa-venus"></i> Girl</button>
+                            </div>
+                            <div class="login-error" id="signupGenderErr"></div>
                         </div>
-                        <div class="login-error" id="signupGenderErr"></div>
+
+                        <div class="login-field">
+                            <label class="login-label">Swimmer Date of Birth</label>
+                            <div class="login-input-wrap">
+                                <i class="fas fa-calendar-alt"></i>
+                                <input type="date" id="signupDob" class="login-input" style="padding-left:40px;">
+                            </div>
+                            <div class="signup-derived" id="signupDerived" style="display:none;"></div>
+                            <div class="login-error" id="signupDobErr"></div>
+                        </div>
                     </div>
 
-                    <div class="login-field">
-                        <label class="login-label">Swimmer Date of Birth</label>
-                        <div class="login-input-wrap">
-                            <i class="fas fa-calendar-alt"></i>
-                            <input type="date" id="signupDob" class="login-input" style="padding-left:40px;">
+                    <!-- Organizer-only field (hidden for swimmer signup) -->
+                    <div id="organizerFields" style="display:none;">
+                        <div class="login-field">
+                            <label class="login-label">Organization / Club Name</label>
+                            <div class="login-input-wrap">
+                                <i class="fas fa-building"></i>
+                                <input type="text" id="signupOrgName" class="login-input" placeholder="e.g. Kovai Amateur Aquatic Club">
+                            </div>
+                            <div class="login-error" id="signupOrgNameErr"></div>
                         </div>
-                        <div class="signup-derived" id="signupDerived" style="display:none;"></div>
-                        <div class="login-error" id="signupDobErr"></div>
                     </div>
 
                     <div class="login-field">

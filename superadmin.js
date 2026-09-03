@@ -3,73 +3,10 @@
    ============================================================ */
 'use strict';
 
-// ── Data: Internal Meets Queue (Section 1A) ───────────────────
-const S1A_QUEUE = [
-  {
-    createdBy : 'R. Anand (EM-01)',
-    title     : "Golden Non-Medalist '26",
-    cats      : ['U10','U12','U14','U16'],
-    dates     : 'Oct 15-16',
-    venue     : 'SRM Univ Pool, Kattankulathur',
-  },
-  {
-    createdBy : 'S. Kumar (EM-02)',
-    title     : "State Sprint Aquatics '26",
-    cats      : ['U12','U14','U16'],
-    dates     : 'Nov 02-03',
-    venue     : 'SDAT Complex, Velachery, Chennai',
-  },
-];
-
-// ── Data: Third-Party Meets Queue (Section 1B) ────────────────
-const S1B_QUEUE = [
-  {
-    organizer : 'Kovai Swim Club',
-    title     : "Coimbatore District Meet '26",
-    cats      : ['U10','U12','U14','U16'],
-    payType   : 'B',
-    feePaid   : true,
-    feeAmt    : '₹5,000',
-  },
-  {
-    organizer : 'Bluefins Aquatics',
-    title     : "Kanyakumari Sprint Gala '26",
-    cats      : ['U12','U14','U16'],
-    payType   : 'A',
-    feePaid   : null, // Option A — not applicable
-    feeAmt    : null,
-  },
-];
-
-// ── Data: Academy & Coach Verification Queue (Section 2) ──────
-const S2_QUEUE = [
-  {
-    submittedBy  : 'S. Kumar (EM-02)',
-    entityType   : 'ACADEMY',
-    name         : 'Poseidon Aquatic Center',
-    detail       : 'Location: Madurai',
-    credentialId : 'TN-REG-2026-9982',
-  },
-  {
-    submittedBy  : 'R. Anand (EM-01)',
-    entityType   : 'COACH',
-    name         : 'Coach V. Raman',
-    detail       : 'Affiliation: Chennai SC',
-    credentialId : 'ASCA Level 3 Cert · ID: ASCA-IND-883',
-  },
-];
-
-// ── Permission Overview text ───────────────────────────────────
-const PERM_ROWS = [
-  { feature:'Approve / Publish Internal Meets',  em:'Draft & Submit Only',   org:'No Access',             sa:'Exclusive Permission' },
-  { feature:'Approve / Publish Third-Party Meets',em:'No Access',            org:'Draft & Submit Only',   sa:'Exclusive Permission' },
-  { feature:'Approve Academies & Coaches',        em:'Submit to Queue',      org:'No Access',             sa:'Exclusive Permission' },
-  { feature:'Live Race Control & Result Entry',   em:'Assigned Meets Only',  org:'Owned Meets Only',      sa:'Universal Unrestricted Access' },
-  { feature:'Edit Rules, Fees & Age Cutoffs',     em:'Locked (Read-Only)',   org:'Locked (Read-Only)',    sa:'Universal Override (Can Edit)' },
-  { feature:'Reopen & Edit Completed Meets',      em:'Locked',               org:'Locked',                sa:'Universal Override (Can Reopen)' },
-  { feature:'Platform Financials & Gateway',      em:'No Access',            org:'View Owned Summaries',  sa:'Full Oversight & Payout Control' },
-  { feature:'System User Account Management',     em:'No Access',            org:'No Access',             sa:'Full Control (Create/Suspend)' },
-];
+// Live data pulled from Supabase (see load* functions below)
+let S1A_QUEUE = [];   // pending internal meets (Option A gateway)
+let S1B_QUEUE = [];   // pending third-party meets (Option B gateway)
+let S2_QUEUE  = [];   // pending academy / coach verifications
 
 // ── Utilities ─────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -93,33 +30,98 @@ function showToast(msg, type='info') {
 }
 window.showToast = showToast;
 
-// ── Permission Overview ────────────────────────────────────────
-function renderPermOverview() {
-  const el = $('permOverview');
-  el.innerHTML = `
-    <p style="margin-bottom:12px;">The <strong>Super Admin Module</strong> is the core governance hub. Super Admin possesses
-    <strong>100% unrestricted CRUD permissions</strong> across all data tables, financial records, user accounts, and tournament states.</p>
-    <div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
-        <thead>
-          <tr style="background:var(--dark);">
-            <th style="padding:9px 14px;text-align:left;color:rgba(255,255,255,0.6);font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;width:220px;">Feature / Module</th>
-            <th style="padding:9px 14px;color:rgba(255,255,255,0.6);font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Event Manager</th>
-            <th style="padding:9px 14px;color:rgba(255,255,255,0.6);font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Tournament Organizer</th>
-            <th style="padding:9px 14px;color:rgba(255,255,255,0.6);font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Super Admin Permission</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${PERM_ROWS.map(r=>`
-            <tr>
-              <td style="padding:10px 14px;border-bottom:1px solid var(--gray-light);font-weight:700;color:var(--dark);">${escHtml(r.feature)}</td>
-              <td style="padding:10px 14px;border-bottom:1px solid var(--gray-light);color:var(--gray);">${escHtml(r.em)}</td>
-              <td style="padding:10px 14px;border-bottom:1px solid var(--gray-light);color:var(--gray);">${escHtml(r.org)}</td>
-              <td style="padding:10px 14px;border-bottom:1px solid var(--gray-light);font-weight:700;color:var(--primary);">${escHtml(r.sa)}</td>
-            </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>`;
+// ── Supabase: metrics ─────────────────────────────────────────
+function fmtDateRange(s, e) {
+  const f = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short' }) : '';
+  return s ? `${f(s)}${e ? ' – ' + f(e) : ''}` : '—';
+}
+
+async function loadMetrics() {
+  if (!window.sb) return;
+  const cards = document.querySelectorAll('.sa-metric-value');
+  // cards: [Active Meets, Total Athletes, Academies, Gross Revenue]
+  try {
+    const [meets, swimmers, acads, bookings] = await Promise.all([
+      window.sb.from('tournaments').select('tournament_id', { count:'exact', head:true }).in('status', ['PUBLISHED','LOCKED']),
+      window.sb.from('swimmer_directory').select('swimmer_id', { count:'exact', head:true }),
+      window.sb.from('academies').select('academy_id', { count:'exact', head:true }),
+      window.sb.from('bookings').select('total_amount'),
+    ]);
+    if (cards[0]) cards[0].textContent = meets.count ?? 0;
+    if (cards[1]) cards[1].textContent = (swimmers.count ?? 0).toLocaleString('en-IN');
+    if (cards[2]) cards[2].textContent = acads.count ?? 0;
+    if (cards[3]) {
+      const gross = (bookings.data || []).reduce((s, b) => s + Number(b.total_amount || 0), 0);
+      cards[3].textContent = '₹' + gross.toLocaleString('en-IN');
+    }
+  } catch (e) { console.warn('[SwimFest] metrics:', e.message); }
+}
+
+// ── Supabase: pending meet queues ─────────────────────────────
+async function loadMeetQueues() {
+  if (!window.sb) {
+    console.error('[SwimFest] window.sb is undefined — Supabase not initialized.');
+    $('s1aBadge').textContent = 'DB not connected';
+    $('s1bBadge').textContent = 'DB not connected';
+    return;
+  }
+  const { data, error } = await window.sb
+    .from('tournaments')
+    .select('tournament_id, title, host_organization, city, venue_name, start_date, end_date, gateway_option, status')
+    .eq('status', 'PENDING_APPROVAL')
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('[SwimFest] queues:', error.message);
+    $('s1aBadge').textContent = 'Error';
+    $('s1bBadge').textContent = 'Error';
+    showToast('Queue load failed: ' + error.message, 'warn');
+    return;
+  }
+  console.info('[SwimFest] PENDING_APPROVAL tournaments found:', (data || []).length);
+
+  const rows = data || [];
+  // Split: Option A gateway → internal (1A); Option B → third-party (1B)
+  S1A_QUEUE = rows.filter(t => t.gateway_option === 'OPTION_A_PLATFORM_GATEWAY').map(t => ({
+    id: t.tournament_id, createdBy: t.host_organization || '—', title: t.title,
+    dates: fmtDateRange(t.start_date, t.end_date), venue: `${t.venue_name || ''}${t.city ? ', ' + t.city : ''}`,
+  }));
+  S1B_QUEUE = rows.filter(t => t.gateway_option !== 'OPTION_A_PLATFORM_GATEWAY').map(t => ({
+    id: t.tournament_id, organizer: t.host_organization || '—', title: t.title,
+    payType: 'B', feePaid: true, feeAmt: '₹5,000',
+  }));
+
+  renderS1A();
+  renderS1B();
+}
+
+// ── Supabase: pending academy / coach verifications ───────────
+async function loadVerificationQueue() {
+  if (!window.sb) return;
+  const [ac, co, org] = await Promise.all([
+    window.sb.from('academies').select('academy_id, academy_name, city, registration_no, document_url, status').eq('status', 'PENDING_VERIFICATION'),
+    window.sb.from('coaches').select('coach_id, full_name, designation, certifications, document_url, status').eq('status', 'PENDING_VERIFICATION'),
+    window.sb.from('organizer_directory').select('organizer_id, org_name, city, contact_person, registration_no, document_url, status').eq('status', 'PENDING_VERIFICATION'),
+  ]);
+
+  S2_QUEUE = [];
+  (org.data || []).forEach(o => S2_QUEUE.push({
+    id: o.organizer_id, table: 'organizers', idCol: 'organizer_id',
+    entityType: 'ORGANIZER', name: o.org_name, detail: `Contact: ${o.contact_person || '—'} · ${o.city || ''}`,
+    credentialId: o.registration_no || '—', documentUrl: o.document_url || null,
+  }));
+  (ac.data || []).forEach(a => S2_QUEUE.push({
+    id: a.academy_id, table: 'academies', idCol: 'academy_id',
+    entityType: 'ACADEMY', name: a.academy_name, detail: `Location: ${a.city || '—'}`,
+    credentialId: a.registration_no || '—', documentUrl: a.document_url || null,
+  }));
+  (co.data || []).forEach(c => S2_QUEUE.push({
+    id: c.coach_id, table: 'coaches', idCol: 'coach_id',
+    entityType: 'COACH', name: c.full_name, detail: c.designation || 'Coach',
+    credentialId: Array.isArray(c.certifications) ? c.certifications.join(', ') : '—', documentUrl: c.document_url || null,
+  }));
+
+  renderS2();
 }
 
 // ── State Machine Visual ───────────────────────────────────────
@@ -163,21 +165,21 @@ function renderStateMachine() {
 // ── Section 1A: Internal Meets ────────────────────────────────
 function renderS1A() {
   $('s1aBadge').textContent = `${S1A_QUEUE.length} pending`;
+  if (!S1A_QUEUE.length) {
+    $('s1aBody').innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray);">No internal meets awaiting approval.</td></tr>`;
+    return;
+  }
   $('s1aBody').innerHTML = S1A_QUEUE.map((item, i) => {
-    const cats = item.cats.map(c=>`<span class="sa-cat-pill">${escHtml(c)}</span>`).join(' ');
     return `<tr id="s1a-row-${i}">
       <td>${escHtml(item.createdBy)}</td>
-      <td>
-        <div class="sa-meet-title">${escHtml(item.title)}</div>
-        <div class="sa-meet-sub">${cats}</div>
-      </td>
+      <td><div class="sa-meet-title">${escHtml(item.title)}</div></td>
       <td>${escHtml(item.dates)}</td>
       <td>${escHtml(item.venue)}</td>
       <td id="s1a-act-${i}">
-        <button class="sa-btn-approve" onclick="doApprove('s1a',${i},'${escHtml(item.title)}')">
+        <button class="sa-btn-approve" onclick="doApprove('s1a',${i})">
           <i class="fas fa-check"></i> Approve
         </button>
-        <button class="sa-btn-reject" onclick="doReject('s1a',${i},'${escHtml(item.title)}')">
+        <button class="sa-btn-reject" onclick="doReject('s1a',${i})">
           <i class="fas fa-times"></i> Reject
         </button>
       </td>
@@ -188,8 +190,11 @@ function renderS1A() {
 // ── Section 1B: Third-Party Meets ─────────────────────────────
 function renderS1B() {
   $('s1bBadge').textContent = `${S1B_QUEUE.length} pending`;
+  if (!S1B_QUEUE.length) {
+    $('s1bBody').innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray);">No third-party meets awaiting approval.</td></tr>`;
+    return;
+  }
   $('s1bBody').innerHTML = S1B_QUEUE.map((item, i) => {
-    const cats = item.cats.map(c=>`<span class="sa-cat-pill">${escHtml(c)}</span>`).join(' ');
     const payChip = item.payType === 'A'
       ? `<span class="pay-chip pay-chip-a"><i class="fas fa-credit-card"></i> Option A (Platform GW)</span>`
       : `<span class="pay-chip pay-chip-b"><i class="fas fa-file-excel"></i> Option B (No Gateway)</span>`;
@@ -202,17 +207,14 @@ function renderS1B() {
     const canApprove = item.feePaid !== false;
     return `<tr id="s1b-row-${i}">
       <td>${escHtml(item.organizer)}</td>
-      <td>
-        <div class="sa-meet-title">${escHtml(item.title)}</div>
-        <div class="sa-meet-sub">${cats}</div>
-      </td>
+      <td><div class="sa-meet-title">${escHtml(item.title)}</div></td>
       <td>${payChip}</td>
       <td>${feeChip}</td>
       <td id="s1b-act-${i}">
-        <button class="sa-btn-approve" ${!canApprove?'disabled title="Upfront fee not paid — cannot approve"':''} onclick="doApprove('s1b',${i},'${escHtml(item.title)}')">
+        <button class="sa-btn-approve" ${!canApprove?'disabled title="Upfront fee not paid — cannot approve"':''} onclick="doApprove('s1b',${i})">
           <i class="fas fa-check"></i> Approve
         </button>
-        <button class="sa-btn-reject" onclick="doReject('s1b',${i},'${escHtml(item.title)}')">
+        <button class="sa-btn-reject" onclick="doReject('s1b',${i})">
           <i class="fas fa-times"></i> Reject
         </button>
       </td>
@@ -223,23 +225,36 @@ function renderS1B() {
 // ── Section 2: Academy & Coach Verification ───────────────────
 function renderS2() {
   $('s2Badge').textContent = `${S2_QUEUE.length} pending`;
+  if (!S2_QUEUE.length) {
+    $('s2Body').innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray);">No academies or coaches awaiting verification.</td></tr>`;
+    return;
+  }
   $('s2Body').innerHTML = S2_QUEUE.map((item, i) => {
     const entityBadge = item.entityType === 'ACADEMY'
       ? `<span class="entity-badge entity-academy"><i class="fas fa-building"></i> Academy</span>`
-      : `<span class="entity-badge entity-coach"><i class="fas fa-chalkboard-teacher"></i> Coach</span>`;
+      : item.entityType === 'ORGANIZER'
+        ? `<span class="entity-badge entity-academy"><i class="fas fa-user-tie"></i> Organizer</span>`
+        : `<span class="entity-badge entity-coach"><i class="fas fa-chalkboard-teacher"></i> Coach</span>`;
+    const submissionLabel = item.entityType === 'ACADEMY' ? 'Academy submission'
+      : item.entityType === 'ORGANIZER' ? 'Organizer signup' : 'Coach submission';
     return `<tr id="s2-row-${i}">
-      <td>${escHtml(item.submittedBy)}</td>
+      <td>${escHtml(submissionLabel)}</td>
       <td>${entityBadge}</td>
       <td>
         <div class="sa-meet-title">${escHtml(item.name)}</div>
         <div class="sa-meet-sub">${escHtml(item.detail)}</div>
       </td>
-      <td style="font-family:monospace;font-size:0.78rem;">${escHtml(item.credentialId)}</td>
+      <td style="font-family:monospace;font-size:0.78rem;">
+        ${escHtml(item.credentialId)}
+        ${item.documentUrl
+          ? `<a href="${escHtml(item.documentUrl)}" target="_blank" rel="noopener" class="sa-doc-link"><i class="fas fa-file-alt"></i> View Document</a>`
+          : `<span class="sa-doc-none"><i class="fas fa-file-circle-xmark"></i> No document</span>`}
+      </td>
       <td id="s2-act-${i}">
-        <button class="sa-btn-approve" onclick="doApprove('s2',${i},'${escHtml(item.name)}')">
+        <button class="sa-btn-approve" onclick="doApprove('s2',${i})">
           <i class="fas fa-check"></i> Approve
         </button>
-        <button class="sa-btn-reject" onclick="doReject('s2',${i},'${escHtml(item.name)}')">
+        <button class="sa-btn-reject" onclick="doReject('s2',${i})">
           <i class="fas fa-times"></i> Reject
         </button>
       </td>
@@ -247,18 +262,76 @@ function renderS2() {
   }).join('');
 }
 
-// ── Approve / Reject actions ──────────────────────────────────
-window.doApprove = function(section, idx, name) {
+// ── Approve / Reject actions (write to Supabase) ──────────────
+function queueItem(section, idx) {
+  if (section === 's1a') return S1A_QUEUE[idx];
+  if (section === 's1b') return S1B_QUEUE[idx];
+  return S2_QUEUE[idx];
+}
+
+async function writeAudit(actionType, entity, entityId, notes) {
+  if (!window.sb) return;
+  const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
+  try {
+    await window.sb.from('system_audit_logs').insert({
+      admin_id: session ? session.userId : null,
+      action_type: actionType,
+      target_entity: entity,
+      target_entity_id: String(entityId),
+      notes,
+    });
+  } catch (e) { console.warn('[SwimFest] audit log:', e.message); }
+}
+
+window.doApprove = async function(section, idx) {
+  const item = queueItem(section, idx);
+  if (!item) return;
   const actEl = $(`${section}-act-${idx}`);
+  const name = item.title || item.name;
+
+  let ok = false;
+  if (section === 's1a' || section === 's1b') {
+    const { error } = await window.sb.from('tournaments')
+      .update({ status: 'PUBLISHED' }).eq('tournament_id', item.id);
+    ok = !error;
+    if (ok) await writeAudit('EVENT_APPROVED', 'TOURNAMENT', item.id, `Approved & published: ${name}`);
+    if (error) console.error('[SwimFest] approve meet:', error.message);
+  } else {
+    const { error } = await window.sb.from(item.table)
+      .update({ status: 'APPROVED_ACTIVE' }).eq(item.idCol, item.id);
+    ok = !error;
+    if (ok) await writeAudit(item.entityType + '_VERIFIED', item.entityType, item.id, `Verified: ${name}`);
+    if (error) console.error('[SwimFest] approve entity:', error.message);
+  }
+
+  if (!ok) { showToast('Approve failed — check permissions.', 'warn'); return; }
   actEl.innerHTML = `<span class="sa-action-done approved-tag"><i class="fas fa-check-circle"></i> Approved</span>`;
-  showToast(`Approved: ${name} — Published to public directory.`, 'success');
+  showToast(`Approved: ${name}`, 'success');
   recountBadge(section);
 };
 
-window.doReject = function(section, idx, name) {
+window.doReject = async function(section, idx) {
+  const item = queueItem(section, idx);
+  if (!item) return;
   const actEl = $(`${section}-act-${idx}`);
+  const name = item.title || item.name;
+
+  let ok = false;
+  if (section === 's1a' || section === 's1b') {
+    const { error } = await window.sb.from('tournaments')
+      .update({ status: 'REJECTED_DRAFT' }).eq('tournament_id', item.id);
+    ok = !error;
+    if (ok) await writeAudit('EVENT_REJECTED', 'TOURNAMENT', item.id, `Rejected: ${name}`);
+  } else {
+    const { error } = await window.sb.from(item.table)
+      .update({ status: 'REJECTED' }).eq(item.idCol, item.id);
+    ok = !error;
+    if (ok) await writeAudit(item.entityType + '_REJECTED', item.entityType, item.id, `Rejected: ${name}`);
+  }
+
+  if (!ok) { showToast('Reject failed — check permissions.', 'warn'); return; }
   actEl.innerHTML = `<span class="sa-action-done rejected-tag"><i class="fas fa-times-circle"></i> Rejected</span>`;
-  showToast(`Rejected: ${name} — Returned to submitter with notes.`, 'warn');
+  showToast(`Rejected: ${name} — Returned to submitter.`, 'warn');
   recountBadge(section);
 };
 
@@ -271,25 +344,27 @@ function recountBadge(section) {
 }
 
 // ── Export Audit Log ──────────────────────────────────────────
-window.exportAuditLog = function() {
-  const rows = [
-    ['log_id','admin_id','action_type','target_entity','target_entity_id','notes','ip_address','created_at'],
-    ['LOG-TN-2026-9921','SA-001','EVENT_APPROVED','TOURNAMENT','TRN-TN-2026-004','Golden Non-Medalist approved','103.21.244.0','2026-09-02T10:14:00Z'],
-    ['LOG-TN-2026-9920','SA-001','ACADEMY_VERIFIED','ACADEMY','ACAD-TN-2026-104','Poseidon Aquatic Center verified','103.21.244.0','2026-09-02T09:52:00Z'],
-    ['LOG-TN-2026-9919','SA-001','EVENT_REOPENED','TOURNAMENT','TRN-TN-2026-003','Age cutoff correction request','103.21.244.0','2026-09-01T17:44:00Z'],
-    ['LOG-TN-2026-9918','SA-001','FEE_OVERRIDE','TOURNAMENT','TRN-TN-2026-002','Platform fee changed to ₹50','103.21.244.0','2026-09-01T16:20:00Z'],
-    ['LOG-TN-2026-9917','SA-001','EVENT_REJECTED','TOURNAMENT','TRN-TN-2026-001','Insufficient venue details','103.21.244.0','2026-09-01T14:30:00Z'],
-  ];
-  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob([csv],{type:'text/csv'});
+window.exportAuditLog = async function() {
+  if (!window.sb) { showToast('DB not connected.', 'warn'); return; }
+  const { data, error } = await window.sb
+    .from('system_audit_logs')
+    .select('log_id, admin_id, action_type, target_entity, target_entity_id, notes, created_at')
+    .order('created_at', { ascending: false })
+    .limit(1000);
+  if (error) { console.error('[SwimFest] audit export:', error.message); showToast('Export failed: ' + error.message, 'warn'); return; }
+  if (!data || !data.length) { showToast('No audit log entries yet.', 'info'); return; }
+
+  const header = ['log_id','admin_id','action_type','target_entity','target_entity_id','notes','created_at'];
+  const rows = data.map(r => header.map(k => r[k]));
+  const csv = [header, ...rows].map(r => r.map(c => `"${String(c ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type:'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'SwimFest_SystemAuditLog_2026.csv';
+  a.download = 'SwimFest_SystemAuditLog.csv';
   a.click();
   URL.revokeObjectURL(a.href);
-  showToast('System audit log exported as CSV.','success');
+  showToast('System audit log exported as CSV.', 'success');
 };
-window.exportAuditLog = exportAuditLog;
 
 // ── Emergency Notice ──────────────────────────────────────────
 window.openNoticeModal = function() {
@@ -304,17 +379,29 @@ function updateNoticePreview() {
   if (el) el.textContent = title ? `⚠️ ${title}: ${msg}` : 'Preview will appear here…';
 }
 
-window.publishNotice = function() {
+window.publishNotice = async function() {
   const title  = $('noticeTitle').value.trim();
   const msg    = $('noticeMsg').value.trim();
-  const expiry = $('noticeExpiry').value;
-  const active = $('noticeActive').value;
+  const expiry = parseInt($('noticeExpiry').value, 10) || 12;
+  const active = $('noticeActive').value === 'true';
   if (!title || !msg) { showToast('Title and message are required.','warn'); return; }
+
+  const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
+  const expiredAt = new Date(Date.now() + expiry * 3600 * 1000).toISOString();
+
+  if (window.sb) {
+    const { error } = await window.sb.from('emergency_notices').insert({
+      title, message: msg, is_active: active,
+      created_by: session ? session.userId : null,
+      expired_at: expiredAt,
+    });
+    if (error) { console.error('[SwimFest] notice:', error.message); showToast('Publish failed: ' + error.message, 'warn'); return; }
+    await writeAudit('EMERGENCY_NOTICE', 'NOTICE', title, `Published notice: ${title}`);
+  }
+
   closeModal('noticeModal');
-  const id = 'NTC-2026-0' + Math.floor(80 + Math.random()*20);
-  showToast(`Emergency notice published. ID: ${id} · Expires in ${expiry}h`, 'success');
-  // Show banner on page
-  showEmergencyBanner(title, msg);
+  showToast(`Emergency notice published · Expires in ${expiry}h`, 'success');
+  if (active) showEmergencyBanner(title, msg);
 };
 
 function showEmergencyBanner(title, msg) {
@@ -361,16 +448,29 @@ document.addEventListener('input', e => {
     .admin-toast.show{transform:translateY(0);opacity:1;}
     .admin-toast i{color:var(--accent);}
     .admin-toast.admin-toast-success i{color:var(--success);}
-    .admin-toast.admin-toast-warn i{color:var(--warning);}`;
+    .admin-toast.admin-toast-warn i{color:var(--warning);}
+    .sa-doc-link{display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:4px 10px;
+      border-radius:6px;background:#eef4ff;color:var(--primary);font-family:'Inter',sans-serif;
+      font-size:0.72rem;font-weight:700;text-decoration:none;}
+    .sa-doc-link:hover{background:var(--primary);color:#fff;}
+    .sa-doc-none{display:inline-flex;align-items:center;gap:5px;margin-top:6px;
+      font-family:'Inter',sans-serif;font-size:0.72rem;color:var(--gray);font-style:italic;}`;
   document.head.appendChild(s);
 })();
 
 // ── Bootstrap ─────────────────────────────────────────────────
+function refreshLiveData() {
+  // Skip while a modal is open so an in-progress action isn't disrupted
+  if (document.querySelector('.modal-overlay.active')) return;
+  loadMetrics();
+  loadMeetQueues();
+  loadVerificationQueue();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-  renderPermOverview();
   renderStateMachine();
-  renderS1A();
-  renderS1B();
-  renderS2();
   initTabs();
+  // Live data + auto-refresh every 3s
+  refreshLiveData();
+  setInterval(refreshLiveData, 3000);
 });
