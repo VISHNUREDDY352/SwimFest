@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Result Entry Console — SwimFest</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="results.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="admin-body">
+
+    <!-- Topbar -->
+    <header class="admin-topbar">
+        <div class="admin-topbar-inner">
+            <div class="admin-topbar-left">
+                <a href="index.html" class="admin-logo"><i class="fas fa-swimmer"></i> SwimFest</a>
+                <span class="admin-role-tag"><i class="fas fa-broadcast-tower"></i> Event Manager Console | Live Race Control</span>
+            </div>
+            <div class="admin-topbar-right">
+                <a href="heatgen.html" class="admin-ghost-btn" style="color:rgba(255,255,255,0.6);border-color:rgba(255,255,255,0.15);">
+                    <i class="fas fa-arrow-left"></i> Heat Sheets
+                </a>
+                <a href="racecontrol.html" class="admin-ghost-btn" style="color:rgba(255,255,255,0.6);border-color:rgba(255,255,255,0.15);">
+                    <i class="fas fa-flag-checkered"></i> Race Control
+                </a>
+                <a href="eventmanager.html" class="admin-ghost-btn" style="color:rgba(255,255,255,0.6);border-color:rgba(255,255,255,0.15);">
+                    <i class="fas fa-cogs"></i> EM Console
+                </a>
+                <a href="index.html" class="admin-logout-btn"><i class="fas fa-sign-out-alt"></i> Logout (Admin)</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="admin-main">
+
+        <!-- Tournament + Live Event Banner -->
+        <div class="admin-tournament-banner">
+            <div class="admin-tournament-inner">
+                <div class="admin-t-info">
+                    <div class="admin-t-name">Tournament: Golden Non-Medalist Swimming Championship 2026</div>
+                    <div class="admin-t-meta">
+                        <span class="res-live-chip"><span class="res-live-dot"></span> Live Race Control</span>
+                        <span class="admin-t-meta-item" id="liveEventLabel">
+                            <i class="fas fa-flag-checkered"></i>
+                            Live Event: <strong id="liveEventName">Event 3 — Boys U-12 50m Freestyle (Pool 1 — 8 Lanes)</strong>
+                        </span>
+                        <span class="admin-t-meta-item" id="liveHeatLabel">
+                            <i class="fas fa-fire"></i> Heat: <strong id="liveHeatName">Heat 3 of 3</strong>
+                        </span>
+                    </div>
+                </div>
+                <div class="res-event-nav">
+                    <button class="admin-btn admin-btn-outline res-nav-btn" id="prevEventBtn"><i class="fas fa-chevron-left"></i> Prev Event</button>
+                    <select id="eventSelector" class="admin-select res-event-select"></select>
+                    <select id="heatSelector" class="admin-select res-heat-select"></select>
+                    <button class="admin-btn admin-btn-outline res-nav-btn" id="nextEventBtn">Next Event <i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="res-container">
+
+            <!-- ── Mode Selection ── -->
+            <div class="res-card">
+                <div class="res-card-header">
+                    <i class="fas fa-sliders-h"></i> Result Entry Mode Selection
+                </div>
+                <div class="res-mode-grid">
+                    <label class="res-mode-opt" id="mode1Label">
+                        <input type="radio" name="entryMode" value="1" id="mode1Radio" checked>
+                        <div class="res-mode-icon"><i class="fas fa-keyboard"></i></div>
+                        <div class="res-mode-text">
+                            <strong>Mode 1: Direct Digital Heat Sheet Entry</strong>
+                            <span>Timekeepers type recorded finish times directly into lane rows</span>
+                        </div>
+                        <span class="res-mode-selected-dot"></span>
+                    </label>
+                    <label class="res-mode-opt" id="mode2Label">
+                        <input type="radio" name="entryMode" value="2" id="mode2Radio">
+                        <div class="res-mode-icon"><i class="fas fa-file-upload"></i></div>
+                        <div class="res-mode-text">
+                            <strong>Mode 2: Bulk Excel Upload from Touch-Pad System</strong>
+                            <span>Upload completed timing file from Colorado Time Systems / Meet Manager</span>
+                        </div>
+                        <span class="res-mode-selected-dot"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- ── Mode 2: File Upload Block ── -->
+            <div class="res-card" id="mode2Block" style="display:none;">
+                <div class="res-card-header">
+                    <i class="fas fa-file-upload"></i> Mode 2 Control: Touch-Pad Excel Upload
+                </div>
+                <div class="res-upload-body">
+                    <p class="res-upload-desc">Select completed Timing File (.xlsx / .csv) exported from your touch-pad timing system:</p>
+                    <div class="res-upload-row">
+                        <div class="res-file-drop-zone" id="dropZone">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <span id="dropZoneText">Choose File or drag &amp; drop here</span>
+                            <input type="file" id="ctxFileInput" accept=".xlsx,.csv,.xls" style="display:none;">
+                        </div>
+                        <button class="admin-btn res-upload-btn" id="uploadFileBtn">
+                            <i class="fas fa-upload"></i> Upload &amp; Parse
+                        </button>
+                    </div>
+                    <div class="res-upload-status" id="uploadStatus" style="display:none;"></div>
+                    <div class="res-upload-preview" id="uploadPreview" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- ── Mode 1: Direct Heat Entry Grid ── -->
+            <div class="res-card" id="mode1Block">
+                <div class="res-card-header">
+                    <i class="fas fa-table"></i>
+                    <span id="mode1Title">Mode 1 Control: Direct Heat Entry</span>
+                    <span class="res-heat-info-tag" id="heatInfoTag">Pool 1 — Event 3 — Heat 3 of 3</span>
+                    <div class="res-card-header-actions">
+                        <span class="res-entries-count" id="entriesCount">0 / 8 times entered</span>
+                    </div>
+                </div>
+                <div class="res-grid-wrap">
+                    <table class="res-grid" id="resultGrid">
+                        <thead>
+                            <tr>
+                                <th class="rg-lane">Lane</th>
+                                <th class="rg-swimmer">Swimmer Name</th>
+                                <th class="rg-academy">Academy</th>
+                                <th class="rg-time">Finish Time</th>
+                                <th class="rg-status">Status</th>
+                                <th class="rg-dq">DQ Code</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultGridBody">
+                            <!-- Rendered by JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="res-grid-actions">
+                    <button class="admin-btn admin-btn-outline" id="saveDraftBtn">
+                        <i class="fas fa-save"></i> Save Heat Results
+                    </button>
+                    <button class="admin-btn res-publish-btn" id="publishResultsBtn">
+                        <i class="fas fa-paper-plane"></i> Convert &amp; Publish Results
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── Official Result Sheet Preview ── -->
+            <div class="res-card" id="resultSheetCard" style="display:none;">
+                <div class="res-card-header">
+                    <i class="fas fa-medal"></i>
+                    Official Event Result Sheet — <span id="resultSheetEventName">Boys U-12 50m Freestyle</span>
+                    <span class="res-published-chip"><i class="fas fa-check-circle"></i> Published</span>
+                </div>
+                <div class="res-sheet-wrap">
+                    <table class="res-sheet-table" id="resultSheetTable">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Lane</th>
+                                <th>Swimmer Name</th>
+                                <th>Academy</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                                <th>Pts</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultSheetBody">
+                            <!-- Rendered by JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="res-sheet-actions">
+                    <button class="admin-btn admin-btn-outline" id="printResultBtn">
+                        <i class="fas fa-print"></i> Print Result Book (PDF)
+                    </button>
+                    <button class="admin-btn res-leaderboard-btn" id="viewLeaderboardBtn">
+                        <i class="fas fa-chart-bar"></i> View Academy Leaderboard
+                    </button>
+                </div>
+            </div>
+
+        </div><!-- /res-container -->
+    </main>
+
+    <!-- Academy Leaderboard Modal -->
+    <div class="modal-overlay" id="leaderboardModal">
+        <div class="modal res-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-chart-bar"></i> Academy Championship Leaderboard</h3>
+                <button class="modal-close" id="leaderboardClose"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body res-modal-body">
+                <div class="res-lb-meta" id="lbMeta"></div>
+                <table class="res-lb-table" id="leaderboardTable">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Academy</th>
+                            <th>Gold</th>
+                            <th>Silver</th>
+                            <th>Bronze</th>
+                            <th>Total Points</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboardBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Publish Confirm Modal -->
+    <div class="modal-overlay" id="publishConfirmModal">
+        <div class="modal" style="max-width:460px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-paper-plane" style="color:var(--success)"></i> Publish Official Results</h3>
+                <button class="modal-close" id="publishConfirmClose"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding:20px 24px;">
+                <div id="publishConfirmBody"></div>
+            </div>
+            <div class="modal-footer admin-modal-footer">
+                <button class="admin-btn admin-btn-outline" id="publishConfirmCancel">Cancel</button>
+                <button class="admin-btn" style="background:var(--success);color:white;" id="publishConfirmGo">
+                    <i class="fas fa-check"></i> Confirm &amp; Publish
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="academy.js"></script>
+    <script src="results.js"></script>
+</body>
+</html>

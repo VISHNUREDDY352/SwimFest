@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Organizer Dashboard — SwimFest</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="dash-body">
+
+    <header class="dash-topbar">
+        <div class="dash-topbar-inner">
+            <div style="display:flex;align-items:center;gap:16px;">
+                <a href="index.html" class="dash-logo"><i class="fas fa-swimmer"></i> SwimFest</a>
+                <span class="dash-role-tag">Tournament Organizer Dashboard</span>
+            </div>
+            <div class="dash-topbar-right">
+                <button class="dash-user-btn"><i class="fas fa-building"></i> Kovai Swim Club <i class="fas fa-caret-down"></i></button>
+                <a href="index.html" class="dash-logout"><i class="fas fa-sign-out-alt"></i> Logout (Organizer)</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="dash-container">
+
+            <!-- Org header -->
+            <div class="dash-section">
+                <div class="dash-section-header">
+                    <span class="dash-section-title"><i class="fas fa-building"></i> Organization: Kovai Swim Club | Host Account</span>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <a href="orgdashboard.html" class="admin-btn admin-btn-outline" style="font-size:0.82rem;padding:8px 16px;text-decoration:none;">
+                            <i class="fas fa-tachometer-alt"></i> Organizer Dashboard
+                        </a>
+                        <a href="orgcreate.html" class="admin-btn admin-btn-primary" style="font-size:0.82rem;padding:8px 16px;text-decoration:none;">
+                            <i class="fas fa-plus"></i> Create New Meet
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hosted Tournaments Overview -->
+            <div class="dash-section">
+                <div class="dash-section-header">
+                    <span class="dash-section-title"><i class="fas fa-list"></i> Hosted Tournaments Overview</span>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="dash-queue-table" id="orgTournamentsTable">
+                        <thead>
+                            <tr>
+                                <th>Tournament Title</th>
+                                <th>Dates</th>
+                                <th>Status</th>
+                                <th>Registrations</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orgTournamentsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Active Meet Details -->
+            <div class="dash-section" id="activeMeetDetails">
+                <div class="dash-section-header">
+                    <span class="dash-section-title"><i class="fas fa-fire"></i> Active Meet Details — Kovai District Meet 2026</span>
+                    <span class="dash-status-chip chip-approved"><i class="fas fa-check-circle"></i> Approved</span>
+                </div>
+                <div class="dash-section-body">
+                    <div class="dash-metrics-grid" style="margin-bottom:0;">
+                        <div class="dash-metric-card">
+                            <i class="fas fa-users dash-metric-icon"></i>
+                            <div class="dash-metric-label">Registered Athletes</div>
+                            <div class="dash-metric-value">142</div>
+                            <div class="dash-metric-sub">Confirmed entries</div>
+                        </div>
+                        <div class="dash-metric-card green">
+                            <i class="fas fa-rupee-sign dash-metric-icon"></i>
+                            <div class="dash-metric-label">Gross Revenue</div>
+                            <div class="dash-metric-value" style="font-size:1.5rem;">₹1,13,600</div>
+                            <div class="dash-metric-sub">Gross bookings billed</div>
+                        </div>
+                        <div class="dash-metric-card orange">
+                            <i class="fas fa-calendar-alt dash-metric-icon"></i>
+                            <div class="dash-metric-label">Operational Status</div>
+                            <div class="dash-metric-value" style="font-size:1.1rem;">Entries Open</div>
+                            <div class="dash-metric-sub">Closes Oct 31, 2026</div>
+                        </div>
+                        <div class="dash-metric-card">
+                            <i class="fas fa-swimming-pool dash-metric-icon"></i>
+                            <div class="dash-metric-label">Venue</div>
+                            <div class="dash-metric-value" style="font-size:1rem;letter-spacing:-0.2px;">SDAT Pool</div>
+                            <div class="dash-metric-sub">Kovai, Tamil Nadu</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports & Downloads -->
+            <div class="dash-section">
+                <div class="dash-section-header">
+                    <span class="dash-section-title"><i class="fas fa-download"></i> Available Reports &amp; Downloads</span>
+                </div>
+                <div class="dash-section-body">
+                    <div class="dash-reports-grid">
+                        <button class="dash-report-btn" onclick="showToast('Downloading Swimmer Roster Summary…','info')">
+                            <i class="fas fa-file-excel"></i> Download Swimmer Roster Summary
+                        </button>
+                        <button class="dash-report-btn" onclick="showToast('Printing published heat sheets…','info')">
+                            <i class="fas fa-print"></i> Print Published Heat Sheets
+                        </button>
+                        <button class="dash-report-btn" onclick="showToast('Loading Financial Booking Report…','info')">
+                            <i class="fas fa-chart-bar"></i> View Financial Booking Report
+                        </button>
+                        <button class="dash-report-btn" onclick="showToast('Printing Final Result Book…','info')">
+                            <i class="fas fa-book"></i> Print Final Result Book
+                        </button>
+                        <a href="orgracecontrol.html" class="dash-report-btn">
+                            <i class="fas fa-broadcast-tower"></i> Race Control Console
+                        </a>
+                        <a href="orgdashboard.html" class="dash-report-btn">
+                            <i class="fas fa-tachometer-alt"></i> Full Organizer Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+    const TOURNAMENTS = [
+      { title:'Kovai District Meet 2026',  dates:'Nov 12-13', status:'Approved',  registrations:'142 Swimmers' },
+      { title:'Winter Short Course 2026',  dates:'Dec 20-21', status:'In Review', registrations:'0 (Pending)' },
+    ];
+
+    function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function showToast(msg,type='info'){
+      const e=document.querySelector('.admin-toast'); if(e) e.remove();
+      const t=document.createElement('div');
+      t.className=`admin-toast admin-toast-${type}`;
+      const icon=type==='success'?'check-circle':type==='warn'?'exclamation-triangle':'info-circle';
+      t.innerHTML=`<i class="fas fa-${icon}"></i> ${escHtml(msg)}`;
+      document.body.appendChild(t);
+      setTimeout(()=>t.classList.add('show'),10);
+      setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400);},3200);
+    }
+    window.showToast = showToast;
+
+    document.addEventListener('DOMContentLoaded',()=>{
+      const statusClass = { 'Approved':'chip-approved','In Review':'chip-in-review','Draft':'chip-draft' };
+      document.getElementById('orgTournamentsBody').innerHTML = TOURNAMENTS.map(t=>`
+        <tr>
+          <td><div class="dash-tournament-name">${escHtml(t.title)}</div></td>
+          <td>${escHtml(t.dates)}</td>
+          <td><span class="dash-status-chip ${statusClass[t.status]||''}">${escHtml(t.status)}</span></td>
+          <td>${escHtml(t.registrations)}</td>
+          <td>
+            <button class="dash-review-btn" onclick="showToast('Opening meet details…','info')">
+              <i class="fas fa-eye"></i> View
+            </button>
+          </td>
+        </tr>`).join('');
+    });
+
+    (function(){
+      const s=document.createElement('style');
+      s.textContent=`
+        .admin-toast{position:fixed;bottom:28px;right:28px;z-index:99999;
+          padding:12px 20px;background:var(--dark);color:var(--white);
+          border-radius:var(--radius-sm);font-size:0.85rem;font-weight:500;
+          display:flex;align-items:center;gap:10px;
+          box-shadow:0 8px 24px rgba(0,0,0,0.25);
+          transform:translateY(20px);opacity:0;transition:all 0.3s ease;
+          max-width:420px;font-family:'Inter',sans-serif;}
+        .admin-toast.show{transform:translateY(0);opacity:1;}
+        .admin-toast i{color:var(--accent);}
+        .admin-toast.admin-toast-success i{color:var(--success);}
+        .admin-toast.admin-toast-warn i{color:var(--warning);}`;
+      document.head.appendChild(s);
+    })();
+    </script>
+</body>
+</html>

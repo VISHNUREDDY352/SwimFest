@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EM Dashboard — SwimFest Event Manager Portal</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="emdashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="dash-body">
+
+    <!-- Main Navbar -->
+    <header class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo"><i class="fas fa-swimmer"></i> SwimFest</a>
+            <button class="state-selector">
+                <i class="fas fa-map-marker-alt"></i> Tamil Nadu <i class="fas fa-caret-down"></i>
+            </button>
+            <nav class="nav-links">
+                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
+                <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+                <a href="index.html#past-events-archives" class="nav-link">Past</a>
+                <a href="academy.html" class="nav-link">Academy</a>
+            </nav>
+            <div style="display:flex;align-items:center;gap:10px;margin-left:auto;">
+                <span style="font-size:0.78rem;color:var(--gray);font-weight:600;">Signed in as EM-TN-04</span>
+                <a href="emdashboard.html" class="btn-register-login" style="background:var(--primary);">
+                    <i class="fas fa-cog"></i> EM Dashboard
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sticky EM Control Bar -->
+    <div class="em-control-bar" id="emControlBar">
+        <div class="em-control-inner">
+            <span class="em-control-label">STICKY EM CONTROL BAR</span>
+            <a href="addevent.html" class="em-ctrl-btn em-ctrl-primary">
+                <i class="fas fa-plus"></i> Add Event
+            </a>
+            <a href="#" class="em-ctrl-btn em-ctrl-secondary" onclick="openAddAcademyModal();return false;">
+                <i class="fas fa-building"></i> Add Academy
+            </a>
+            <a href="#" class="em-ctrl-btn em-ctrl-secondary" onclick="openAddCoachModal();return false;">
+                <i class="fas fa-chalkboard-teacher"></i> Add Coach
+            </a>
+            <a href="#" class="em-ctrl-btn em-ctrl-meets">
+                <i class="fas fa-calendar-check"></i> My Meets (3)
+            </a>
+        </div>
+    </div>
+
+    <main class="em-main">
+        <div class="em-container">
+
+            <!-- Welcome Banner -->
+            <div class="em-welcome-card">
+                <div class="em-welcome-left">
+                    <div class="em-welcome-icon"><i class="fas fa-cogs"></i></div>
+                    <div>
+                        <h1 class="em-welcome-title">Welcome back, Event Manager</h1>
+                        <p class="em-welcome-id">ID: EM-TN-04 &nbsp;·&nbsp; Tamil Nadu Operations Team</p>
+                        <p class="em-welcome-sub">Manage assigned meets, create online/bulk offline events, submit academies and coaches for verification, and run poolside race operations.</p>
+                    </div>
+                </div>
+                <div class="em-stats-row">
+                    <div class="em-stat-pill">
+                        <i class="fas fa-trophy"></i>
+                        <div class="em-stat-val">3</div>
+                        <div class="em-stat-label">Assigned Meets</div>
+                    </div>
+                    <div class="em-stat-pill">
+                        <i class="fas fa-list"></i>
+                        <div class="em-stat-val">462</div>
+                        <div class="em-stat-label">Roster Entries</div>
+                    </div>
+                    <div class="em-stat-pill orange">
+                        <i class="fas fa-fire"></i>
+                        <div class="em-stat-val">18</div>
+                        <div class="em-stat-label">Heats Pending Results</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Assigned Tournaments Pipeline -->
+            <div class="em-section">
+                <div class="em-section-header">
+                    <span class="em-section-title">
+                        <i class="fas fa-project-diagram"></i> My Assigned Tournaments Pipeline
+                    </span>
+                    <span style="font-size:0.75rem;color:var(--gray);">Event Manager scope: Tamil Nadu</span>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="em-pipeline-table" id="pipelineTable">
+                        <thead>
+                            <tr>
+                                <th>Tournament Title</th>
+                                <th>Dates</th>
+                                <th>Registration Mode</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pipelineBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Lifecycle Flow -->
+            <div class="em-section">
+                <div class="em-section-header">
+                    <span class="em-section-title"><i class="fas fa-stream"></i> End-to-End Event Lifecycle Flow</span>
+                </div>
+                <div class="em-lifecycle" id="lifecycleFlow"></div>
+            </div>
+
+            <!-- Quick Links to Organizer Module -->
+            <div class="em-section">
+                <div class="em-section-header">
+                    <span class="em-section-title"><i class="fas fa-building"></i> Tournament Organizer Portal Links</span>
+                </div>
+                <div class="dash-section-body" style="padding:16px 20px;">
+                    <div class="dash-launchpad-grid" style="grid-template-columns:repeat(3,1fr);">
+                        <a href="orgdashboard.html"   class="dash-launch-btn"><i class="fas fa-tachometer-alt"></i> Organizer Dashboard</a>
+                        <a href="orgcreate.html"       class="dash-launch-btn"><i class="fas fa-plus-circle"></i> Create Meet (Organizer)</a>
+                        <a href="orgracecontrol.html"  class="dash-launch-btn"><i class="fas fa-broadcast-tower"></i> Organizer Race Control</a>
+                        <a href="superadmin.html"      class="dash-launch-btn"><i class="fas fa-shield-alt"></i> Super Admin Console</a>
+                        <a href="apiref.html"          class="dash-launch-btn"><i class="fas fa-code"></i> API Reference</a>
+                        <a href="organizer.html"       class="dash-launch-btn"><i class="fas fa-building"></i> Organizer Summary</a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Add Academy Modal -->
+    <div class="modal-overlay" id="addAcademyModal">
+        <div class="modal" style="max-width:500px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-building"></i> Submit Academy for Verification</h3>
+                <button class="modal-close" onclick="closeModal('addAcademyModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding:20px 24px;">
+                <div class="mc-grid" style="gap:14px 20px;">
+                    <div class="mc-field mc-full"><label class="mc-label">Academy Name *</label><input class="mc-input" placeholder="e.g. Poseidon Aquatic Center"></div>
+                    <div class="mc-field"><label class="mc-label">City *</label><input class="mc-input" placeholder="Madurai"></div>
+                    <div class="mc-field"><label class="mc-label">State *</label><input class="mc-input" value="Tamil Nadu"></div>
+                    <div class="mc-field"><label class="mc-label">Registration No.</label><input class="mc-input" placeholder="TN-REG-2026-XXXX"></div>
+                    <div class="mc-field"><label class="mc-label">Head Coach Name</label><input class="mc-input" placeholder="Coach Name"></div>
+                    <div class="mc-field"><label class="mc-label">Contact Phone</label><input class="mc-input" placeholder="+91 98765 43210"></div>
+                    <div class="mc-field mc-full">
+                        <label class="mc-label">Document Proof (PDF)</label>
+                        <div class="mc-upload-zone" onclick="this.querySelector('input').click()">
+                            <i class="fas fa-file-pdf"></i> <span>Choose registration document</span>
+                            <input type="file" accept=".pdf" style="display:none;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer admin-modal-footer">
+                <button class="admin-btn admin-btn-outline" onclick="closeModal('addAcademyModal')">Cancel</button>
+                <button class="admin-btn admin-btn-primary" onclick="submitAcademy()"><i class="fas fa-paper-plane"></i> Submit for Verification</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Coach Modal -->
+    <div class="modal-overlay" id="addCoachModal">
+        <div class="modal" style="max-width:500px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-chalkboard-teacher"></i> Submit Coach for Verification</h3>
+                <button class="modal-close" onclick="closeModal('addCoachModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding:20px 24px;">
+                <div class="mc-grid" style="gap:14px 20px;">
+                    <div class="mc-field mc-full"><label class="mc-label">Full Name *</label><input class="mc-input" placeholder="Coach Full Name"></div>
+                    <div class="mc-field"><label class="mc-label">Certification Body *</label>
+                        <select class="mc-select"><option>ASCA</option><option>NIS</option><option>SFI</option><option>World Aquatics</option></select>
+                    </div>
+                    <div class="mc-field"><label class="mc-label">License Number *</label><input class="mc-input" placeholder="ASCA-XXXX-2026"></div>
+                    <div class="mc-field"><label class="mc-label">Contact Phone</label><input class="mc-input" placeholder="+91 98765 43210"></div>
+                    <div class="mc-field"><label class="mc-label">Affiliated Academy</label>
+                        <select class="mc-select">
+                            <option value="">None / Self</option>
+                            <option>Chennai Swim Club</option>
+                            <option>SDAT Academy Chennai</option>
+                            <option>SRM Aquatics Academy</option>
+                        </select>
+                    </div>
+                    <div class="mc-field mc-full">
+                        <label class="mc-label">Certification Document (PDF)</label>
+                        <div class="mc-upload-zone" onclick="this.querySelector('input').click()">
+                            <i class="fas fa-certificate"></i> <span>Choose certification document</span>
+                            <input type="file" accept=".pdf" style="display:none;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer admin-modal-footer">
+                <button class="admin-btn admin-btn-outline" onclick="closeModal('addCoachModal')">Cancel</button>
+                <button class="admin-btn admin-btn-primary" onclick="submitCoach()"><i class="fas fa-paper-plane"></i> Submit for Verification</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="emdashboard.js"></script>
+</body>
+</html>

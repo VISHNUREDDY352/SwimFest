@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heat Sheets & Schedule — SwimFest</title>
+    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="heatsheets.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <header class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo"><i class="fas fa-swimmer"></i> SwimFest</a>
+            <button class="state-selector"><i class="fas fa-map-marker-alt"></i> Tamil Nadu <i class="fas fa-caret-down"></i></button>
+            <nav class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
+                <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+                <a href="index.html#past-events-archives" class="nav-link">Past</a>
+                <a href="academy.html" class="nav-link">Academy</a>
+            </nav>
+            <a href="profile.html" class="btn-profile"><i class="fas fa-user"></i> Profile</a>
+            <a href="login.html" class="btn-register-login">Register / Login</a>
+            <button class="mobile-menu-btn" id="mobileMenuBtn"><i class="fas fa-bars"></i></button>
+        </div>
+    </header>
+
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
+        <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+        <a href="index.html#past-events-archives" class="nav-link">Past</a>
+        <a href="academy.html" class="nav-link">Academy</a>
+        <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> My Profile</a>
+    </div>
+
+    <main class="hs-page">
+        <!-- Hero header -->
+        <div class="hs-hero">
+            <div class="hs-hero-inner">
+                <div>
+                    <p class="hs-eyebrow"><i class="fas fa-list-ol"></i> Schedule &amp; Heat Sheets</p>
+                    <h1 class="hs-title" id="hsTournamentTitle">Loading tournament…</h1>
+                    <p class="hs-sub" id="hsTournamentMeta"></p>
+                </div>
+                <div class="hs-hero-actions">
+                    <button class="hs-btn hs-btn-ghost" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+                    <button class="hs-btn hs-btn-primary" id="hsDownloadBtn"><i class="fas fa-file-csv"></i> Download CSV</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="hs-container">
+            <!-- Filters -->
+            <div class="hs-filters">
+                <select id="hsTournamentFilter" class="hs-select"></select>
+                <select id="hsEventFilter" class="hs-select"><option value="">All Events</option></select>
+                <select id="hsCatFilter" class="hs-select"><option value="">All Categories</option></select>
+                <div class="hs-count" id="hsCount"></div>
+            </div>
+
+            <!-- Heat sheets output -->
+            <div id="hsContent">
+                <div class="hs-loading"><i class="fas fa-circle-notch fa-spin"></i> Loading heat sheets…</div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
+    <script src="heatsheets.js"></script>
+</body>
+</html>

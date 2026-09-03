@@ -1,0 +1,614 @@
+/* ===== Event Page Specific Styles ===== */
+
+/* ===== Event Banner ===== */
+.event-banner {
+    background: linear-gradient(135deg, #f39c12, #e67e22, #d35400);
+    padding: 40px 24px;
+    text-align: center;
+}
+
+.event-banner-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+.event-banner-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    color: var(--white);
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.event-banner-content i {
+    font-size: 2rem;
+    opacity: 0.9;
+}
+
+/* ===== Sub-Navigation Tabs ===== */
+.event-sub-nav {
+    background: var(--white);
+    border-bottom: 2px solid var(--gray-light);
+    position: sticky;
+    top: 70px;
+    z-index: 100;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.sub-nav-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+}
+
+.sub-nav-tab {
+    padding: 14px 24px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--gray);
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+    font-family: inherit;
+}
+
+.sub-nav-tab:hover {
+    color: var(--primary);
+    background: var(--light);
+}
+
+.sub-nav-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+/* ===== Two-Column Layout ===== */
+.event-page-body {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 32px 24px;
+    align-items: start;
+}
+
+/* ===== Left Column: Content Panel ===== */
+.event-content-panel {
+    min-width: 0;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* ===== Event Header Block ===== */
+.event-header-block {
+    margin-bottom: 24px;
+}
+
+.event-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.event-main-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--dark);
+    line-height: 1.3;
+    margin-bottom: 6px;
+}
+
+.event-hosted-by {
+    font-size: 0.95rem;
+    color: var(--gray);
+    font-weight: 500;
+}
+
+.event-status-badge {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.event-status-badge.status-open {
+    background: #d4edda;
+    color: #155724;
+}
+
+.event-status-badge.status-closing-soon {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.event-status-badge.status-closed {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* ===== Detail Cards ===== */
+.event-detail-card {
+    background: var(--white);
+    border: 1px solid var(--gray-light);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.detail-card-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.detail-card-title i {
+    color: var(--primary);
+    font-size: 1rem;
+}
+
+.detail-note {
+    font-size: 0.85rem;
+    color: var(--gray);
+    font-style: italic;
+    margin-bottom: 12px;
+}
+
+/* Detail Grid (Venue & Schedule) */
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.detail-label i {
+    color: var(--primary);
+    font-size: 0.75rem;
+}
+
+.detail-value {
+    font-size: 0.92rem;
+    color: var(--dark);
+    font-weight: 500;
+}
+
+/* ===== Age Group Table ===== */
+.age-group-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+.age-group-table th {
+    background: var(--light);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--dark);
+    border-bottom: 2px solid var(--gray-light);
+}
+
+.age-group-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--gray-light);
+    color: var(--dark);
+}
+
+.age-group-table tr:last-child td {
+    border-bottom: none;
+}
+
+.age-group-table tr:hover {
+    background: #f0f9ff;
+}
+
+/* ===== Alert Card (Non-Medalist Rules) ===== */
+.alert-card {
+    border-left: 4px solid var(--warning);
+}
+
+.alert-box {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+.alert-item i {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.alert-item.danger {
+    background: #fdf0f0;
+    border: 1px solid #f5c6cb;
+}
+
+.alert-item.danger i {
+    color: var(--danger);
+}
+
+.alert-item.success {
+    background: #f0fdf4;
+    border: 1px solid #c3e6cb;
+}
+
+.alert-item.success i {
+    color: var(--success);
+}
+
+.alert-item.warning {
+    background: #fffcf0;
+    border: 1px solid #ffeeba;
+}
+
+.alert-item.warning i {
+    color: var(--warning);
+}
+
+/* ===== Fee List ===== */
+.fee-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.fee-list li {
+    font-size: 0.9rem;
+    padding: 10px 14px;
+    background: var(--light);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--primary);
+}
+
+/* ===== Documents List ===== */
+.documents-list {
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.documents-list li {
+    font-size: 0.9rem;
+    color: var(--dark);
+    line-height: 1.5;
+}
+
+/* ===== Rules Section ===== */
+.rules-section {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--gray-light);
+}
+
+.rules-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.rules-section h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 10px;
+}
+
+.rules-section p {
+    font-size: 0.9rem;
+    color: var(--dark);
+    margin-bottom: 8px;
+}
+
+.rules-section ul {
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rules-section ul li {
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+/* ===== Schedule Placeholder ===== */
+.schedule-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 48px 24px;
+    background: var(--light);
+    border-radius: var(--radius-sm);
+    border: 1px dashed var(--gray-light);
+    text-align: center;
+    color: var(--gray);
+}
+
+.schedule-placeholder i {
+    font-size: 2.5rem;
+    color: var(--accent);
+}
+
+.schedule-placeholder p {
+    font-size: 0.92rem;
+}
+
+/* ===== Right Column: Sticky Registration Sidebar ===== */
+.registration-sidebar {
+    position: relative;
+}
+
+.registration-sidebar-card {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 130px;
+    z-index: 10;
+    background: var(--white);
+    border: 2px solid var(--dark);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.sidebar-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+/* Sidebar Events Table */
+.sidebar-events-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    margin-bottom: 16px;
+}
+
+.sidebar-events-table th {
+    background: var(--light);
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--gray);
+    border-bottom: 1px solid var(--gray-light);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+
+.sidebar-events-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--gray-light);
+    color: var(--dark);
+}
+
+.sidebar-events-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Sidebar Fee Info */
+.sidebar-fee-info {
+    padding: 12px 0;
+    border-top: 1px solid var(--gray-light);
+    margin-bottom: 16px;
+}
+
+.sidebar-fee-info p {
+    font-size: 0.85rem;
+    color: var(--dark);
+    margin-bottom: 4px;
+}
+
+/* Register Button */
+.btn-register-tournament {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px 20px;
+    background: var(--primary);
+    color: var(--white);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.95rem;
+    transition: var(--transition);
+}
+
+.btn-register-tournament:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 119, 182, 0.3);
+}
+
+/* ===== Bottom Navigation ===== */
+.event-bottom-nav {
+    background: var(--white);
+    border-top: 1px solid var(--gray-light);
+    padding: 16px 24px;
+}
+
+.bottom-nav-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btn-back,
+.btn-continue {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.btn-back {
+    background: var(--light);
+    color: var(--dark);
+    border: 1px solid var(--gray-light);
+}
+
+.btn-back:hover {
+    background: var(--gray-light);
+}
+
+.btn-continue {
+    background: var(--primary);
+    color: var(--white);
+}
+
+.btn-continue:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+/* ===== Mobile Sticky Register Bar ===== */
+.mobile-register-bar {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    background: var(--white);
+    border-top: 2px solid var(--gray-light);
+    padding: 12px 20px;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.mobile-register-info span {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--dark);
+}
+
+.mobile-register-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    background: var(--primary);
+    color: var(--white);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.85rem;
+    transition: var(--transition);
+}
+
+.mobile-register-btn:hover {
+    background: var(--primary-dark);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+    .event-page-body {
+        grid-template-columns: 1fr;
+    }
+
+    .registration-sidebar {
+        display: none;
+    }
+
+    .mobile-register-bar {
+        display: flex;
+    }
+
+    .event-header-top {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    body {
+        padding-bottom: 70px;
+    }
+}
+
+@media (max-width: 768px) {
+    .event-main-title {
+        font-size: 1.4rem;
+    }
+
+    .event-banner-content {
+        font-size: 1.1rem;
+    }
+
+    .sub-nav-tab {
+        padding: 12px 16px;
+        font-size: 0.82rem;
+    }
+
+    .event-detail-card {
+        padding: 18px;
+    }
+}

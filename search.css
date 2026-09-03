@@ -1,0 +1,93 @@
+/* ============================================================
+   SwimFest — Search Profile page   search.css
+   ============================================================ */
+
+.sp-page { min-height: 100vh; background: var(--light, #f4f7fb); padding-bottom: 60px; }
+
+/* Hero */
+.sp-hero {
+    background: linear-gradient(135deg, var(--primary, #0a5bd3) 0%, var(--secondary, #063e91) 100%);
+    color: #fff;
+    padding: 96px 24px 40px;
+}
+.sp-hero-inner { max-width: 1100px; margin: 0 auto; }
+.sp-eyebrow {
+    text-transform: uppercase; letter-spacing: 1px; font-size: 0.78rem;
+    font-weight: 700; opacity: 0.9; margin-bottom: 8px;
+}
+.sp-title { font-size: 2rem; font-weight: 800; margin: 0 0 6px; }
+.sp-sub { opacity: 0.9; margin: 0 0 22px; font-size: 0.95rem; }
+
+/* Search bar */
+.sp-searchbar {
+    display: flex; align-items: center; gap: 8px;
+    background: #fff; border-radius: 12px; padding: 8px 10px 8px 16px;
+    max-width: 640px; box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+}
+.sp-search-icon { color: var(--gray, #8895a7); font-size: 0.95rem; }
+.sp-search-input {
+    flex: 1; border: none; outline: none; font-family: inherit;
+    font-size: 1rem; color: var(--dark, #1a2330); padding: 8px 4px; background: transparent;
+}
+.sp-search-btn {
+    border: none; cursor: pointer; font-family: inherit; font-weight: 700;
+    background: var(--primary, #0a5bd3); color: #fff;
+    padding: 10px 22px; border-radius: 8px; font-size: 0.9rem;
+    transition: background 0.2s ease;
+}
+.sp-search-btn:hover { background: var(--secondary, #063e91); }
+
+/* Filters */
+.sp-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.sp-select {
+    border: none; border-radius: 8px; padding: 9px 14px;
+    font-family: inherit; font-size: 0.85rem; font-weight: 600;
+    color: var(--dark, #1a2330); background: rgba(255,255,255,0.92); cursor: pointer;
+}
+
+/* Container */
+.sp-container { max-width: 1100px; margin: 26px auto 0; padding: 0 24px; }
+.sp-meta { font-size: 0.85rem; color: var(--gray, #62708a); margin-bottom: 14px; font-weight: 600; }
+
+/* Result grid */
+.sp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
+.sp-card {
+    background: #fff; border-radius: 14px; padding: 18px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    border: 1px solid #eef2f7;
+    display: flex; gap: 14px; align-items: flex-start;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.sp-card:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0,0,0,0.10); }
+
+.sp-avatar {
+    width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
+    display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 1.05rem;
+    background: linear-gradient(135deg, var(--primary, #0a5bd3), var(--secondary, #063e91));
+}
+.sp-card-body { flex: 1; min-width: 0; }
+.sp-name { font-size: 1.02rem; font-weight: 700; color: var(--dark, #1a2330); margin: 0 0 4px; }
+.sp-academy { font-size: 0.82rem; color: var(--gray, #62708a); margin: 0 0 10px; }
+.sp-academy i { color: var(--primary, #0a5bd3); margin-right: 4px; }
+
+.sp-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.sp-badge {
+    font-size: 0.72rem; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+    background: #eef4ff; color: var(--primary, #0a5bd3);
+}
+.sp-badge.girl { background: #ffeef6; color: #c2185b; }
+.sp-badge.boy  { background: #eef4ff; color: #0a5bd3; }
+
+/* Empty / hint / loading */
+.sp-hint, .sp-empty, .sp-loading {
+    text-align: center; padding: 60px 20px; color: var(--gray, #8895a7);
+}
+.sp-hint i, .sp-empty i, .sp-loading i { font-size: 2.2rem; margin-bottom: 12px; display: block; opacity: 0.6; }
+.sp-loading .fa-circle-notch { color: var(--primary, #0a5bd3); }
+
+@media (max-width: 560px) {
+    .sp-title { font-size: 1.5rem; }
+    .sp-searchbar { flex-wrap: wrap; }
+    .sp-search-btn { width: 100%; }
+}

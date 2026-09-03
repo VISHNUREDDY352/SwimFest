@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academy & Coach Directory — SwimFest</title>
+    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="academy.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <header class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <i class="fas fa-swimmer"></i> SwimFest
+            </a>
+            <button class="state-selector" id="stateSelector">
+                <i class="fas fa-map-marker-alt"></i>
+                <span id="currentState">Tamil Nadu</span>
+                <i class="fas fa-caret-down"></i>
+            </button>
+            <nav class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
+                <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+                <a href="index.html#past-events-archives" class="nav-link">Past</a>
+                <a href="academy.html" class="nav-link active">Academy</a>
+            </nav>
+            <a href="profile.html" class="btn-profile"><i class="fas fa-user"></i> Profile</a>
+            <a href="login.html" class="btn-register-login">Register / Login</a>
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
+        <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+        <a href="index.html#past-events-archives" class="nav-link">Past</a>
+        <a href="academy.html" class="nav-link">Academy</a>
+        <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> My Profile</a>
+        <a href="login.html" class="btn-register-login">Register / Login</a>
+    </div>
+
+    <main>
+
+        <!-- Hero -->
+        <section class="acd-hero">
+            <div class="acd-hero-inner">
+                <div class="acd-hero-text">
+                    <p class="acd-hero-eyebrow"><i class="fas fa-map-marker-alt"></i> Tamil Nadu</p>
+                    <h1 class="acd-hero-title">Academy &amp; Coach Directory</h1>
+                    <p class="acd-hero-sub">Explore verified swimming academies, certified head coaches, and training pool infrastructure across Tamil Nadu.</p>
+                </div>
+                <div class="acd-hero-stats" id="heroStats">
+                    <!-- filled by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Search & Filters -->
+        <section class="acd-filters-bar">
+            <div class="acd-filters-inner">
+                <div class="acd-search-wrap">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="acdSearch" class="acd-search-input"
+                           placeholder="Search academy name, coach name, or city…"
+                           aria-label="Search academies and coaches">
+                    <button class="acd-search-clear" id="acdSearchClear" style="display:none;" title="Clear">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="acd-filter-group">
+                    <select id="cityFilter" class="acd-select" aria-label="Filter by city">
+                        <option value="">All Cities</option>
+                    </select>
+                    <select id="poolFilter" class="acd-select" aria-label="Filter by pool type">
+                        <option value="">All Pool Types</option>
+                        <option value="50m">50m Olympic Pool</option>
+                        <option value="25m">25m Pool</option>
+                    </select>
+                    <select id="statusFilter" class="acd-select" aria-label="Filter by status">
+                        <option value="">All Statuses</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="acd-results-count" id="acdResultsCount">Showing — academies</div>
+            </div>
+        </section>
+
+        <!-- Directory Grid -->
+        <section class="acd-section">
+            <div class="acd-container">
+
+                <!-- Empty state -->
+                <div class="acd-empty" id="acdEmpty" style="display:none;">
+                    <i class="fas fa-search"></i>
+                    <p>No academies match your search. Try a different name or city.</p>
+                    <button class="acd-clear-btn" id="acdClearAll">Clear Filters</button>
+                </div>
+
+                <!-- Cards grid -->
+                <div class="acd-grid" id="acdGrid">
+                    <!-- Rendered by JS -->
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Academy Profile Modal -->
+    <div class="modal-overlay" id="acdProfileModal">
+        <div class="modal acd-modal">
+            <div class="modal-header">
+                <h3 id="modalAcademyName">Academy Profile</h3>
+                <button class="modal-close" id="acdModalClose"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body acd-modal-body" id="acdModalBody">
+                <!-- filled by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Associated Swimmers Modal -->
+    <div class="modal-overlay" id="acdSwimmersModal">
+        <div class="modal acd-modal">
+            <div class="modal-header">
+                <h3 id="modalSwimmersTitle">Associated Swimmers</h3>
+                <button class="modal-close" id="swimmersModalClose"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" id="swimmersModalBody">
+                <!-- filled by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script src="academy.js"></script>
+</body>
+</html>

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Override Engine — SwimFest Super Admin</title>
+    <script src="guard.js" data-roles="super_admin"></script>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .ov-body { background:#f0f2f5; }
+        .ov-topbar { background:var(--dark); height:56px; position:sticky; top:0; z-index:999; border-bottom:1px solid rgba(255,255,255,0.07); }
+        .ov-topbar-inner { max-width:1200px; margin:0 auto; padding:0 24px; height:100%; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+        .ov-logo { font-size:1.1rem; font-weight:800; color:var(--white); text-decoration:none; display:flex; align-items:center; gap:8px; }
+        .ov-logo i { color:var(--accent); }
+        .ov-role { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:rgba(255,255,255,0.35); border-left:1px solid rgba(255,255,255,0.12); padding-left:16px; }
+        .ov-container { max-width:1000px; margin:0 auto; padding:28px 24px 80px; }
+        .ov-card { background:var(--white); border:1px solid var(--gray-light); border-radius:var(--radius); overflow:hidden; margin-bottom:20px; box-shadow:var(--shadow); }
+        .ov-card-header { display:flex; align-items:center; gap:10px; padding:14px 20px; background:var(--dark); color:var(--white); font-size:0.85rem; font-weight:700; }
+        .ov-card-header i { color:var(--warning); }
+        .ov-card-body { padding:20px; }
+        .ov-field { display:flex; flex-direction:column; gap:5px; margin-bottom:16px; }
+        .ov-label { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--gray); }
+        .ov-input, .ov-select, .ov-textarea { padding:10px 14px; border:1.5px solid var(--gray-light); border-radius:var(--radius-sm); font-size:0.87rem; font-family:inherit; color:var(--dark); background:var(--white); transition:var(--transition); width:100%; }
+        .ov-input:focus, .ov-select:focus, .ov-textarea:focus { outline:none; border-color:var(--warning); box-shadow:0 0 0 3px rgba(243,156,18,0.1); }
+        .ov-textarea { resize:vertical; }
+        .ov-status-badge { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:20px; font-size:0.75rem; font-weight:700; }
+        .status-completed { background:var(--dark); color:var(--white); }
+        .status-published  { background:#d4edda; color:#155724; }
+        .status-pending    { background:#fef3c7; color:#92400e; }
+        .ov-actions-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+        .ov-action-card { border:1.5px solid var(--gray-light); border-radius:var(--radius-sm); padding:16px; cursor:pointer; transition:var(--transition); background:var(--white); }
+        .ov-action-card:hover { border-color:var(--warning); background:#fffbeb; }
+        .ov-action-card.selected { border-color:var(--warning); background:#fffbeb; box-shadow:0 0 0 3px rgba(243,156,18,0.15); }
+        .ov-action-card input[type="radio"] { position:absolute; opacity:0; }
+        .ov-action-icon { width:38px; height:38px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; font-size:1rem; margin-bottom:10px; }
+        .icon-reopen   { background:#fff3cd; color:var(--warning); }
+        .icon-fees     { background:#dbeafe; color:var(--primary); }
+        .icon-cutoff   { background:#f0fdf4; color:var(--success); }
+        .icon-cancel   { background:#fde8e8; color:var(--danger); }
+        .ov-action-title { font-size:0.85rem; font-weight:700; color:var(--dark); margin-bottom:4px; }
+        .ov-action-desc  { font-size:0.75rem; color:var(--gray); line-height:1.5; }
+        .ov-warning-box { display:flex; align-items:flex-start; gap:12px; padding:14px 16px; background:#fffbeb; border:1.5px solid #fde68a; border-radius:var(--radius-sm); margin-bottom:16px; }
+        .ov-warning-box i { color:var(--warning); font-size:1.1rem; flex-shrink:0; margin-top:2px; }
+        .ov-warning-box p { font-size:0.83rem; color:#92400e; line-height:1.55; }
+        .ov-audit-log-section { border-top:1px solid var(--gray-light); padding:16px 20px 0; margin-top:4px; }
+        .ov-log-table { width:100%; border-collapse:collapse; font-size:0.8rem; margin-top:10px; }
+        .ov-log-table th { padding:8px 12px; text-align:left; font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--gray); background:var(--light); border-bottom:2px solid var(--gray-light); }
+        .ov-log-table td { padding:9px 12px; border-bottom:1px solid var(--gray-light); color:var(--dark); font-size:0.78rem; }
+        .ov-log-table tr:last-child td { border-bottom:none; }
+        .log-action-badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:0.68rem; font-weight:700; }
+        .log-reopen { background:#fff3cd; color:#92400e; }
+        .log-fees   { background:#dbeafe; color:#1e40af; }
+        .log-cancel { background:#fde8e8; color:var(--danger); }
+        .log-verify { background:#d4edda; color:#155724; }
+        @media (max-width:640px) { .ov-actions-grid { grid-template-columns:1fr; } }
+    </style>
+</head>
+<body class="ov-body">
+
+    <header class="ov-topbar">
+        <div class="ov-topbar-inner">
+            <div style="display:flex;align-items:center;gap:16px;">
+                <a href="index.html" class="ov-logo"><i class="fas fa-swimmer"></i> SwimFest</a>
+                <span class="ov-role"><i class="fas fa-unlock-alt" style="color:var(--warning);"></i> Super Admin Console | Universal Override Engine</span>
+            </div>
+            <a href="superadmin.html" style="color:rgba(255,255,255,0.5);font-size:0.78rem;text-decoration:none;padding:7px 14px;border:1px solid rgba(255,255,255,0.15);border-radius:var(--radius-sm);display:flex;align-items:center;gap:6px;">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </header>
+
+    <main>
+        <div class="ov-container">
+
+            <!-- Page title -->
+            <div style="margin-bottom:20px;">
+                <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--warning);margin-bottom:6px;">
+                    <i class="fas fa-unlock-alt"></i> Super Admin Exclusive Access
+                </div>
+                <h1 style="font-size:1.5rem;font-weight:800;color:var(--dark);letter-spacing:-0.3px;margin-bottom:6px;">
+                    Universal Override &amp; Reopen Meet Canvas
+                </h1>
+                <p style="font-size:0.87rem;color:var(--gray);line-height:1.6;">
+                    Override any system constraint, reopen archived meets, force-edit locked fees, or cancel events. Every action is permanently logged to the immutable audit ledger.
+                </p>
+            </div>
+
+            <!-- Tournament Selector -->
+            <div class="ov-card">
+                <div class="ov-card-header">
+                    <i class="fas fa-trophy"></i> Select Tournament for Override
+                </div>
+                <div class="ov-card-body">
+                    <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;">
+                        <div class="ov-field" style="margin-bottom:0;">
+                            <label class="ov-label">Tournament</label>
+                            <select class="ov-select" id="ovTournamentSelect" onchange="loadTournamentDetails()">
+                                <option value="">— Select a tournament —</option>
+                                <option value="TRN-TN-2026-004" data-status="COMPLETED">Golden Non-Medalist Championship 2026 (TRN-TN-2026-004)</option>
+                                <option value="TRN-TN-2026-011" data-status="PUBLISHED">District Schools Meet '26 (TRN-TN-2026-011)</option>
+                                <option value="TRN-TN-2026-009" data-status="COMPLETED">Inter-Club Sprint Gala '26 (TRN-TN-2026-009)</option>
+                                <option value="TRN-TN-2026-003" data-status="PUBLISHED">State Masters Meet 2026 (TRN-TN-2026-003)</option>
+                            </select>
+                        </div>
+                        <button class="admin-btn admin-btn-outline" onclick="loadTournamentDetails()" style="height:42px;">
+                            <i class="fas fa-search"></i> Load
+                        </button>
+                    </div>
+
+                    <!-- Tournament detail row -->
+                    <div id="ovTournamentDetail" style="display:none;margin-top:16px;padding:14px 16px;background:var(--light);border:1px solid var(--gray-light);border-radius:var(--radius-sm);">
+                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;flex-wrap:wrap;">
+                            <div>
+                                <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;color:var(--gray);margin-bottom:4px;">Tournament</div>
+                                <div style="font-size:0.88rem;font-weight:700;color:var(--dark);" id="ovTrnName">—</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;color:var(--gray);margin-bottom:4px;">Current Status</div>
+                                <div id="ovTrnStatus">—</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;color:var(--gray);margin-bottom:4px;">Tournament ID</div>
+                                <div style="font-family:monospace;font-size:0.82rem;font-weight:600;color:var(--primary);" id="ovTrnId">—</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Override Actions -->
+            <div class="ov-card" id="ovActionsCard" style="display:none;">
+                <div class="ov-card-header">
+                    <i class="fas fa-cogs"></i> Override Actions
+                </div>
+                <div class="ov-card-body">
+                    <div class="ov-warning-box">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>All override actions bypass standard role-level locks. Every action is <strong>immediately written to the immutable system_audit_logs</strong> and cannot be undone without another override entry.</p>
+                    </div>
+
+                    <div class="ov-actions-grid" id="ovActionsGrid">
+                        <label class="ov-action-card" onclick="selectAction('reopen')">
+                            <input type="radio" name="ovAction" value="reopen">
+                            <div class="ov-action-icon icon-reopen"><i class="fas fa-lock-open"></i></div>
+                            <div class="ov-action-title">Reopen Event for Editing</div>
+                            <div class="ov-action-desc">Reverts state to PUBLISHED, allowing Event Manager edits on heats, results, and swimmer entries.</div>
+                        </label>
+                        <label class="ov-action-card" onclick="selectAction('fees')">
+                            <input type="radio" name="ovAction" value="fees">
+                            <div class="ov-action-icon icon-fees"><i class="fas fa-rupee-sign"></i></div>
+                            <div class="ov-action-title">Force Edit Base Fees</div>
+                            <div class="ov-action-desc">Modify locked ₹800 package or ₹300 relay add-on fees. Takes effect immediately for new registrations.</div>
+                        </label>
+                        <label class="ov-action-card" onclick="selectAction('cutoff')">
+                            <input type="radio" name="ovAction" value="cutoff">
+                            <div class="ov-action-icon icon-cutoff"><i class="fas fa-calendar-edit"></i></div>
+                            <div class="ov-action-title">Edit Age Cutoff Dates</div>
+                            <div class="ov-action-desc">Override December 31 rule or Swim-Up policy enforcement. Triggers automatic category re-evaluation.</div>
+                        </label>
+                        <label class="ov-action-card" onclick="selectAction('cancel')">
+                            <input type="radio" name="ovAction" value="cancel">
+                            <div class="ov-action-icon icon-cancel"><i class="fas fa-ban"></i></div>
+                            <div class="ov-action-title">Force Event Cancellation</div>
+                            <div class="ov-action-desc">Triggers global notification to all registered swimmers and initiates automatic refund processing.</div>
+                        </label>
+                    </div>
+
+                    <!-- Dynamic action-specific fields -->
+                    <div id="ovActionFields" style="margin-top:16px;"></div>
+                </div>
+            </div>
+
+            <!-- Reason / Audit Log Entry -->
+            <div class="ov-card" id="ovReasonCard" style="display:none;">
+                <div class="ov-card-header">
+                    <i class="fas fa-file-signature"></i> Reason for Override — Mandatory Audit Log Entry
+                </div>
+                <div class="ov-card-body">
+                    <div class="ov-field">
+                        <label class="ov-label">Override Reason / Notes * (written to immutable audit ledger)</label>
+                        <textarea class="ov-textarea" id="ovReason" rows="3" placeholder="e.g. Correcting age cutoff calculation error in Heat 2 — Boys U-12"></textarea>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-top:8px;">
+                        <button class="admin-btn admin-btn-outline" onclick="cancelOverride()">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button class="admin-btn" style="background:var(--warning);color:var(--white);padding:11px 24px;font-weight:700;" onclick="saveOverride()">
+                            <i class="fas fa-save"></i> Save Override Changes with Audit Log
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit Log Preview -->
+            <div class="ov-card">
+                <div class="ov-card-header">
+                    <i class="fas fa-history"></i> Recent Override Audit Log (system_audit_logs)
+                </div>
+                <div style="padding:0;">
+                    <table class="ov-log-table">
+                        <thead>
+                            <tr>
+                                <th>Log ID</th>
+                                <th>Action</th>
+                                <th>Tournament</th>
+                                <th>Notes</th>
+                                <th>Admin</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ovLogBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+    'use strict';
+
+    const TOURNAMENTS_DATA = {
+        'TRN-TN-2026-004': { name:'Golden Non-Medalist Championship 2026', status:'COMPLETED' },
+        'TRN-TN-2026-011': { name:"District Schools Meet '26",             status:'PUBLISHED' },
+        'TRN-TN-2026-009': { name:"Inter-Club Sprint Gala '26",            status:'COMPLETED' },
+        'TRN-TN-2026-003': { name:'State Masters Meet 2026',               status:'PUBLISHED' },
+    };
+
+    const AUDIT_LOG = [
+        { id:'LOG-TN-2026-9921', action:'EVENT_REOPENED', trn:'TRN-TN-2026-004', notes:'Age cutoff correction in Heat 2 — Boys U-12', admin:'SA-001', ts:'2026-09-02 17:44' },
+        { id:'LOG-TN-2026-9920', action:'FEE_OVERRIDE',   trn:'TRN-TN-2026-003', notes:'Platform fee adjusted to ₹50/booking',          admin:'SA-001', ts:'2026-09-01 16:20' },
+        { id:'LOG-TN-2026-9919', action:'COACH_VERIFIED', trn:'—',               notes:'Coach V. Raman — ASCA-IND-883 verified',        admin:'SA-001', ts:'2026-09-01 14:30' },
+        { id:'LOG-TN-2026-9918', action:'EVENT_APPROVED', trn:'TRN-TN-2026-011', notes:'District Schools Meet approved for publishing',  admin:'SA-001', ts:'2026-08-31 10:12' },
+    ];
+
+    let selectedAction = null;
+
+    function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function statusBadge(s){
+        const map={
+            'COMPLETED':'status-completed','PUBLISHED':'status-published','PENDING_APPROVAL':'status-pending'
+        };
+        return `<span class="ov-status-badge ${map[s]||''}">${escHtml(s.replace(/_/g,' '))}</span>`;
+    }
+
+    window.loadTournamentDetails = function(){
+        const sel = document.getElementById('ovTournamentSelect');
+        const id  = sel.value;
+        const detail = document.getElementById('ovTournamentDetail');
+        const actCard = document.getElementById('ovActionsCard');
+        const reaCard = document.getElementById('ovReasonCard');
+        if (!id) { detail.style.display='none'; actCard.style.display='none'; reaCard.style.display='none'; return; }
+        const t = TOURNAMENTS_DATA[id];
+        if (!t) return;
+        document.getElementById('ovTrnName').textContent   = t.name;
+        document.getElementById('ovTrnId').textContent     = id;
+        document.getElementById('ovTrnStatus').innerHTML   = statusBadge(t.status);
+        detail.style.display  = '';
+        actCard.style.display = '';
+        reaCard.style.display = '';
+        document.getElementById('ovActionFields').innerHTML = '';
+        selectedAction = null;
+        document.querySelectorAll('.ov-action-card').forEach(c=>c.classList.remove('selected'));
+    };
+
+    window.selectAction = function(action){
+        selectedAction = action;
+        document.querySelectorAll('.ov-action-card').forEach(c=>c.classList.remove('selected'));
+        event.currentTarget.classList.add('selected');
+
+        const fields = document.getElementById('ovActionFields');
+        if (action === 'fees') {
+            fields.innerHTML = `
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;background:var(--light);border-radius:var(--radius-sm);border:1px solid var(--gray-light);">
+                    <div class="ov-field" style="margin:0;">
+                        <label class="ov-label">New Base Package Fee (₹)</label>
+                        <input class="ov-input" type="number" id="newBaseFee" value="800" min="0">
+                    </div>
+                    <div class="ov-field" style="margin:0;">
+                        <label class="ov-label">New Relay Add-On Fee (₹)</label>
+                        <input class="ov-input" type="number" id="newRelayFee" value="300" min="0">
+                    </div>
+                </div>`;
+        } else if (action === 'cutoff') {
+            fields.innerHTML = `
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;background:var(--light);border-radius:var(--radius-sm);border:1px solid var(--gray-light);">
+                    <div class="ov-field" style="margin:0;">
+                        <label class="ov-label">New Age Cutoff Date</label>
+                        <input class="ov-input" type="date" id="newCutoffDate" value="2026-12-31">
+                    </div>
+                    <div class="ov-field" style="margin:0;">
+                        <label class="ov-label">Swim-Up Policy Override</label>
+                        <select class="ov-select" id="newSwimUp">
+                            <option value="single">Single Category Only</option>
+                            <option value="swimup">Allow Swim-Up</option>
+                        </select>
+                    </div>
+                </div>`;
+        } else {
+            fields.innerHTML = '';
+        }
+    };
+
+    window.cancelOverride = function(){
+        document.getElementById('ovReason').value = '';
+        selectedAction = null;
+        document.querySelectorAll('.ov-action-card').forEach(c=>c.classList.remove('selected'));
+        document.getElementById('ovActionFields').innerHTML = '';
+        showToast('Override cancelled.','info');
+    };
+
+    window.saveOverride = function(){
+        const reason = document.getElementById('ovReason').value.trim();
+        const trnId  = document.getElementById('ovTrnId').textContent;
+        if (!selectedAction) { showToast('Select an override action first.','warn'); return; }
+        if (!reason)         { showToast('Override reason is mandatory for audit log.','warn'); return; }
+
+        const actionLabels = { reopen:'EVENT_REOPENED', fees:'FEE_OVERRIDE', cutoff:'AGE_CUTOFF_EDITED', cancel:'EVENT_CANCELLED' };
+        const logId = 'LOG-TN-2026-' + Math.floor(9900+Math.random()*99);
+        const now   = new Date().toLocaleString('en-IN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+
+        // Prepend to audit log
+        AUDIT_LOG.unshift({ id:logId, action:actionLabels[selectedAction], trn:trnId, notes:reason, admin:'SA-001', ts:now });
+        renderAuditLog();
+        document.getElementById('ovReason').value = '';
+        selectedAction = null;
+        document.querySelectorAll('.ov-action-card').forEach(c=>c.classList.remove('selected'));
+        document.getElementById('ovActionFields').innerHTML = '';
+        showToast(`Override saved. Audit log ID: ${logId}`, 'success');
+    };
+
+    function renderAuditLog(){
+        const actionClass = { EVENT_REOPENED:'log-reopen', FEE_OVERRIDE:'log-fees', EVENT_CANCELLED:'log-cancel', COACH_VERIFIED:'log-verify', ACADEMY_VERIFIED:'log-verify', EVENT_APPROVED:'log-verify', AGE_CUTOFF_EDITED:'log-fees' };
+        document.getElementById('ovLogBody').innerHTML = AUDIT_LOG.map(r=>`
+            <tr>
+                <td style="font-family:monospace;font-size:0.72rem;">${escHtml(r.id)}</td>
+                <td><span class="log-action-badge ${actionClass[r.action]||''}">${escHtml(r.action)}</span></td>
+                <td style="font-family:monospace;font-size:0.72rem;">${escHtml(r.trn)}</td>
+                <td style="max-width:240px;">${escHtml(r.notes)}</td>
+                <td>${escHtml(r.admin)}</td>
+                <td style="font-size:0.75rem;color:var(--gray);">${escHtml(r.ts)}</td>
+            </tr>`).join('');
+    }
+
+    function showToast(msg,type='info'){
+        const e=document.querySelector('.admin-toast');if(e)e.remove();
+        const t=document.createElement('div');t.className=`admin-toast admin-toast-${type}`;
+        const icon=type==='success'?'check-circle':type==='warn'?'exclamation-triangle':'info-circle';
+        t.innerHTML=`<i class="fas fa-${icon}"></i> ${escHtml(msg)}`;
+        document.body.appendChild(t);
+        setTimeout(()=>t.classList.add('show'),10);
+        setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400);},3500);
+    }
+
+    (function(){
+        const s=document.createElement('style');
+        s.textContent=`
+            .admin-toast{position:fixed;bottom:28px;right:28px;z-index:99999;padding:12px 20px;background:var(--dark);color:var(--white);border-radius:var(--radius-sm);font-size:0.85rem;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,0.25);transform:translateY(20px);opacity:0;transition:all 0.3s ease;max-width:420px;font-family:'Inter',sans-serif;}
+            .admin-toast.show{transform:translateY(0);opacity:1;}
+            .admin-toast i{color:var(--accent);}
+            .admin-toast.admin-toast-success i{color:var(--success);}
+            .admin-toast.admin-toast-warn i{color:var(--warning);}`;
+        document.head.appendChild(s);
+    })();
+
+    document.addEventListener('DOMContentLoaded', renderAuditLog);
+    </script>
+</body>
+</html>

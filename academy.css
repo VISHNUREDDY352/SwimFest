@@ -1,0 +1,655 @@
+/* ============================================================
+   Academy & Coach Directory — academy.css
+   ============================================================ */
+
+/* ── Active nav link ── */
+.nav-link.active {
+    background: var(--accent-light);
+    color: var(--primary);
+}
+
+/* ── Hero ── */
+.acd-hero {
+    background: linear-gradient(135deg, var(--dark) 0%, var(--dark-secondary) 100%);
+    padding: 52px 24px 48px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.acd-hero-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 32px;
+    flex-wrap: wrap;
+}
+
+.acd-hero-eyebrow {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--accent);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.acd-hero-eyebrow i { color: var(--danger); }
+
+.acd-hero-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: -0.5px;
+    line-height: 1.15;
+    margin-bottom: 12px;
+}
+
+.acd-hero-sub {
+    font-size: 0.95rem;
+    color: rgba(255,255,255,0.55);
+    max-width: 520px;
+    line-height: 1.65;
+}
+
+/* Hero stat pills */
+.acd-hero-stats {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+
+.acd-stat-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 24px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: var(--radius-sm);
+    min-width: 90px;
+}
+
+.acd-stat-num {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: -0.5px;
+    line-height: 1;
+}
+
+.acd-stat-num span { color: var(--accent); }
+
+.acd-stat-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.4);
+    margin-top: 4px;
+    white-space: nowrap;
+}
+
+/* ── Search & Filters Bar ── */
+.acd-filters-bar {
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-light);
+    padding: 16px 24px;
+    position: sticky;
+    top: 70px;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.acd-filters-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.acd-search-wrap {
+    flex: 1;
+    min-width: 260px;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.acd-search-wrap > .fa-search {
+    position: absolute;
+    left: 14px;
+    color: var(--gray);
+    font-size: 0.85rem;
+    pointer-events: none;
+}
+
+.acd-search-input {
+    width: 100%;
+    padding: 11px 40px 11px 40px;
+    border: 2px solid var(--gray-light);
+    border-radius: var(--radius-sm);
+    font-size: 0.88rem;
+    font-family: inherit;
+    background: var(--light);
+    color: var(--dark);
+    transition: var(--transition);
+}
+
+.acd-search-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--white);
+    box-shadow: 0 0 0 3px rgba(0,180,216,0.1);
+}
+
+.acd-search-clear {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    color: var(--gray);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 4px;
+    transition: var(--transition);
+}
+
+.acd-search-clear:hover { color: var(--danger); }
+
+.acd-filter-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.acd-select {
+    padding: 10px 14px;
+    border: 2px solid var(--gray-light);
+    border-radius: var(--radius-sm);
+    font-size: 0.83rem;
+    font-family: inherit;
+    font-weight: 500;
+    color: var(--dark);
+    background: var(--light);
+    cursor: pointer;
+    transition: var(--transition);
+    min-width: 140px;
+}
+
+.acd-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,180,216,0.1);
+}
+
+.acd-results-count {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--gray);
+    white-space: nowrap;
+    margin-left: auto;
+}
+
+/* ── Section / Container ── */
+.acd-section { padding: 40px 0 72px; }
+
+.acd-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* ── Empty State ── */
+.acd-empty {
+    text-align: center;
+    padding: 64px 24px;
+    color: var(--gray);
+}
+
+.acd-empty i {
+    font-size: 2.5rem;
+    margin-bottom: 16px;
+    display: block;
+    color: var(--accent);
+}
+
+.acd-empty p {
+    font-size: 1rem;
+    margin-bottom: 20px;
+}
+
+.acd-clear-btn {
+    padding: 10px 22px;
+    border: 2px solid var(--gray-light);
+    border-radius: var(--radius-sm);
+    background: var(--white);
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--primary);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.acd-clear-btn:hover {
+    border-color: var(--primary);
+    background: var(--accent-light);
+}
+
+/* ── Academy Card Grid ── */
+.acd-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 24px;
+}
+
+/* ── Academy Card ── */
+.acd-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-light);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+}
+
+.acd-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--accent-light);
+}
+
+.acd-card.inactive-card { opacity: 0.65; }
+
+/* Card header stripe */
+.acd-card-stripe {
+    height: 5px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+}
+
+.acd-card.inactive-card .acd-card-stripe {
+    background: var(--gray-light);
+}
+
+/* Card header */
+.acd-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 20px 20px 14px;
+    border-bottom: 1px solid var(--gray-light);
+}
+
+/* Academy logo/avatar */
+.acd-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: var(--white);
+    font-size: 1.3rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    letter-spacing: -0.5px;
+}
+
+.acd-avatar-inactive {
+    background: var(--gray-light);
+    color: var(--gray);
+}
+
+.acd-card-title-block { flex: 1; min-width: 0; }
+
+.acd-card-name {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--dark);
+    letter-spacing: -0.2px;
+    line-height: 1.2;
+    margin-bottom: 4px;
+}
+
+.acd-card-id {
+    font-size: 0.7rem;
+    color: var(--gray);
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+}
+
+/* Status badge */
+.acd-status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.status-active   { background: #d4edda; color: #155724; }
+.status-inactive { background: var(--gray-light); color: var(--gray); }
+
+/* Card body */
+.acd-card-body {
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.acd-info-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.82rem;
+    color: var(--dark);
+    line-height: 1.45;
+}
+
+.acd-info-row i {
+    width: 14px;
+    color: var(--primary);
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.acd-info-row strong { font-weight: 600; }
+
+/* Pool spec pills */
+.pool-specs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+}
+
+.pool-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: #e8f4f8;
+    color: var(--primary-dark);
+}
+
+.pool-pill i { font-size: 0.65rem; }
+
+/* Coaches block */
+.acd-coaches-block {
+    border-top: 1px solid var(--gray-light);
+    padding: 14px 20px 6px;
+}
+
+.acd-coaches-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--gray);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.acd-coaches-label i { color: var(--accent); }
+
+.acd-coach-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--gray-light);
+}
+
+.acd-coach-row:last-child { border-bottom: none; padding-bottom: 4px; }
+
+.acd-coach-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: var(--white);
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.acd-coach-head-avatar { background: var(--dark); }
+
+.acd-coach-info { flex: 1; min-width: 0; }
+
+.acd-coach-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.acd-coach-designation {
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: var(--accent-light);
+    color: var(--primary-dark);
+}
+
+.acd-coach-designation.head { background: var(--dark); color: var(--white); }
+
+.acd-coach-certs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 5px;
+}
+
+.cert-tag {
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: #f0f4ff;
+    color: var(--primary);
+    border: 1px solid var(--accent-light);
+}
+
+.acd-coach-exp {
+    font-size: 0.72rem;
+    color: var(--gray);
+    margin-top: 4px;
+}
+
+/* Card footer actions */
+.acd-card-actions {
+    display: flex;
+    gap: 8px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--gray-light);
+    background: var(--light);
+}
+
+.acd-btn {
+    flex: 1;
+    padding: 9px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: var(--transition);
+    text-decoration: none;
+}
+
+.acd-btn-primary {
+    background: var(--primary);
+    color: var(--white);
+}
+
+.acd-btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,119,182,0.25);
+}
+
+.acd-btn-ghost {
+    background: var(--white);
+    color: var(--dark);
+    border: 1px solid var(--gray-light);
+}
+
+.acd-btn-ghost:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--accent-light);
+}
+
+/* ── Academy Profile Modal ── */
+.acd-modal { max-width: 640px; }
+
+.acd-modal-body { padding: 0; }
+
+.acd-modal-section {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--gray-light);
+}
+
+.acd-modal-section:last-child { border-bottom: none; }
+
+.acd-modal-section-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--gray);
+    margin-bottom: 12px;
+}
+
+.acd-modal-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.acd-modal-field-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--gray);
+    margin-bottom: 2px;
+}
+
+.acd-modal-field-value {
+    font-size: 0.87rem;
+    font-weight: 500;
+    color: var(--dark);
+}
+
+.acd-modal-coach-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--gray-light);
+}
+
+.acd-modal-coach-row:last-child { border-bottom: none; }
+
+/* ── Swimmers modal table ── */
+.swimmers-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.83rem;
+}
+
+.swimmers-table th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--gray);
+    background: var(--light);
+    border-bottom: 2px solid var(--gray-light);
+}
+
+.swimmers-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--gray-light);
+    color: var(--dark);
+    font-weight: 500;
+}
+
+.swimmers-table tr:last-child td { border-bottom: none; }
+
+.swimmers-table tr:hover td { background: #f9fafb; }
+
+.swimmer-cat-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    background: var(--primary);
+    color: var(--white);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .acd-hero-inner { flex-direction: column; align-items: flex-start; }
+    .acd-hero-title { font-size: 1.7rem; }
+    .acd-hero-stats { width: 100%; justify-content: flex-start; }
+
+    .acd-filters-inner { flex-direction: column; align-items: stretch; }
+    .acd-search-wrap { min-width: unset; }
+    .acd-filter-group { flex-direction: column; }
+    .acd-select { min-width: unset; }
+    .acd-results-count { margin-left: 0; }
+
+    .acd-grid { grid-template-columns: 1fr; }
+
+    .acd-modal-info-grid { grid-template-columns: 1fr; }
+
+    .acd-card-actions { flex-direction: column; }
+}
+
+@media (max-width: 480px) {
+    .acd-hero { padding: 36px 16px 32px; }
+    .acd-container { padding: 0 16px; }
+    .acd-hero-stats { gap: 10px; }
+    .acd-stat-pill { padding: 12px 16px; min-width: 70px; }
+    .acd-stat-num { font-size: 1.4rem; }
+}

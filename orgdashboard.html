@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizer Dashboard — SwimFest Host Portal</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="emdashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="dash-body">
+
+    <!-- Main Navbar -->
+    <header class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo"><i class="fas fa-swimmer"></i> SwimFest</a>
+            <button class="state-selector">
+                <i class="fas fa-map-marker-alt"></i> Tamil Nadu <i class="fas fa-caret-down"></i>
+            </button>
+            <nav class="nav-links">
+                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
+                <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+                <a href="index.html#past-events-archives" class="nav-link">Past</a>
+                <a href="academy.html" class="nav-link">Academy</a>
+            </nav>
+            <div style="display:flex;align-items:center;gap:10px;margin-left:auto;">
+                <span style="font-size:0.75rem;color:var(--gray);font-weight:600;">
+                    <i class="fas fa-building" style="color:var(--primary);"></i> Kovai Amateur Aquatic Club
+                </span>
+                <a href="orgdashboard.html" class="btn-register-login" style="background:var(--warning);color:var(--white);">
+                    <i class="fas fa-cog"></i> Host Dashboard
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sticky Organizer Control Bar -->
+    <div class="em-control-bar" style="background:#1a3a1a;">
+        <div class="em-control-inner">
+            <span class="em-control-label">ORGANIZER CONTROLS</span>
+            <a href="orgcreate.html" class="em-ctrl-btn em-ctrl-primary">
+                <i class="fas fa-plus"></i> Create Event
+            </a>
+            <a href="#myMeets" class="em-ctrl-btn em-ctrl-secondary">
+                <i class="fas fa-calendar-check"></i> My Hosted Meets
+            </a>
+            <a href="#" class="em-ctrl-btn em-ctrl-secondary" onclick="showToast('Past archives coming soon','info');return false;">
+                <i class="fas fa-archive"></i> Past Archives
+            </a>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+                <span style="font-size:0.72rem;color:rgba(255,255,255,0.4);">ID: ORG-TN-882</span>
+            </div>
+        </div>
+    </div>
+
+    <main class="em-main">
+        <div class="em-container">
+
+            <!-- Organizer Host Metrics Summary -->
+            <div class="em-welcome-card" style="background:linear-gradient(135deg,#1a3a1a,#0d2b0d,#003300);">
+                <div class="em-welcome-left">
+                    <div class="em-welcome-icon" style="background:rgba(255,255,255,0.1);">
+                        <i class="fas fa-building" style="color:#4ade80;"></i>
+                    </div>
+                    <div>
+                        <h1 class="em-welcome-title">Organizer Host Metrics &amp; Summary</h1>
+                        <p class="em-welcome-id">Organization: Kovai Amateur Aquatic Club &nbsp;·&nbsp; ID: ORG-TN-882</p>
+                        <p class="em-welcome-sub">Third-party host portal — manage your swimming competitions, view financial analytics, and run poolside race operations for your owned meets.</p>
+                    </div>
+                </div>
+                <div class="em-stats-row">
+                    <div class="em-stat-pill">
+                        <i class="fas fa-trophy" style="color:#4ade80;"></i>
+                        <div class="em-stat-val">8</div>
+                        <div class="em-stat-label">Events Conducted</div>
+                    </div>
+                    <div class="em-stat-pill">
+                        <i class="fas fa-users" style="color:#4ade80;"></i>
+                        <div class="em-stat-val">1,420</div>
+                        <div class="em-stat-label">Athletes Hosted</div>
+                    </div>
+                    <div class="em-stat-pill orange">
+                        <i class="fas fa-rupee-sign"></i>
+                        <div class="em-stat-val">₹40K</div>
+                        <div class="em-stat-label">Software Fees Paid</div>
+                    </div>
+                    <div class="em-stat-pill">
+                        <i class="fas fa-fire" style="color:#4ade80;"></i>
+                        <div class="em-stat-val">1</div>
+                        <div class="em-stat-label">Active Meet Running</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Hosted Tournaments Pipeline -->
+            <div class="em-section" id="myMeets">
+                <div class="em-section-header">
+                    <span class="em-section-title">
+                        <i class="fas fa-project-diagram"></i> My Hosted Tournaments Pipeline
+                    </span>
+                    <a href="orgcreate.html" class="dash-review-btn" style="background:var(--success);color:var(--white);border:none;">
+                        <i class="fas fa-plus"></i> Create New Event
+                    </a>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="em-pipeline-table" id="orgPipelineTable">
+                        <thead>
+                            <tr>
+                                <th>Tournament Title</th>
+                                <th>Dates</th>
+                                <th>Payment Type</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orgPipelineBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Lifecycle State Machine -->
+            <div class="em-section">
+                <div class="em-section-header">
+                    <span class="em-section-title"><i class="fas fa-stream"></i> Third-Party Event Creation &amp; Lifecycle State Machine</span>
+                </div>
+                <div class="em-lifecycle" id="orgLifecycle"></div>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="orgdashboard.js"></script>
+</body>
+</html>

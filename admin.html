@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Console — Master Player List | SwimFest</title>
+    <script src="guard.js" data-roles="super_admin,event_manager"></script>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="admin-body">
+
+    <!-- Admin Topbar -->
+    <header class="admin-topbar">
+        <div class="admin-topbar-inner">
+            <div class="admin-topbar-left">
+                <a href="index.html" class="admin-logo">
+                    <i class="fas fa-swimmer"></i> SwimFest
+                </a>
+                <span class="admin-role-tag"><i class="fas fa-shield-alt"></i> Super Admin / Event Manager Console</span>
+            </div>
+            <div class="admin-topbar-right">
+                <span class="admin-user-pill"><i class="fas fa-user-circle"></i> Admin</span>
+                <a href="index.html" class="admin-logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="admin-main">
+
+        <!-- Tournament Status Banner -->
+        <div class="admin-tournament-banner" id="tournamentBanner">
+            <div class="admin-tournament-inner">
+                <div class="admin-t-info">
+                    <div class="admin-t-name" id="adminTournamentName">Golden Non-Medalist Championship 2026</div>
+                    <div class="admin-t-meta">
+                        <span class="admin-status-chip" id="regStatusChip">
+                            <i class="fas fa-lock"></i> Registration Closed
+                        </span>
+                        <span class="admin-t-meta-item"><i class="fas fa-users"></i> Total Confirmed Entries: <strong id="totalEntries">0</strong></span>
+                        <span class="admin-t-meta-item"><i class="fas fa-list"></i> Event-Entry Rows: <strong id="totalEventRows">0</strong></span>
+                        <span class="admin-t-meta-item" id="lockStatusItem" style="display:none;">
+                            <i class="fas fa-lock" style="color:var(--danger)"></i> <strong style="color:var(--danger)">PLAYER LIST LOCKED</strong>
+                        </span>
+                    </div>
+                </div>
+                <div class="admin-t-actions">
+                    <a href="event.html" class="admin-ghost-btn"><i class="fas fa-arrow-left"></i> Back to Event</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-container">
+
+            <!-- Section: Roster Audit & Controls -->
+            <div class="admin-section-header">
+                <div>
+                    <div class="admin-section-label">Chapter 7 — Master Player List</div>
+                    <h2 class="admin-section-title">Roster Audit &amp; Actions</h2>
+                </div>
+            </div>
+
+            <!-- Filter & Action Bar -->
+            <div class="admin-controls-bar">
+                <div class="admin-search-wrap">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="rosterSearch" class="admin-search-input"
+                           placeholder="Search swimmer, ID, or academy…">
+                    <button class="admin-search-clear" id="rosterSearchClear" style="display:none;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="admin-filter-group">
+                    <select id="filterCategory" class="admin-select">
+                        <option value="">All Categories</option>
+                        <option value="U-10">U-10</option>
+                        <option value="U-12">U-12</option>
+                        <option value="U-14">U-14</option>
+                        <option value="U-16">U-16</option>
+                    </select>
+                    <select id="filterGender" class="admin-select">
+                        <option value="">All Genders</option>
+                        <option value="Boy">Boys</option>
+                        <option value="Girl">Girls</option>
+                    </select>
+                    <select id="filterAcademy" class="admin-select">
+                        <option value="">All Academies</option>
+                    </select>
+                    <select id="filterFlag" class="admin-select">
+                        <option value="">All Statuses</option>
+                        <option value="flagged">Flagged Only</option>
+                        <option value="clean">Clean Only</option>
+                    </select>
+                </div>
+                <div class="admin-action-btns">
+                    <button class="admin-btn admin-btn-outline" id="addManualBtn">
+                        <i class="fas fa-plus"></i> Add Manual / Offline Swimmer
+                    </button>
+                    <button class="admin-btn admin-btn-export" id="exportBtn">
+                        <i class="fas fa-file-excel"></i> Export Roster (CSV)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Grid stats row -->
+            <div class="admin-grid-stats" id="adminGridStats">
+                <!-- filled by JS -->
+            </div>
+
+            <!-- Master Player List Data Grid -->
+            <div class="admin-grid-wrap" id="adminGridWrap">
+                <table class="admin-grid" id="adminGrid">
+                    <thead>
+                        <tr>
+                            <th class="col-id">ID</th>
+                            <th class="col-swimmer">Swimmer</th>
+                            <th class="col-dob">Gender / DOB</th>
+                            <th class="col-cat">Category</th>
+                            <th class="col-academy">Academy</th>
+                            <th class="col-event">Event</th>
+                            <th class="col-seed">Seed Time</th>
+                            <th class="col-action">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminGridBody">
+                        <!-- Rendered by JS -->
+                    </tbody>
+                </table>
+                <div class="admin-empty" id="adminEmpty" style="display:none;">
+                    <i class="fas fa-inbox"></i>
+                    <p>No entries match your filters.</p>
+                </div>
+            </div>
+
+            <!-- Final Roster Verification & Lock -->
+            <div class="admin-lock-block" id="lockBlock">
+                <div class="admin-lock-warning" id="lockWarning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>Final Roster Verification &amp; Lock</strong>
+                        <p>Submitting the Final Player List locks all swimmer profiles and event mappings. This action cannot be undone. The finalized data will be handed off to the Heat Generation Engine.</p>
+                    </div>
+                </div>
+                <div class="admin-audit-results" id="auditResults" style="display:none;">
+                    <!-- Filled by audit engine before lock -->
+                </div>
+                <div class="admin-lock-actions">
+                    <button class="admin-btn admin-btn-draft" id="saveDraftBtn">
+                        <i class="fas fa-save"></i> Save Draft Changes
+                    </button>
+                    <button class="admin-btn admin-btn-lock" id="submitFinalBtn">
+                        <i class="fas fa-lock"></i> Submit Final Player List
+                    </button>
+                    <a href="heatgen.html" class="admin-btn" style="background:var(--accent);color:var(--white);">
+                        <i class="fas fa-bolt"></i> Go to Heat Generation
+                    </a>
+                    <a href="results.html" class="admin-btn" style="background:var(--success);color:var(--white);">
+                        <i class="fas fa-broadcast-tower"></i> Live Result Entry
+                    </a>
+                    <a href="orgdashboard.html" class="admin-btn" style="background:#1a5c1a;color:var(--white);">
+                        <i class="fas fa-building"></i> Organizer Dashboard
+                    </a>
+                </div>
+                <!-- Locked state (shown after lock) -->
+                <div class="admin-locked-state" id="lockedState" style="display:none;">
+                    <i class="fas fa-lock"></i>
+                    <div>
+                        <strong>Player List Locked</strong>
+                        <p>All entries are now read-only. Data has been handed off to the Heat Generation Engine.</p>
+                    </div>
+                    <a href="index.html" class="admin-btn admin-btn-outline">
+                        <i class="fas fa-home"></i> Back to Home
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Manual Walk-In Entry Modal -->
+    <div class="modal-overlay" id="manualEntryModal">
+        <div class="modal admin-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-plus"></i> Add Manual / Offline Swimmer</h3>
+                <button class="modal-close" id="manualModalClose"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body admin-modal-body">
+                <div class="admin-form-grid">
+                    <div class="admin-field full-width">
+                        <label class="admin-label req">Full Name</label>
+                        <input type="text" id="mFullName" class="admin-input" placeholder="Swimmer full name">
+                    </div>
+                    <div class="admin-field">
+                        <label class="admin-label req">Gender</label>
+                        <select id="mGender" class="admin-input">
+                            <option value="Boy">Boy</option>
+                            <option value="Girl">Girl</option>
+                        </select>
+                    </div>
+                    <div class="admin-field">
+                        <label class="admin-label req">Date of Birth</label>
+                        <input type="date" id="mDob" class="admin-input">
+                    </div>
+                    <div class="admin-field">
+                        <label class="admin-label">Academy</label>
+                        <select id="mAcademy" class="admin-input">
+                            <option value="">None / Unattached</option>
+                        </select>
+                    </div>
+                    <div class="admin-field">
+                        <label class="admin-label req">Event</label>
+                        <select id="mEvent" class="admin-input">
+                            <option value="">— Select after gender/DOB —</option>
+                        </select>
+                    </div>
+                    <div class="admin-field">
+                        <label class="admin-label req">Seed Time</label>
+                        <input type="text" id="mSeedTime" class="admin-input" placeholder="MM:SS.ms or NT" maxlength="10">
+                    </div>
+                    <div class="admin-field full-width">
+                        <label class="admin-label">Parent / Guardian Contact</label>
+                        <input type="tel" id="mContact" class="admin-input" placeholder="+91 98765 43210">
+                    </div>
+                </div>
+                <div class="admin-derived-row" id="mDerivedRow" style="display:none;">
+                    <span class="admin-derived-pill">YOB: <strong id="mYob">—</strong></span>
+                    <span class="admin-derived-pill">Age: <strong id="mAge">—</strong> yrs</span>
+                    <span class="admin-derived-pill category"><strong id="mCategory">—</strong></span>
+                </div>
+            </div>
+            <div class="modal-footer admin-modal-footer">
+                <button class="admin-btn admin-btn-outline" id="manualModalCancel">Cancel</button>
+                <button class="admin-btn admin-btn-primary" id="manualModalSave">
+                    <i class="fas fa-plus"></i> Add to Roster
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Delete Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal admin-modal" style="max-width:420px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-trash-alt" style="color:var(--danger)"></i> Remove Entry</h3>
+                <button class="modal-close" id="deleteModalClose"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding:20px 24px;">
+                <p id="deleteModalMsg" style="font-size:0.9rem;color:var(--dark);line-height:1.6;">
+                    Are you sure you want to remove this entry? This action disqualifies/purges the registration.
+                </p>
+            </div>
+            <div class="modal-footer admin-modal-footer">
+                <button class="admin-btn admin-btn-outline" id="deleteModalCancel">Cancel</button>
+                <button class="admin-btn admin-btn-danger" id="deleteModalConfirm">
+                    <i class="fas fa-trash-alt"></i> Remove Entry
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Final Lock Confirm Modal -->
+    <div class="modal-overlay" id="lockConfirmModal">
+        <div class="modal admin-modal" style="max-width:460px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-lock" style="color:var(--danger)"></i> Submit Final Player List</h3>
+                <button class="modal-close" id="lockModalClose"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding:20px 24px;">
+                <div class="admin-lock-confirm-body" id="lockConfirmBody">
+                    <!-- Filled by JS with audit summary -->
+                </div>
+            </div>
+            <div class="modal-footer admin-modal-footer">
+                <button class="admin-btn admin-btn-outline" id="lockModalCancel">Go Back &amp; Review</button>
+                <button class="admin-btn admin-btn-danger" id="lockModalConfirm">
+                    <i class="fas fa-lock"></i> Confirm &amp; Lock
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="academy.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

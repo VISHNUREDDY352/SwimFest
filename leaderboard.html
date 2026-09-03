@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academy Leaderboard — SwimFest</title>
+    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="leaderboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <header class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo"><i class="fas fa-swimmer"></i> SwimFest</a>
+            <button class="state-selector"><i class="fas fa-map-marker-alt"></i> Tamil Nadu <i class="fas fa-caret-down"></i></button>
+            <nav class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
+                <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+                <a href="index.html#past-events-archives" class="nav-link">Past</a>
+                <a href="academy.html" class="nav-link">Academy</a>
+            </nav>
+            <a href="profile.html" class="btn-profile"><i class="fas fa-user"></i> Profile</a>
+            <a href="login.html" class="btn-register-login">Register / Login</a>
+            <button class="mobile-menu-btn" id="mobileMenuBtn"><i class="fas fa-bars"></i></button>
+        </div>
+    </header>
+
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
+        <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+        <a href="index.html#past-events-archives" class="nav-link">Past</a>
+        <a href="academy.html" class="nav-link">Academy</a>
+        <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> My Profile</a>
+    </div>
+
+    <main class="lb-page">
+        <!-- Hero header -->
+        <div class="lb-hero">
+            <div class="lb-hero-inner">
+                <p class="lb-eyebrow"><i class="fas fa-trophy"></i> Championship Standings</p>
+                <h1 class="lb-title">Academy Leaderboard</h1>
+                <p class="lb-sub">Statewide points from published competition results. Top academies ranked by total championship points.</p>
+                <div class="lb-metabar" id="lbMeta"></div>
+            </div>
+        </div>
+
+        <div class="lb-container">
+            <!-- Podium -->
+            <div class="lb-podium" id="lbPodium"></div>
+
+            <!-- Full table -->
+            <div class="lb-table-wrap" id="lbTableWrap">
+                <div class="lb-loading"><i class="fas fa-circle-notch fa-spin"></i><p>Loading leaderboard…</p></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
+    <script src="leaderboard.js"></script>
+</body>
+</html>

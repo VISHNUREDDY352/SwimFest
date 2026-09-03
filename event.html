@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Golden Non-Medalist Swimming Championship 2026 | SwimFest</title>
+    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="event.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Sticky Navigation Header -->
+    <header class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <i class="fas fa-swimmer"></i> SwimFest
+            </a>
+            <button class="state-selector" id="stateSelector">
+                <i class="fas fa-map-marker-alt"></i>
+                <span id="currentState">Tamil Nadu</span>
+                <i class="fas fa-caret-down"></i>
+            </button>
+            <nav class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
+                <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+                <a href="index.html#past-events-archives" class="nav-link">Past</a>
+                <a href="academy.html" class="nav-link">Academy</a>
+            </nav>
+            <a href="profile.html" class="btn-profile"><i class="fas fa-user"></i> Profile</a>
+            <a href="login.html" class="btn-register-login">Register / Login</a>
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
+        <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+        <a href="index.html#past-events-archives" class="nav-link">Past</a>
+        <a href="academy.html" class="nav-link">Academy</a>
+        <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> My Profile</a>
+        <a href="login.html" class="btn-register-login">Register / Login</a>
+    </div>
+
+    <!-- Display Banner / Ad Slot -->
+    <section class="event-banner">
+        <div class="event-banner-inner">
+            <div class="event-banner-content">
+                <i class="fas fa-trophy"></i>
+                <span>Golden Non-Medalist Swimming Championship 2026</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sub-Navigation Tabs -->
+    <nav class="event-sub-nav" id="eventSubNav">
+        <div class="sub-nav-container">
+            <button class="sub-nav-tab active" data-tab="description">Description</button>
+            <button class="sub-nav-tab" data-tab="rules">Rules & Regulation</button>
+            <button class="sub-nav-tab" data-tab="schedule">Schedule</button>
+            <button class="sub-nav-tab" data-tab="results">Results</button>
+        </div>
+    </nav>
+
+    <!-- Two-Column Layout -->
+    <main class="event-page-body">
+        <!-- Left Column: Dynamic Content Panel -->
+        <div class="event-content-panel">
+
+            <!-- Tab: Description (Default Active) -->
+            <div class="tab-content active" id="tab-description">
+                <!-- Header & Status Block -->
+                <div class="event-header-block">
+                    <div class="event-header-top">
+                        <div>
+                            <h1 class="event-main-title">Golden Non-Medalist Swimming Championship 2026</h1>
+                            <p class="event-hosted-by">Hosted by: Tamil Nadu Amateur Aquatic Association</p>
+                        </div>
+                        <span class="event-status-badge status-open">Entries Open</span>
+                    </div>
+                </div>
+
+                <!-- Venue & Schedule Details -->
+                <div class="event-detail-card">
+                    <h2 class="detail-card-title"><i class="fas fa-map-marked-alt"></i> Venue & Schedule Details</h2>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <span class="detail-label"><i class="fas fa-swimming-pool"></i> Pool Venue</span>
+                            <span class="detail-value">SRM University Swimming Pool, Kattankulathur, Chennai</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label"><i class="fas fa-ruler-combined"></i> Pool Specs</span>
+                            <span class="detail-value">50m Olympic Size | 8 Lanes | Electronic Touch-Pad Ready</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label"><i class="fas fa-calendar-alt"></i> Event Dates</span>
+                            <span class="detail-value">15th – 16th October 2026</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label"><i class="fas fa-clock"></i> Deadline</span>
+                            <span class="detail-value">30th September 2026 (11:59 PM IST)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Age Group Eligibility Rules -->
+                <div class="event-detail-card">
+                    <h2 class="detail-card-title"><i class="fas fa-users-cog"></i> Age Group Eligibility Rules</h2>
+                    <p class="detail-note">Cutoff Date: 31st December 2026</p>
+                    <table class="age-group-table">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Birth Date Range</th>
+                                <th>Age</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Under-10 (U-10)</strong></td>
+                                <td>Born 01-Jan-2016 to 31-Dec-2017</td>
+                                <td>8–9 Yrs</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Under-12 (U-12)</strong></td>
+                                <td>Born 01-Jan-2014 to 31-Dec-2015</td>
+                                <td>10–11 Yrs</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Under-14 (U-14)</strong></td>
+                                <td>Born 01-Jan-2012 to 31-Dec-2013</td>
+                                <td>12–13 Yrs</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Under-16 (U-16)</strong></td>
+                                <td>Born 01-Jan-2010 to 31-Dec-2011</td>
+                                <td>14–15 Yrs</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Non-Medalist Eligibility Guidelines -->
+                <div class="event-detail-card alert-card">
+                    <h2 class="detail-card-title"><i class="fas fa-exclamation-triangle"></i> Strict Non-Medalist Eligibility Guidelines</h2>
+                    <div class="alert-box">
+                        <div class="alert-item danger">
+                            <i class="fas fa-ban"></i>
+                            <p><strong>INELIGIBLE:</strong> Any swimmer who has won an individual medal (Gold/Silver/Bronze) at State, Zonal, National, or recognized School meets (CBSE National, SGFI, ICSE, DYES).</p>
+                        </div>
+                        <div class="alert-item success">
+                            <i class="fas fa-check-circle"></i>
+                            <p><strong>ALLOWED:</strong> Relay medalists, internal club/school non-medalist participants.</p>
+                        </div>
+                        <div class="alert-item warning">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <p><strong>AFFILIATION RULE:</strong> Represent ONLY ONE institution (School OR Club). Dual representation is blocked.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Registration & Fee Structure -->
+                <div class="event-detail-card">
+                    <h2 class="detail-card-title"><i class="fas fa-rupee-sign"></i> Registration & Fee Structure</h2>
+                    <ul class="fee-list">
+                        <li><strong>Individual Fee:</strong> ₹800 for 3 events (Max 3 Individual Events)</li>
+                        <li><strong>Relay Add-On:</strong> ₹300 per team entry (Billed separately)</li>
+                        <li><strong>Swim-Up Policy:</strong> SINGLE CATEGORY ONLY (Swim-Up Disabled for this meet)</li>
+                    </ul>
+                </div>
+
+                <!-- Mandatory Documents -->
+                <div class="event-detail-card">
+                    <h2 class="detail-card-title"><i class="fas fa-file-alt"></i> Mandatory Documents Required at Poolside</h2>
+                    <ol class="documents-list">
+                        <li>Original Birth Certificate or Aadhaar Card for age verification.</li>
+                        <li>Coach / Parent Non-Medalist Signed Undertaking Form.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Tab: Rules & Regulation -->
+            <div class="tab-content" id="tab-rules">
+                <div class="event-detail-card">
+                    <h2 class="detail-card-title"><i class="fas fa-gavel"></i> Rules & Regulation</h2>
+                    <div class="rules-section">
+                        <h3>Rule 1: Age Cutoff Engine</h3>
+                        <p>Age is calculated strictly as of <strong>December 31st of the competition year</strong>. For 2026:</p>
+                        <ul>
+                            <li><strong>U-10:</strong> Born 2016–2017</li>
+                            <li><strong>U-12:</strong> Born 2014–2015</li>
+                            <li><strong>U-14:</strong> Born 2012–2013</li>
+                            <li><strong>U-16:</strong> Born 2010–2011</li>
+                        </ul>
+                    </div>
+                    <div class="rules-section">
+                        <h3>Rule 2: Non-Medalist Enforcement</h3>
+                        <ul>
+                            <li><strong>Individual Medalist Exclusion:</strong> Swimmers with individual medal records at recognized State, Zonal, National, or School Board meets are barred from entry.</li>
+                            <li><strong>Relay Exception:</strong> Swimmers who have won medals <em>only</em> in team relay events remain fully eligible.</li>
+                            <li><strong>Single Institution Rule:</strong> Swimmers are restricted to entering under <strong>one entity</strong> (either School OR Academy/Club). Dual representation is blocked.</li>
+                        </ul>
+                    </div>
+                    <div class="rules-section">
+                        <h3>Rule 3: Event Capping</h3>
+                        <ul>
+                            <li>Maximum <strong>3 individual events</strong> per swimmer.</li>
+                            <li>Relay entries are billed as optional add-on fees separate from individual event fees.</li>
+                            <li>If both 50m and 100m of the same stroke are selected, they count as <strong>2 separate events</strong> toward the 3-event cap.</li>
+                        </ul>
+                    </div>
+                    <div class="rules-section">
+                        <h3>Rule 4: Swim-Up Policy</h3>
+                        <p>This meet enforces <strong>Single Category Only</strong>. Swim-Up is disabled. Swimmers can register only within their exact auto-derived age group.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Schedule -->
+            <div class="tab-content" id="tab-schedule">
+                <div class="event-detail-card">
+                    <h2 class="detail-card-title"><i class="fas fa-calendar-day"></i> Event Schedule</h2>
+                    <p class="detail-note">Schedule will be published after registration closes on 30th September 2026.</p>
+                    <div class="schedule-placeholder">
+                        <i class="fas fa-hourglass-half"></i>
+                        <p>Heat sheets and lane assignments will be available for download 48 hours before the event.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Results -->
+            <div class="tab-content" id="tab-results">
+                <div class="event-detail-card">
+                    <h2 class="detail-card-title"><i class="fas fa-poll"></i> Results</h2>
+                    <div class="schedule-placeholder">
+                        <i class="fas fa-flag-checkered"></i>
+                        <p>Results will be published live during the event (15-16 Oct 2026).</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Sticky Registration Box -->
+        <aside class="registration-sidebar">
+            <div class="registration-sidebar-card">
+                <h3 class="sidebar-title">Registration</h3>
+                <div class="sidebar-events-list">
+                    <table class="sidebar-events-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Event</th>
+                                <th>Distance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>1</td><td>Butterfly</td><td>50 m</td></tr>
+                            <tr><td>2</td><td>Butterfly</td><td>100 m</td></tr>
+                            <tr><td>3</td><td>Breaststroke</td><td>50 m</td></tr>
+                            <tr><td>4</td><td>Backstroke</td><td>50 m</td></tr>
+                            <tr><td>5</td><td>Freestyle</td><td>50 m</td></tr>
+                            <tr><td>6</td><td>Individual Medley</td><td>200 m</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="sidebar-fee-info">
+                    <p><strong>Base Fee:</strong> ₹800 (Up to 3 Events)</p>
+                    <p><strong>Relay Add-On:</strong> ₹300 per team</p>
+                </div>
+                <a href="register.html?tournament=Golden%20Non-Medalist%20Championship%202026&from=event" class="btn-register-tournament">
+                    <i class="fas fa-pen-fancy"></i> Register for Tournament
+                </a>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Bottom Navigation (Back + Continue) -->
+    <div class="event-bottom-nav">
+        <div class="bottom-nav-container">
+            <a href="index.html" class="btn-back"><i class="fas fa-arrow-left"></i> Back to Directory</a>
+            <a href="#" class="btn-continue">Continue to Registration <i class="fas fa-arrow-right"></i></a>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-brand">
+                <h3><i class="fas fa-swimmer"></i> SwimFest</h3>
+                <p>India's Premier Swimming Competition Platform</p>
+            </div>
+            <div class="footer-links">
+                <h4>Quick Links</h4>
+                <a href="#"><i class="fas fa-file-pdf"></i> Download Heat Sheets (PDF)</a>
+                <a href="#"><i class="fas fa-search"></i> Search Profile</a>
+                <a href="#"><i class="fas fa-trophy"></i> Academy Leaderboard</a>
+                <a href="admin.html"><i class="fas fa-shield-alt"></i> Admin Console</a>
+                <a href="heatgen.html"><i class="fas fa-bolt"></i> Heat Generation</a>
+                <a href="results.html"><i class="fas fa-broadcast-tower"></i> Live Results</a>
+                <a href="emdashboard.html"><i class="fas fa-cogs"></i> EM Dashboard</a>
+                <a href="addevent.html"><i class="fas fa-plus-circle"></i> Add Event</a>
+                <a href="racecontrol.html"><i class="fas fa-flag-checkered"></i> Race Control</a>
+                <a href="apiref.html"><i class="fas fa-code"></i> API Reference</a>
+                <a href="orgdashboard.html"><i class="fas fa-building"></i> Org Dashboard</a>
+                <a href="orgracecontrol.html"><i class="fas fa-broadcast-tower"></i> Org Race Control</a>
+            </div>
+            <div class="footer-links">
+                <h4>Navigation</h4>
+                <a href="index.html#upcoming-tournaments">Upcoming Events</a>
+                <a href="index.html#ongoing-tournaments">Ongoing Events</a>
+                <a href="index.html#past-events-archives">Past Events</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 SwimFest. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Mobile Sticky Registration Bar -->
+    <div class="mobile-register-bar">
+        <div class="mobile-register-info">
+            <span>₹800 (3 Events)</span>
+        </div>
+        <a href="register.html?tournament=Golden%20Non-Medalist%20Championship%202026&from=event" class="mobile-register-btn"><i class="fas fa-pen-fancy"></i> Register Now</a>
+    </div>
+
+    <script src="auth.js"></script>
+    <script src="event.js"></script>
+</body>
+</html>

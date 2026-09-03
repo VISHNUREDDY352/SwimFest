@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Console — SwimFest</title>
+    <script src="guard.js" data-roles="super_admin"></script>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="emdashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* ── Super Admin specific overrides ── */
+        .sa-body { background:#f0f2f5; }
+
+        /* Sticky Master Header */
+        .sa-master-header {
+            background: var(--dark);
+            position: sticky;
+            top: 0;
+            z-index: 9999;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+        }
+        .sa-topbar-inner {
+            max-width:1400px; margin:0 auto; padding:0 24px;
+            height:56px; display:flex; align-items:center; gap:16px;
+        }
+        .sa-logo { font-size:1.1rem; font-weight:800; color:var(--white);
+            text-decoration:none; display:flex; align-items:center; gap:8px; }
+        .sa-logo i { color:var(--accent); }
+        .sa-role-tag { font-size:0.68rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:0.8px; color:rgba(255,255,255,0.35);
+            border-left:1px solid rgba(255,255,255,0.12); padding-left:16px; }
+        .sa-topbar-right { margin-left:auto; display:flex; align-items:center; gap:10px; }
+        .sa-user-btn { display:flex; align-items:center; gap:7px; padding:7px 14px;
+            border:1px solid rgba(255,255,255,0.18); border-radius:var(--radius-sm);
+            background:transparent; color:rgba(255,255,255,0.8); font-size:0.8rem;
+            font-weight:600; font-family:inherit; cursor:pointer; transition:var(--transition); }
+        .sa-user-btn:hover { border-color:rgba(255,255,255,0.4); }
+        .sa-logout { display:flex; align-items:center; gap:6px; padding:7px 12px;
+            border:1px solid rgba(255,255,255,0.12); border-radius:var(--radius-sm);
+            color:rgba(255,255,255,0.5); font-size:0.78rem; font-weight:600;
+            text-decoration:none; transition:var(--transition); }
+        .sa-logout:hover { color:var(--danger); border-color:var(--danger); }
+
+        /* Sticky Sub-nav */
+        .sa-subnav {
+            background: var(--dark-secondary);
+            border-bottom:1px solid rgba(255,255,255,0.08);
+            position:sticky; top:56px; z-index:998;
+        }
+        .sa-subnav-inner {
+            max-width:1400px; margin:0 auto; padding:0 24px;
+            display:flex; gap:4px; height:48px; align-items:center; overflow-x:auto;
+        }
+        .sa-nav-tab {
+            display:inline-flex; align-items:center; gap:7px;
+            padding:10px 16px; color:rgba(255,255,255,0.5);
+            font-size:0.8rem; font-weight:600; text-decoration:none;
+            border-radius:var(--radius-sm); white-space:nowrap;
+            transition:var(--transition); cursor:pointer;
+            border:none; background:none; font-family:inherit;
+        }
+        .sa-nav-tab:hover { background:rgba(255,255,255,0.07); color:var(--white); }
+        .sa-nav-tab.active { background:var(--primary); color:var(--white); }
+        .sa-nav-tab i { font-size:0.85rem; }
+
+        /* Container */
+        .sa-container { max-width:1400px; margin:0 auto; padding:24px 24px 80px; }
+
+        /* Metrics grid */
+        .sa-metrics-grid {
+            display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px;
+        }
+        .sa-metric-card {
+            background:var(--white); border:1px solid var(--gray-light);
+            border-radius:var(--radius); padding:20px 22px;
+            box-shadow:var(--shadow); position:relative; overflow:hidden;
+        }
+        .sa-metric-card::before { content:''; position:absolute; top:0; left:0; right:0;
+            height:3px; background:var(--primary); }
+        .sa-metric-card.green::before { background:var(--success); }
+        .sa-metric-card.orange::before { background:var(--warning); }
+        .sa-metric-card.red::before { background:var(--danger); }
+        .sa-metric-icon { font-size:1.1rem; color:var(--primary); margin-bottom:8px; }
+        .sa-metric-card.green .sa-metric-icon { color:var(--success); }
+        .sa-metric-card.orange .sa-metric-icon { color:var(--warning); }
+        .sa-metric-label { font-size:0.68rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:0.6px; color:var(--gray); }
+        .sa-metric-value { font-size:2rem; font-weight:800; color:var(--dark);
+            letter-spacing:-1px; line-height:1; margin:6px 0 4px; }
+        .sa-metric-sub { font-size:0.72rem; color:var(--gray); }
+
+        /* Section cards */
+        .sa-section {
+            background:var(--white); border:1px solid var(--gray-light);
+            border-radius:var(--radius); overflow:hidden;
+            margin-bottom:20px; box-shadow:var(--shadow);
+        }
+        .sa-section-header {
+            display:flex; align-items:center; justify-content:space-between;
+            padding:13px 20px; background:var(--light);
+            border-bottom:1px solid var(--gray-light); gap:12px; flex-wrap:wrap;
+        }
+        .sa-section-title {
+            font-size:0.78rem; font-weight:800; text-transform:uppercase;
+            letter-spacing:0.8px; color:var(--dark);
+            display:flex; align-items:center; gap:8px;
+        }
+        .sa-section-title i { color:var(--primary); }
+        .sa-badge { font-size:0.68rem; font-weight:700; padding:3px 10px;
+            border-radius:20px; background:var(--warning); color:var(--white); }
+        .sa-badge.green { background:var(--success); }
+        .sa-badge.red   { background:var(--danger); }
+
+        /* Queue table */
+        .sa-queue-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+        .sa-queue-table th { padding:9px 16px; text-align:left; font-size:0.65rem;
+            font-weight:700; text-transform:uppercase; letter-spacing:0.6px;
+            color:var(--gray); background:var(--light);
+            border-bottom:2px solid var(--gray-light); white-space:nowrap; }
+        .sa-queue-table td { padding:12px 16px; border-bottom:1px solid var(--gray-light);
+            color:var(--dark); vertical-align:middle; }
+        .sa-queue-table tr:last-child td { border-bottom:none; }
+        .sa-queue-table tr:hover td { background:#fafafa; }
+
+        .sa-meet-title { font-weight:700; font-size:0.87rem; }
+        .sa-meet-sub { font-size:0.72rem; color:var(--gray); margin-top:3px; display:flex; gap:6px; flex-wrap:wrap; }
+        .sa-cat-pill { display:inline-block; padding:1px 7px; border-radius:20px;
+            font-size:0.65rem; font-weight:700; background:var(--primary); color:var(--white); }
+
+        /* Upfront fee status chips */
+        .sa-fee-chip { display:inline-flex; align-items:center; gap:5px;
+            padding:4px 10px; border-radius:20px; font-size:0.72rem; font-weight:700; }
+        .fee-paid { background:#d4edda; color:#155724; }
+        .fee-paid i { color:var(--success); }
+        .fee-pending { background:#fde8e8; color:var(--danger); }
+        .fee-na { background:var(--gray-light); color:var(--gray); }
+
+        /* Approve / Reject buttons */
+        .sa-btn-approve {
+            padding:6px 14px; background:var(--success); color:var(--white);
+            border:none; border-radius:var(--radius-sm); font-size:0.75rem;
+            font-weight:700; font-family:inherit; cursor:pointer; transition:var(--transition);
+        }
+        .sa-btn-approve:hover { background:#219a52; }
+        .sa-btn-approve:disabled { background:var(--gray-light); color:var(--gray); cursor:default; }
+
+        .sa-btn-reject {
+            padding:6px 12px; background:transparent; color:var(--danger);
+            border:1.5px solid var(--danger); border-radius:var(--radius-sm);
+            font-size:0.75rem; font-weight:700; font-family:inherit;
+            cursor:pointer; transition:var(--transition); margin-left:6px;
+        }
+        .sa-btn-reject:hover { background:var(--danger); color:var(--white); }
+        .sa-btn-reject:disabled { border-color:var(--gray-light); color:var(--gray); cursor:default; }
+
+        .sa-action-done { font-size:0.75rem; font-weight:700; padding:5px 12px;
+            border-radius:20px; }
+        .approved-tag { background:#d4edda; color:#155724; }
+        .rejected-tag { background:#fde8e8; color:var(--danger); }
+
+        /* Entity type badge */
+        .entity-badge { display:inline-flex; align-items:center; gap:4px;
+            padding:3px 9px; border-radius:20px; font-size:0.7rem; font-weight:700; }
+        .entity-academy { background:#dbeafe; color:#1e40af; }
+        .entity-coach   { background:#f0fdf4; color:#166534; }
+
+        /* Payment type */
+        .pay-chip-a { background:#dbeafe; color:#1e40af; }
+        .pay-chip-b { background:#fef3c7; color:#92400e; }
+        .pay-chip { display:inline-flex; align-items:center; gap:5px;
+            padding:3px 10px; border-radius:20px; font-size:0.7rem; font-weight:700; }
+
+        /* Section 3: Financials & Overrides */
+        .sa-fin-row { display:flex; justify-content:space-between; align-items:center;
+            padding:11px 20px; border-bottom:1px solid var(--gray-light); font-size:0.85rem; }
+        .sa-fin-row:last-child { border-bottom:none; }
+        .sa-fin-row span:first-child { color:var(--gray); }
+        .sa-fin-row span:last-child { font-weight:700; color:var(--dark); }
+        .gateway-online { color:var(--success); font-weight:700; display:flex;
+            align-items:center; gap:6px; }
+        .gateway-dot { width:9px; height:9px; border-radius:50%;
+            background:var(--success); animation:livePulse 2s ease-in-out infinite; }
+
+        /* Action buttons bar */
+        .sa-actions-bar { display:flex; gap:10px; padding:16px 20px;
+            border-top:1px solid var(--gray-light); flex-wrap:wrap; }
+        .sa-action-btn { display:inline-flex; align-items:center; gap:7px;
+            padding:9px 18px; border-radius:var(--radius-sm); font-size:0.8rem;
+            font-weight:700; font-family:inherit; cursor:pointer; border:none;
+            transition:var(--transition); text-decoration:none; }
+        .sa-btn-settings { background:var(--primary); color:var(--white); }
+        .sa-btn-settings:hover { background:var(--primary-dark); }
+        .sa-btn-export   { background:#1d6f42; color:var(--white); }
+        .sa-btn-export:hover { background:#155733; }
+        .sa-btn-notice   { background:var(--danger); color:var(--white); }
+        .sa-btn-notice:hover { background:#c0392b; }
+        .sa-btn-override { background:var(--warning); color:var(--white); }
+        .sa-btn-override:hover { background:#e67e22; }
+
+        /* Emergency notice modal */
+        .sa-notice-preview { background:#fde8e8; border:1.5px solid var(--danger);
+            border-radius:var(--radius-sm); padding:12px 16px; margin-top:12px;
+            font-size:0.85rem; color:var(--danger); display:flex; gap:8px;
+            align-items:flex-start; }
+
+        /* Permission matrix (kept on this admin page) */
+        .perm-overview { font-size:0.85rem; color:var(--dark); line-height:1.7;
+            padding:16px 20px; border-bottom:1px solid var(--gray-light); }
+        .perm-overview strong { color:var(--primary); }
+
+        /* State machine visual */
+        .sa-state-machine { padding:20px; }
+        .sa-sm-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:16px; }
+        .sa-sm-queue { background:var(--light); border:1.5px solid var(--gray-light);
+            border-radius:var(--radius-sm); padding:14px 16px; }
+        .sa-sm-queue-title { font-size:0.72rem; font-weight:800; text-transform:uppercase;
+            letter-spacing:0.6px; color:var(--primary); margin-bottom:4px; }
+        .sa-sm-queue-sub { font-size:0.78rem; color:var(--gray); }
+        .sa-sm-outcome-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+        .sa-sm-outcome { border-radius:var(--radius-sm); padding:12px 14px; font-size:0.8rem; }
+        .sa-sm-approve { background:#d4edda; border:1px solid #a3d9a5; color:#155724; }
+        .sa-sm-reject  { background:#fde8e8; border:1px solid #fca5a5; color:var(--danger); }
+        .sa-sm-outcome strong { display:block; font-size:0.82rem; margin-bottom:4px; }
+        .sa-sm-outcome ul { padding-left:14px; margin:0; }
+        .sa-sm-outcome li { margin-bottom:3px; font-size:0.78rem; }
+
+        @keyframes livePulse {
+            0%,100% { box-shadow:0 0 0 0 rgba(46,204,113,0.3); }
+            50%      { box-shadow:0 0 0 6px rgba(46,204,113,0); }
+        }
+
+        @media (max-width:1024px) { .sa-metrics-grid { grid-template-columns:repeat(2,1fr); } }
+        @media (max-width:768px) {
+            .sa-metrics-grid { grid-template-columns:1fr 1fr; }
+            .sa-subnav-inner { gap:0; }
+            .sa-nav-tab { padding:10px 10px; font-size:0.72rem; }
+            .sa-queue-table th:nth-child(3), .sa-queue-table td:nth-child(3) { display:none; }
+            .sa-sm-grid { grid-template-columns:1fr; }
+            .sa-sm-outcome-row { grid-template-columns:1fr; }
+        }
+        @media (max-width:480px) {
+            .sa-container { padding:16px 12px 60px; }
+            .sa-metrics-grid { grid-template-columns:1fr; }
+        }
+    </style>
+</head>
+<body class="sa-body">
+
+    <!-- Master Topbar -->
+    <header class="sa-master-header">
+        <div class="sa-topbar-inner">
+            <a href="index.html" class="sa-logo"><i class="fas fa-swimmer"></i> SwimFest</a>
+            <span class="sa-role-tag">Super Admin Console | Platform Governance</span>
+            <div class="sa-topbar-right">
+                <button class="sa-user-btn">
+                    <i class="fas fa-user-shield"></i> Admin: Super Admin <i class="fas fa-caret-down"></i>
+                </button>
+                <a href="index.html" class="sa-logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sticky Sub-nav -->
+    <nav class="sa-subnav">
+        <div class="sa-subnav-inner">
+            <button class="sa-nav-tab active" data-tab="dashboard"><i class="fas fa-chart-bar"></i> Dashboard</button>
+            <button class="sa-nav-tab" data-tab="meets"><i class="fas fa-trophy"></i> All Meets</button>
+            <button class="sa-nav-tab" data-tab="academies"><i class="fas fa-building"></i> Academies / Coaches</button>
+            <button class="sa-nav-tab" data-tab="financials"><i class="fas fa-rupee-sign"></i> Financials</button>
+            <a href="saoverride.html" class="sa-nav-tab" style="color:var(--warning);"><i class="fas fa-unlock-alt"></i> Universal Override</a>
+            <a href="apiref.html"     class="sa-nav-tab" style="margin-left:auto;"><i class="fas fa-code"></i> API Docs</a>
+        </div>
+    </nav>
+
+    <main>
+        <div class="sa-container">
+
+            <!-- System Overview Metrics -->
+            <div class="sa-metrics-grid">
+                <div class="sa-metric-card">
+                    <i class="fas fa-trophy sa-metric-icon"></i>
+                    <div class="sa-metric-label">Active Meets</div>
+                    <div class="sa-metric-value">12</div>
+                    <div class="sa-metric-sub">Statewide, in progress</div>
+                </div>
+                <div class="sa-metric-card green">
+                    <i class="fas fa-users sa-metric-icon"></i>
+                    <div class="sa-metric-label">Total Athletes</div>
+                    <div class="sa-metric-value">4,820</div>
+                    <div class="sa-metric-sub">Registered profiles</div>
+                </div>
+                <div class="sa-metric-card orange">
+                    <i class="fas fa-building sa-metric-icon"></i>
+                    <div class="sa-metric-label">Academies</div>
+                    <div class="sa-metric-value">84</div>
+                    <div class="sa-metric-sub">Verified clubs</div>
+                </div>
+                <div class="sa-metric-card">
+                    <i class="fas fa-rupee-sign sa-metric-icon"></i>
+                    <div class="sa-metric-label">Gross Revenue</div>
+                    <div class="sa-metric-value" style="font-size:1.6rem;">₹38.4L</div>
+                    <div class="sa-metric-sub">FY 2026 to-date</div>
+                </div>
+            </div>
+
+            <!-- Permission Overview (text only — no matrix) -->
+            <div class="sa-section">
+                <div class="sa-section-header">
+                    <span class="sa-section-title"><i class="fas fa-shield-alt"></i> Universal Permission Enforcement — Super Admin Scope</span>
+                </div>
+                <div class="perm-overview" id="permOverview"></div>
+                <!-- State Machine -->
+                <div class="sa-state-machine">
+                    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--gray);margin-bottom:12px;">System Architecture &amp; Approval State Machine</div>
+                    <div class="sa-sm-grid" id="saSmGrid"></div>
+                    <div class="sa-sm-outcome-row" id="saSmOutcomes"></div>
+                </div>
+            </div>
+
+            <!-- Section 1A: Internal Meets Approval Queue -->
+            <div class="sa-section">
+                <div class="sa-section-header">
+                    <span class="sa-section-title"><i class="fas fa-clipboard-check"></i> Section 1A — Internal Meets Approval Queue <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Event Managers)</span></span>
+                    <span class="sa-badge" id="s1aBadge">Loading…</span>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="sa-queue-table">
+                        <thead>
+                            <tr>
+                                <th>Created By</th>
+                                <th>Tournament Title</th>
+                                <th>Dates</th>
+                                <th>Venue / City</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="s1aBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Section 1B: Third-Party Meets Approval Queue -->
+            <div class="sa-section">
+                <div class="sa-section-header">
+                    <span class="sa-section-title"><i class="fas fa-user-tie"></i> Section 1B — Third-Party Meets Approval Queue <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Organizers)</span></span>
+                    <span class="sa-badge" id="s1bBadge">Loading…</span>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="sa-queue-table">
+                        <thead>
+                            <tr>
+                                <th>Organizer</th>
+                                <th>Tournament Title</th>
+                                <th>Payment Type</th>
+                                <th>Upfront Fee Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="s1bBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Section 2: Academy & Coach Verification Queue -->
+            <div class="sa-section">
+                <div class="sa-section-header">
+                    <span class="sa-section-title"><i class="fas fa-id-badge"></i> Section 2 — Academy &amp; Coach Verification Queue <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Event Managers)</span></span>
+                    <span class="sa-badge" id="s2Badge">Loading…</span>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="sa-queue-table">
+                        <thead>
+                            <tr>
+                                <th>Submitted By</th>
+                                <th>Entity Type</th>
+                                <th>Name / Club Title</th>
+                                <th>Credential / Tax ID</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="s2Body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Section 3: Financials, Gateway & Emergency -->
+            <div class="sa-section">
+                <div class="sa-section-header">
+                    <span class="sa-section-title"><i class="fas fa-credit-card"></i> Section 3 — System Financials &amp; Emergency Overrides</span>
+                </div>
+                <div class="sa-fin-row">
+                    <span>Gateway Status</span>
+                    <span class="gateway-online"><span class="gateway-dot"></span> ONLINE — Razorpay Active</span>
+                </div>
+                <div class="sa-fin-row"><span>Platform Technology Fee</span><span>₹50.00 / booking (Incl. GST)</span></div>
+                <div class="sa-fin-row"><span>Total Transactions (FY 2026)</span><span>7,692</span></div>
+                <div class="sa-fin-row"><span>Gross Revenue YTD</span><span style="color:var(--success);font-weight:800;">₹38,46,000</span></div>
+                <div class="sa-fin-row"><span>Pending Organizer Payouts</span><span style="color:var(--warning);font-weight:700;">3 meets · ₹2,14,200</span></div>
+                <div class="sa-actions-bar">
+                    <button class="sa-action-btn sa-btn-settings" onclick="showToast('Global Platform Settings — loading…','info')">
+                        <i class="fas fa-cog"></i> Global Platform Settings
+                    </button>
+                    <button class="sa-action-btn sa-btn-export" onclick="exportAuditLog()">
+                        <i class="fas fa-file-export"></i> Export Audit Logs
+                    </button>
+                    <button class="sa-action-btn sa-btn-notice" onclick="openNoticeModal()">
+                        <i class="fas fa-bell"></i> Publish Emergency Notice
+                    </button>
+                    <a href="saoverride.html" class="sa-action-btn sa-btn-override">
+                        <i class="fas fa-unlock-alt"></i> Universal Override Engine
+                    </a>
+                </div>
+            </div>
+
+            <!-- Quick Nav -->
+            <div class="sa-section">
+                <div class="sa-section-header">
+                    <span class="sa-section-title"><i class="fas fa-rocket"></i> Quick Navigation</span>
+                </div>
+                <div class="dash-section-body" style="padding:16px 20px;">
+                    <div class="dash-launchpad-grid">
+                        <a href="admin.html"          class="dash-launch-btn"><i class="fas fa-shield-alt"></i> Master Player List</a>
+                        <a href="heatgen.html"         class="dash-launch-btn"><i class="fas fa-bolt"></i> Heat Generation</a>
+                        <a href="results.html"         class="dash-launch-btn"><i class="fas fa-broadcast-tower"></i> Live Results</a>
+                        <a href="academy.html"         class="dash-launch-btn"><i class="fas fa-building"></i> Academy Directory</a>
+                        <a href="emdashboard.html"     class="dash-launch-btn"><i class="fas fa-cogs"></i> EM Dashboard</a>
+                        <a href="orgdashboard.html"    class="dash-launch-btn"><i class="fas fa-building"></i> Organizer Dashboard</a>
+                        <a href="saoverride.html"      class="dash-launch-btn" style="color:var(--warning);border-color:var(--warning);"><i class="fas fa-unlock-alt"></i> Universal Override</a>
+                        <a href="apiref.html"          class="dash-launch-btn"><i class="fas fa-code"></i> API Reference</a>
+                        <a href="orgcreate.html"       class="dash-launch-btn"><i class="fas fa-plus-circle"></i> Create Meet (Org)</a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Emergency Notice Modal -->
+    <div class="modal-overlay" id="noticeModal">
+        <div class="modal" style="max-width:520px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-bell" style="color:var(--danger);"></i> Publish Emergency Notice</h3>
+                <button class="modal-close" onclick="closeModal('noticeModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding:20px 24px;">
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <div>
+                        <label style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--gray);display:block;margin-bottom:5px;">Notice Title *</label>
+                        <input class="mc-input" id="noticeTitle" placeholder="e.g. Weather Alert: SDAT Velachery Pool" value="Weather Alert: SDAT Velachery Pool">
+                    </div>
+                    <div>
+                        <label style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--gray);display:block;margin-bottom:5px;">Message *</label>
+                        <textarea class="mc-input" id="noticeMsg" rows="3" style="resize:vertical;">Morning sessions delayed by 45 minutes due to heavy rain.</textarea>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div>
+                            <label style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--gray);display:block;margin-bottom:5px;">Expiry (hours)</label>
+                            <input type="number" class="mc-input" id="noticeExpiry" value="12" min="1" max="168">
+                        </div>
+                        <div>
+                            <label style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--gray);display:block;margin-bottom:5px;">Status</label>
+                            <select class="mc-select" id="noticeActive">
+                                <option value="true">Active — Show Now</option>
+                                <option value="false">Draft — Save Only</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="sa-notice-preview" id="noticePreview">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span id="noticePreviewText">Preview will appear here…</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer admin-modal-footer">
+                <button class="admin-btn admin-btn-outline" onclick="closeModal('noticeModal')">Cancel</button>
+                <button class="admin-btn sa-btn-notice" onclick="publishNotice()" style="border:none;">
+                    <i class="fas fa-paper-plane"></i> Publish Notice
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="superadmin.js"></script>
+</body>
+</html>

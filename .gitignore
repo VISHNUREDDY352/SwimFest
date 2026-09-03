@@ -1,0 +1,11 @@
+# Editor / OS
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Local env (never commit real keys)
+.env
+.env.local

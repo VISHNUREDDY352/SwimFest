@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heat Generation Console — SwimFest</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="heatgen.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="admin-body">
+
+    <!-- Topbar -->
+    <header class="admin-topbar">
+        <div class="admin-topbar-inner">
+            <div class="admin-topbar-left">
+                <a href="index.html" class="admin-logo"><i class="fas fa-swimmer"></i> SwimFest</a>
+                <span class="admin-role-tag"><i class="fas fa-cogs"></i> Event Manager Console | Tournament Operations</span>
+            </div>
+            <div class="admin-topbar-right">
+                <a href="admin.html" class="admin-ghost-btn" style="color:rgba(255,255,255,0.6);border-color:rgba(255,255,255,0.15);">
+                    <i class="fas fa-arrow-left"></i> Master Player List
+                </a>
+                <a href="results.html" class="admin-ghost-btn" style="color:rgba(255,255,255,0.6);border-color:rgba(255,255,255,0.15);">
+                    <i class="fas fa-broadcast-tower"></i> Live Results
+                </a>
+                <a href="racecontrol.html" class="admin-ghost-btn" style="color:rgba(255,255,255,0.6);border-color:rgba(255,255,255,0.15);">
+                    <i class="fas fa-flag-checkered"></i> Race Control
+                </a>
+                <a href="eventmanager.html" class="admin-ghost-btn" style="color:rgba(255,255,255,0.6);border-color:rgba(255,255,255,0.15);">
+                    <i class="fas fa-cogs"></i> EM Console
+                </a>
+                <a href="index.html" class="admin-logout-btn"><i class="fas fa-sign-out-alt"></i> Logout (Admin)</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="admin-main">
+
+        <!-- Tournament Status Banner -->
+        <div class="admin-tournament-banner">
+            <div class="admin-tournament-inner">
+                <div class="admin-t-info">
+                    <div class="admin-t-name">Tournament: Golden Non-Medalist Swimming Championship 2026</div>
+                    <div class="admin-t-meta">
+                        <span class="admin-status-chip locked"><i class="fas fa-lock"></i> Player List Locked</span>
+                        <span class="admin-t-meta-item"><i class="fas fa-users"></i> Total Athletes: <strong>248</strong></span>
+                        <span class="admin-t-meta-item"><i class="fas fa-list-ol"></i> Total Event Rows: <strong id="totalEventRows">612</strong></span>
+                        <span class="admin-t-meta-item" id="heatsGeneratedBadge" style="display:none;">
+                            <i class="fas fa-fire" style="color:var(--success)"></i> <strong style="color:var(--success)">Heats Generated</strong>
+                        </span>
+                    </div>
+                </div>
+                <div>
+                    <a href="admin.html" class="admin-ghost-btn">
+                        <i class="fas fa-arrow-left"></i> Master Player List
+                    </a>
+                    <a href="results.html" class="admin-ghost-btn" style="margin-left:8px;">
+                        <i class="fas fa-broadcast-tower"></i> Live Results
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="hg-container">
+
+            <!-- ── STEP 1: Venue Pool Configuration ── -->
+            <div class="hg-section">
+                <div class="hg-step-badge">Step 1 of 3</div>
+                <h2 class="hg-section-title">Venue Pool Configuration &amp; Routing</h2>
+
+                <div class="hg-pools-grid" id="poolsGrid">
+
+                    <!-- Pool 1 -->
+                    <div class="hg-pool-card" id="pool1Card">
+                        <div class="hg-pool-header">
+                            <label class="hg-pool-toggle">
+                                <input type="checkbox" id="pool1Active" checked>
+                                <span class="hg-toggle-track"></span>
+                            </label>
+                            <div class="hg-pool-title-block">
+                                <span class="hg-pool-badge primary-badge"><i class="fas fa-check-square"></i> Pool 1 (Primary)</span>
+                                <input type="text" id="pool1Name" class="hg-pool-name-input" value="Competition Pool A" placeholder="Pool name / label">
+                            </div>
+                        </div>
+                        <div class="hg-pool-body">
+                            <div class="hg-field-row">
+                                <label class="hg-label">* Lane Count</label>
+                                <div class="hg-radio-group">
+                                    <label class="hg-radio-opt">
+                                        <input type="radio" name="pool1Lanes" value="6"> 6 Lanes
+                                    </label>
+                                    <label class="hg-radio-opt active">
+                                        <input type="radio" name="pool1Lanes" value="8" checked> 8 Lanes
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="hg-field-row">
+                                <label class="hg-label">* Category Routing</label>
+                                <div class="hg-check-group" id="pool1Categories">
+                                    <label class="hg-check-opt"><input type="checkbox" value="U-12" checked> U-12 (Boys &amp; Girls)</label>
+                                    <label class="hg-check-opt"><input type="checkbox" value="U-14" checked> U-14 (Boys &amp; Girls)</label>
+                                    <label class="hg-check-opt"><input type="checkbox" value="U-16" checked> U-16 (Boys &amp; Girls)</label>
+                                    <label class="hg-check-opt"><input type="checkbox" value="U-10"> U-10 (Boys &amp; Girls)</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pool 2 -->
+                    <div class="hg-pool-card" id="pool2Card">
+                        <div class="hg-pool-header">
+                            <label class="hg-pool-toggle">
+                                <input type="checkbox" id="pool2Active" checked>
+                                <span class="hg-toggle-track"></span>
+                            </label>
+                            <div class="hg-pool-title-block">
+                                <span class="hg-pool-badge secondary-badge"><i class="fas fa-check-square"></i> Pool 2 (Secondary)</span>
+                                <input type="text" id="pool2Name" class="hg-pool-name-input" value="Warm-up / Junior Pool B" placeholder="Pool name / label">
+                            </div>
+                        </div>
+                        <div class="hg-pool-body">
+                            <div class="hg-field-row">
+                                <label class="hg-label">* Lane Count</label>
+                                <div class="hg-radio-group">
+                                    <label class="hg-radio-opt active">
+                                        <input type="radio" name="pool2Lanes" value="6" checked> 6 Lanes
+                                    </label>
+                                    <label class="hg-radio-opt">
+                                        <input type="radio" name="pool2Lanes" value="8"> 8 Lanes
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="hg-field-row">
+                                <label class="hg-label">* Category Routing</label>
+                                <div class="hg-check-group" id="pool2Categories">
+                                    <label class="hg-check-opt"><input type="checkbox" value="U-10" checked> U-10 (Boys &amp; Girls)</label>
+                                    <label class="hg-check-opt"><input type="checkbox" value="U-12"> U-12 (Boys &amp; Girls)</label>
+                                    <label class="hg-check-opt"><input type="checkbox" value="U-14"> U-14 (Boys &amp; Girls)</label>
+                                    <label class="hg-check-opt"><input type="checkbox" value="U-16"> U-16 (Boys &amp; Girls)</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ── STEP 2: Heat Duration Buffers ── -->
+            <div class="hg-section">
+                <div class="hg-step-badge">Step 2 of 3</div>
+                <h2 class="hg-section-title">Manual Heat Duration Buffers</h2>
+                <p class="hg-section-sub">Set expected duration per heat (including swimmer entry/exit time):</p>
+
+                <div class="hg-buffers-grid">
+                    <div class="hg-buffer-card">
+                        <div class="hg-buffer-icon"><i class="fas fa-tachometer-alt"></i></div>
+                        <label class="hg-buffer-label">* 50m Events Buffer</label>
+                        <div class="hg-buffer-input-row">
+                            <input type="number" id="buf50" class="hg-buffer-input" value="2.0" min="0.5" max="10" step="0.5">
+                            <span class="hg-buffer-unit">Minutes / Heat</span>
+                        </div>
+                    </div>
+                    <div class="hg-buffer-card">
+                        <div class="hg-buffer-icon"><i class="fas fa-stopwatch"></i></div>
+                        <label class="hg-buffer-label">* 100m Events Buffer</label>
+                        <div class="hg-buffer-input-row">
+                            <input type="number" id="buf100" class="hg-buffer-input" value="3.0" min="0.5" max="15" step="0.5">
+                            <span class="hg-buffer-unit">Minutes / Heat</span>
+                        </div>
+                    </div>
+                    <div class="hg-buffer-card">
+                        <div class="hg-buffer-icon"><i class="fas fa-users"></i></div>
+                        <label class="hg-buffer-label">* Relay Events Buffer</label>
+                        <div class="hg-buffer-input-row">
+                            <input type="number" id="bufRelay" class="hg-buffer-input" value="3.5" min="0.5" max="15" step="0.5">
+                            <span class="hg-buffer-unit">Minutes / Heat</span>
+                        </div>
+                    </div>
+                    <div class="hg-buffer-card">
+                        <div class="hg-buffer-icon"><i class="fas fa-clock"></i></div>
+                        <label class="hg-buffer-label">* Session Start Time</label>
+                        <div class="hg-buffer-input-row">
+                            <input type="time" id="sessionStart" class="hg-buffer-input" value="08:30">
+                            <span class="hg-buffer-unit">AM</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── STEP 3: Generate Actions ── -->
+            <div class="hg-section">
+                <div class="hg-step-badge">Step 3 of 3</div>
+                <h2 class="hg-section-title">Heat Generation Actions &amp; Export</h2>
+
+                <div class="hg-actions-bar">
+                    <button class="hg-btn hg-btn-generate" id="generateBtn">
+                        <i class="fas fa-bolt"></i> Generate Heat Sheets
+                    </button>
+                    <button class="hg-btn hg-btn-export" id="exportCTSBtn" disabled>
+                        <i class="fas fa-file-excel"></i> Export to CTS Excel
+                    </button>
+                </div>
+
+                <!-- Generation summary chips -->
+                <div class="hg-gen-summary" id="genSummary" style="display:none;"></div>
+            </div>
+
+            <!-- ── Heat Preview Output ── -->
+            <div id="heatPreviewSection" style="display:none;">
+                <div class="hg-preview-header">
+                    <div>
+                        <div class="hg-step-badge">Preview</div>
+                        <h2 class="hg-section-title">Generated Heat Preview</h2>
+                        <p class="hg-section-sub" id="hgPreviewSubtitle"></p>
+                    </div>
+                    <div class="hg-preview-nav">
+                        <select id="previewPoolFilter" class="hg-preview-select">
+                            <option value="">All Pools</option>
+                        </select>
+                        <select id="previewEventFilter" class="hg-preview-select">
+                            <option value="">All Events</option>
+                        </select>
+                        <select id="previewCatFilter" class="hg-preview-select">
+                            <option value="">All Categories</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="heatCardsContainer"></div>
+
+                <!-- Bottom publish/print bar — matches wireframe -->
+                <div class="hg-bottom-action-bar">
+                    <button class="hg-btn hg-btn-publish" id="publishBtn">
+                        <i class="fas fa-globe"></i> Save &amp; Publish Heat Sheets
+                    </button>
+                    <button class="hg-btn hg-btn-print" id="printBtn">
+                        <i class="fas fa-print"></i> Print Heat Book (PDF)
+                    </button>
+                </div>
+            </div>
+
+        </div><!-- /hg-container -->
+    </main>
+
+    <!-- Publish confirmation modal -->
+    <div class="modal-overlay" id="publishModal">
+        <div class="modal" style="max-width:440px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-globe" style="color:var(--success)"></i> Publish Heat Sheets</h3>
+                <button class="modal-close" id="publishModalClose"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding:20px 24px;">
+                <p style="font-size:0.9rem;line-height:1.65;color:var(--dark);">
+                    Publishing will make heat sheets publicly visible on the event page and notify registered swimmers. This will lock heat assignments.
+                </p>
+                <p style="margin-top:10px;font-size:0.82rem;color:var(--gray);">
+                    <i class="fas fa-info-circle" style="color:var(--primary)"></i> You can still export to CTS after publishing.
+                </p>
+            </div>
+            <div class="modal-footer admin-modal-footer">
+                <button class="admin-btn admin-btn-outline" id="publishModalCancel">Cancel</button>
+                <button class="admin-btn" style="background:var(--success);color:white;" id="publishModalConfirm">
+                    <i class="fas fa-globe"></i> Confirm &amp; Publish
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="academy.js"></script>
+    <script src="heatgen.js"></script>
+</body>
+</html>

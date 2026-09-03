@@ -1,0 +1,86 @@
+/* ============================================================
+   SwimFest — Academy Leaderboard page   leaderboard.css
+   ============================================================ */
+
+.lb-page { min-height: 100vh; background: var(--light, #f4f7fb); padding-bottom: 60px; }
+
+/* Hero */
+.lb-hero {
+    background: linear-gradient(135deg, #b8860b 0%, #8a6508 100%);
+    color: #fff; padding: 96px 24px 40px;
+}
+.lb-hero-inner { max-width: 1100px; margin: 0 auto; }
+.lb-eyebrow { text-transform: uppercase; letter-spacing: 1px; font-size: 0.78rem; font-weight: 700; opacity: 0.95; margin-bottom: 8px; }
+.lb-title { font-size: 2.1rem; font-weight: 800; margin: 0 0 6px; }
+.lb-sub { opacity: 0.92; margin: 0 0 18px; font-size: 0.95rem; max-width: 620px; }
+.lb-metabar { display: flex; flex-wrap: wrap; gap: 18px; font-size: 0.85rem; font-weight: 600; opacity: 0.95; }
+.lb-metabar span i { margin-right: 6px; }
+
+/* Container */
+.lb-container { max-width: 1100px; margin: -18px auto 0; padding: 0 24px; }
+
+/* Podium */
+.lb-podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 26px; }
+.lb-podium:empty { display: none; }
+.podium-card {
+    background: #fff; border-radius: 16px; padding: 22px 16px; text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08); border: 1px solid #eef2f7;
+    position: relative;
+}
+.podium-card .podium-rank {
+    width: 42px; height: 42px; border-radius: 50%; margin: 0 auto 10px;
+    display: grid; place-items: center; font-weight: 800; font-size: 1.1rem; color: #fff;
+}
+.podium-1 { transform: translateY(-14px); border-top: 4px solid #f4c430; }
+.podium-1 .podium-rank { background: linear-gradient(135deg, #f4c430, #d4a017); }
+.podium-2 { border-top: 4px solid #b0bac6; }
+.podium-2 .podium-rank { background: linear-gradient(135deg, #c4ccd6, #97a2b0); }
+.podium-3 { border-top: 4px solid #cd7f32; }
+.podium-3 .podium-rank { background: linear-gradient(135deg, #d98a45, #b06a28); }
+.podium-name { font-weight: 800; font-size: 1.05rem; color: var(--dark, #1a2330); margin: 0 0 2px; }
+.podium-city { font-size: 0.78rem; color: var(--gray, #8895a7); margin: 0 0 12px; }
+.podium-points { font-size: 1.9rem; font-weight: 800; color: var(--primary, #0a5bd3); line-height: 1; }
+.podium-points span { font-size: 0.72rem; font-weight: 600; color: var(--gray, #8895a7); display: block; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+.podium-medals { display: flex; justify-content: center; gap: 12px; margin-top: 12px; font-size: 0.82rem; font-weight: 700; }
+.podium-medals .m-gold i { color: #f4c430; }
+.podium-medals .m-silver i { color: #aab4c0; }
+.podium-medals .m-bronze i { color: #cd7f32; }
+
+/* Table */
+.lb-table-wrap { background: #fff; border-radius: 16px; box-shadow: 0 4px 18px rgba(0,0,0,0.06); overflow: hidden; border: 1px solid #eef2f7; }
+.lb-table { width: 100%; border-collapse: collapse; }
+.lb-table thead th {
+    text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--gray, #62708a); background: #f7f9fc; padding: 14px 18px; font-weight: 700;
+    border-bottom: 1px solid #eef2f7;
+}
+.lb-table tbody td { padding: 14px 18px; border-bottom: 1px solid #f2f5f9; font-size: 0.9rem; color: var(--dark, #1a2330); }
+.lb-table tbody tr:last-child td { border-bottom: none; }
+.lb-table tbody tr:hover { background: #fafcff; }
+.lb-rank-badge {
+    display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
+    font-weight: 800; font-size: 0.85rem; background: #eef2f7; color: var(--dark, #1a2330);
+}
+.lb-rank-badge.r1 { background: #f4c430; color: #fff; }
+.lb-rank-badge.r2 { background: #c4ccd6; color: #fff; }
+.lb-rank-badge.r3 { background: #d98a45; color: #fff; }
+.lb-academy-name { font-weight: 700; }
+.lb-city { font-size: 0.78rem; color: var(--gray, #8895a7); }
+.lb-medal-cell i { margin-right: 3px; }
+.lb-medal-cell .medal-gold { color: #f4c430; }
+.lb-medal-cell .medal-silver { color: #aab4c0; }
+.lb-medal-cell .medal-bronze { color: #cd7f32; }
+.lb-points { font-weight: 800; color: var(--primary, #0a5bd3); }
+
+/* States */
+.lb-loading, .lb-empty { text-align: center; padding: 60px 20px; color: var(--gray, #8895a7); }
+.lb-loading i, .lb-empty i { font-size: 2.2rem; margin-bottom: 12px; display: block; opacity: 0.6; }
+.lb-loading .fa-circle-notch { color: var(--primary, #0a5bd3); }
+
+@media (max-width: 640px) {
+    .lb-title { font-size: 1.6rem; }
+    .lb-podium { grid-template-columns: 1fr; }
+    .podium-1 { transform: none; }
+    .lb-table thead th:nth-child(4), .lb-table tbody td:nth-child(4),
+    .lb-table thead th:nth-child(5), .lb-table tbody td:nth-child(5) { display: none; }
+}

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwimFest - Swimming Competition Management Platform</title>
+    <link rel="stylesheet" href="styles.css?v=2">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Sticky Navigation Header -->
+    <header class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#" class="logo" id="logo">
+                <i class="fas fa-swimmer"></i> SwimFest
+            </a>
+            <button class="state-selector" id="stateSelector">
+                <i class="fas fa-map-marker-alt"></i>
+                <span id="currentState">Tamil Nadu</span>
+                <i class="fas fa-caret-down"></i>
+            </button>
+            <nav class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="#upcoming-tournaments" class="nav-link">Upcoming</a>
+                <a href="#ongoing-tournaments" class="nav-link">Ongoing</a>
+                <a href="#past-events-archives" class="nav-link">Past</a>
+                <a href="academy.html" class="nav-link">Academy</a>
+            </nav>
+            <a href="profile.html" class="btn-profile"><i class="fas fa-user"></i> Profile</a>
+            <a href="login.html" class="btn-register-login">Register / Login</a>
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="#upcoming-tournaments" class="nav-link">Upcoming</a>
+        <a href="#ongoing-tournaments" class="nav-link">Ongoing</a>
+        <a href="#past-events-archives" class="nav-link">Past</a>
+        <a href="academy.html" class="nav-link">Academy</a>
+        <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> My Profile</a>
+        <a href="login.html" class="btn-register-login">Register / Login</a>
+    </div>
+
+    <!-- Hero Banner -->
+    <section class="hero-banner">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <h1 class="hero-title">Dive Into Victory & Make Your Mark in the Pool</h1>
+            <p class="hero-subtitle">Golden Non-Medalist Swimming Championship 2026 | SRM University</p>
+            <div class="hero-buttons">
+                <a href="register.html" class="btn btn-primary">Register for Tournament</a>
+                <a href="heatsheets.html" class="btn btn-secondary">View Schedule / Heat Sheets</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Search & Filters Bar -->
+    <section class="search-filters-bar" id="search-filters">
+        <div class="filters-container">
+            <div class="search-input-wrapper">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search Tournament / Pool Venue..." class="search-input" aria-label="Search tournaments">
+            </div>
+            <div class="filter-dropdowns">
+                <select id="categoryFilter" class="filter-select" aria-label="Filter by category">
+                    <option value="all">All Categories</option>
+                    <option value="U-10">U-10</option>
+                    <option value="U-12">U-12</option>
+                    <option value="U-14">U-14</option>
+                    <option value="U-16">U-16</option>
+                </select>
+                <select id="statusFilter" class="filter-select" aria-label="Filter by status">
+                    <option value="all">All Statuses</option>
+                    <option value="entries-open">Entries Open</option>
+                    <option value="closing-soon">Closing Soon</option>
+                    <option value="live-now">Live Now</option>
+                    <option value="completed">Completed / Archives</option>
+                </select>
+            </div>
+        </div>
+    </section>
+
+    <!-- Upcoming Tournaments Section -->
+    <section class="section" id="upcoming-tournaments">
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title">Upcoming Tournaments <span class="state-tag">(Tamil Nadu)</span></h2>
+                <a href="#upcoming-tournaments" class="view-all" id="viewAllUpcoming" data-target="upcomingCards">View All <i class="fas fa-arrow-right"></i></a>
+            </div>
+            <div class="card-grid" id="upcomingCards">
+                <!-- Card 1 -->
+                <div class="event-card" data-categories="U-10,U-12,U-14,U-16" data-status="entries-open" data-name="Golden Non-Medalist Championship 2026" data-venue="SRM University Pool, Kattankulathur, Chennai">
+                    <div class="card-image">
+                        <div class="card-poster upcoming-poster-1">
+                            <i class="fas fa-trophy"></i>
+                            <span>Golden Non-Medalist '26</span>
+                        </div>
+                        <div class="card-categories">
+                            <span class="cat-badge">U10</span>
+                            <span class="cat-badge">U12</span>
+                            <span class="cat-badge">U14</span>
+                            <span class="cat-badge">U16</span>
+                        </div>
+                        <span class="status-badge status-open">Entries Open</span>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="card-event-title">Golden Non-Medalist Championship 2026</h3>
+                        <div class="card-info-list">
+                            <p><i class="fas fa-users"></i> <strong>Categories:</strong> U-10, U-12, U-14, U-16 (Boys & Girls)</p>
+                            <p><i class="fas fa-map-marker-alt"></i> <strong>Venue:</strong> SRM University Pool, Kattankulathur, Chennai</p>
+                            <p><i class="fas fa-calendar-alt"></i> <strong>Dates:</strong> 15-16 Oct 2026 | <strong>Reg Closing:</strong> 30 Sep 2026</p>
+                            <p><i class="fas fa-rupee-sign"></i> <strong>Fee:</strong> ₹400 / Event | Max 3 Individual Events</p>
+                            <p><i class="fas fa-people-carry"></i> <strong>Relay/Medley:</strong> ₹800 Add-on Fee per team</p>
+                            <p><i class="fas fa-gavel"></i> <strong>Rules:</strong> Single Category Only (Swim-Up Disabled)</p>
+                        </div>
+                        <div class="card-actions">
+                            <a href="event.html" class="btn-card btn-details">View Tournament Details</a>
+                            <a href="register.html?tournament=Golden%20Non-Medalist%20Championship%202026" class="btn-card btn-register">Register Now <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+                <!-- Card 2 -->
+                <div class="event-card" data-categories="U-12,U-14,U-16" data-status="entries-open" data-name="Tamil Nadu State Junior Aquatic Meet 2026" data-venue="SDAT Aquatic Complex, Velachery, Chennai">
+                    <div class="card-image">
+                        <div class="card-poster upcoming-poster-2">
+                            <i class="fas fa-water"></i>
+                            <span>State Junior Aquatics '26</span>
+                        </div>
+                        <div class="card-categories">
+                            <span class="cat-badge">U12</span>
+                            <span class="cat-badge">U14</span>
+                            <span class="cat-badge">U16</span>
+                        </div>
+                        <span class="status-badge status-open">Entries Open</span>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="card-event-title">Tamil Nadu State Junior Aquatic Meet 2026</h3>
+                        <div class="card-info-list">
+                            <p><i class="fas fa-users"></i> <strong>Categories:</strong> U-12, U-14, U-16 (Boys & Girls)</p>
+                            <p><i class="fas fa-map-marker-alt"></i> <strong>Venue:</strong> SDAT Aquatic Complex, Velachery, Chennai</p>
+                            <p><i class="fas fa-calendar-alt"></i> <strong>Dates:</strong> 05-07 Nov 2026 | <strong>Reg Closing:</strong> 20 Oct 2026</p>
+                            <p><i class="fas fa-rupee-sign"></i> <strong>Fee:</strong> ₹500 / Event | Max 3 Individual Events</p>
+                            <p><i class="fas fa-gavel"></i> <strong>Rules:</strong> Allow Swim-Up Enabled (Compete 1 Age Group Higher)</p>
+                        </div>
+                        <div class="card-actions">
+                            <a href="event.html" class="btn-card btn-details">View Tournament Details</a>
+                            <a href="register.html?tournament=Tamil%20Nadu%20State%20Junior%20Aquatic%20Meet%202026" class="btn-card btn-register">Register Now <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+                <!-- Card 3 - Host a Meet -->
+                <div class="event-card host-card" data-categories="" data-status="" data-name="Host a Meet in TN" data-venue="Tamil Nadu">
+                    <div class="card-image">
+                        <div class="card-poster host-poster">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Host a Meet in TN</span>
+                        </div>
+                        <div class="card-categories">
+                            <span class="cat-badge host-badge">Host/Near</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="card-event-title">Host Your Own Swimming Meet</h3>
+                        <div class="card-info-list">
+                            <p><i class="fas fa-map-marker-alt"></i> <strong>Location:</strong> Tamil Nadu (Statewide)</p>
+                            <p><i class="fas fa-calendar-alt"></i> <strong>Date:</strong> Flexible</p>
+                            <p><i class="fas fa-info-circle"></i> Create and manage your own swimming competition</p>
+                        </div>
+                        <div class="card-actions">
+                            <a href="#" class="btn-card btn-register">Create Event <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Ongoing Tournaments Section -->
+    <section class="section section-alt" id="ongoing-tournaments">
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title">Ongoing Tournaments</h2>
+                <a href="#ongoing-tournaments" class="view-all" id="viewAllOngoing" data-target="ongoingCards">View All <i class="fas fa-arrow-right"></i></a>
+            </div>
+            <div class="card-grid" id="ongoingCards">
+                <!-- Empty state -->
+                <div class="empty-state-inline">
+                    <i class="fas fa-info-circle"></i>
+                    <p>No live tournaments today. Check upcoming events above!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Past Events & Archives Section -->
+    <section class="section" id="past-events-archives">
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title">Past Events & Archives</h2>
+                <a href="#past-events-archives" class="view-all" id="viewAllPast" data-target="pastCards">View All <i class="fas fa-arrow-right"></i></a>
+            </div>
+            <div class="card-grid" id="pastCards">
+                <!-- Archived Event 1 -->
+                <div class="event-card past-card" data-categories="U-10,U-12,U-14,U-16" data-status="completed" data-name="All-India Inter-Club Swimming Meet 2026" data-venue="SDAT Aquatic Complex, Velachery, Chennai">
+                    <div class="completed-badge">Completed</div>
+                    <div class="card-image">
+                        <div class="card-poster past-poster-1">
+                            <i class="fas fa-medal"></i>
+                            <span>Inter-Club Aquatic '26</span>
+                        </div>
+                        <div class="card-categories">
+                            <span class="cat-badge">All Groups</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="card-event-title">All-India Inter-Club Swimming Meet 2026</h3>
+                        <div class="card-info-list">
+                            <p><i class="fas fa-map-marker-alt"></i> <strong>Venue:</strong> SDAT Aquatic Complex, Velachery, Chennai</p>
+                            <p><i class="fas fa-calendar-alt"></i> <strong>Dates:</strong> 20-22 June 2026 | <strong>Total Swimmers:</strong> 450</p>
+                            <p><i class="fas fa-trophy"></i> <strong>Overall Champion:</strong> Chennai Swim Club</p>
+                        </div>
+                        <div class="card-actions">
+                            <a href="heatsheets.html?tournament=All-India%20Inter-Club%20Swimming%20Meet%202026" class="btn-card btn-details">View Final Results</a>
+                            <a href="heatsheets.html?tournament=All-India%20Inter-Club%20Swimming%20Meet%202026" class="btn-card btn-download"><i class="fas fa-file-pdf"></i> Download Result Book</a>
+                        </div>
+                    </div>
+                </div>
+                <!-- Archived Event 2 -->
+                <div class="event-card past-card" data-categories="" data-status="completed" data-name="State Masters Meet 2026" data-venue="Neyveli Pool, Cuddalore">
+                    <div class="completed-badge">Completed</div>
+                    <div class="card-image">
+                        <div class="card-poster past-poster-2">
+                            <i class="fas fa-award"></i>
+                            <span>State Masters Meet '26</span>
+                        </div>
+                        <div class="card-categories">
+                            <span class="cat-badge">Masters</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="card-event-title">State Masters Meet 2026</h3>
+                        <div class="card-info-list">
+                            <p><i class="fas fa-map-marker-alt"></i> <strong>Venue:</strong> Neyveli Pool, Cuddalore, TN</p>
+                            <p><i class="fas fa-calendar-alt"></i> <strong>Dates:</strong> May 10-12, 2026</p>
+                        </div>
+                        <div class="card-actions">
+                            <a href="heatsheets.html?tournament=State%20Masters%20Meet%202026" class="btn-card btn-details">View Final Results</a>
+                        </div>
+                    </div>
+                </div>
+                <!-- Archived Event 3 -->
+                <div class="event-card past-card" data-categories="U-14,U-16" data-status="completed" data-name="School Meet 2026" data-venue="Trichy">
+                    <div class="completed-badge">Completed</div>
+                    <div class="card-image">
+                        <div class="card-poster past-poster-3">
+                            <i class="fas fa-school"></i>
+                            <span>School Meet</span>
+                        </div>
+                        <div class="card-categories">
+                            <span class="cat-badge">U14</span>
+                            <span class="cat-badge">U16</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="card-event-title">School Meet 2026</h3>
+                        <div class="card-info-list">
+                            <p><i class="fas fa-map-marker-alt"></i> <strong>Venue:</strong> Trichy, TN</p>
+                            <p><i class="fas fa-calendar-alt"></i> <strong>Dates:</strong> Apr 2026</p>
+                        </div>
+                        <div class="card-actions">
+                            <a href="heatsheets.html?tournament=School%20Meet%202026" class="btn-card btn-details">View Final Results</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-brand">
+                <h3><i class="fas fa-swimmer"></i> SwimFest</h3>
+                <p>India's Premier Swimming Competition Platform</p>
+            </div>
+            <div class="footer-links">
+                <h4>Quick Links</h4>
+                <a href="heatsheets.html"><i class="fas fa-file-pdf"></i> Download Heat Sheets</a>
+                <a href="search.html"><i class="fas fa-search"></i> Search Profile</a>
+                <a href="leaderboard.html"><i class="fas fa-trophy"></i> Academy Leaderboard</a>
+                <a href="admin.html"><i class="fas fa-shield-alt"></i> Admin Console</a>
+                <a href="heatgen.html"><i class="fas fa-bolt"></i> Heat Generation</a>
+                <a href="results.html"><i class="fas fa-broadcast-tower"></i> Live Results</a>
+                <a href="emdashboard.html"><i class="fas fa-cogs"></i> EM Dashboard</a>
+                <a href="addevent.html"><i class="fas fa-plus-circle"></i> Add Event</a>
+                <a href="racecontrol.html"><i class="fas fa-flag-checkered"></i> Race Control</a>
+                <a href="apiref.html"><i class="fas fa-code"></i> API Reference</a>
+            </div>
+            <div class="footer-links">
+                <h4>Navigation</h4>
+                <a href="#upcoming-tournaments">Upcoming Events</a>
+                <a href="#ongoing-tournaments">Ongoing Events</a>
+                <a href="#past-events-archives">Past Events</a>
+                <a href="academy.html">Academy Directory</a>
+                <a href="superadmin.html"><i class="fas fa-user-shield"></i> Super Admin</a>
+                <a href="saoverride.html"><i class="fas fa-unlock-alt"></i> Override Engine</a>
+                <a href="eventmanager.html"><i class="fas fa-cogs"></i> Event Manager</a>
+                <a href="organizer.html"><i class="fas fa-building"></i> Organizer Portal</a>
+                <a href="orgdashboard.html"><i class="fas fa-tachometer-alt"></i> Org Dashboard</a>
+                <a href="orgcreate.html"><i class="fas fa-plus-circle"></i> Create Meet</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 SwimFest. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- State Selector Modal -->
+    <div class="modal-overlay" id="stateModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Select Your State</h3>
+                <button class="modal-close" id="modalClose"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="state-grid" id="stateGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
+    <script src="home.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

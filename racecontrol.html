@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Race Control — SwimFest EM Portal</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="emdashboard.css">
+    <link rel="stylesheet" href="results.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="admin-body">
+
+    <header class="admin-topbar">
+        <div class="admin-topbar-inner">
+            <div class="admin-topbar-left">
+                <a href="index.html" class="admin-logo"><i class="fas fa-swimmer"></i> SwimFest</a>
+                <span class="admin-role-tag"><i class="fas fa-broadcast-tower"></i> Event Manager Race Control | Tournament: District Schools Meet '26</span>
+            </div>
+            <div class="admin-topbar-right">
+                <span style="font-size:0.78rem;color:rgba(255,255,255,0.5);padding:0 8px;border:1px solid rgba(255,255,255,0.15);border-radius:var(--radius-sm);">
+                    Permission State: <strong style="color:var(--success);">Live Editing Active</strong>
+                </span>
+                <span style="font-size:0.75rem;color:rgba(255,255,255,0.5);">Registration Mode: <strong style="color:var(--warning);">Option B (No Gateway / Bulk)</strong></span>
+                <a href="emdashboard.html" class="admin-logout-btn"><i class="fas fa-arrow-left"></i> EM Dashboard</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="admin-main">
+        <div class="admin-container">
+
+            <!-- MODULE 1: Bulk Offline Roster Import -->
+            <div class="admin-section-header" style="margin-top:0;">
+                <div>
+                    <div class="admin-section-label">Module 1</div>
+                    <h2 class="admin-section-title">Bulk Offline Roster Import <span style="font-size:0.78rem;font-weight:500;color:var(--gray);">(For Option B Meets)</span></h2>
+                </div>
+            </div>
+
+            <div class="dash-section" style="margin-bottom:20px;">
+                <div class="dash-section-header">
+                    <span class="dash-section-title"><i class="fas fa-file-upload"></i> Upload Bulk Offline Swimmer Roster Excel</span>
+                    <span class="dash-section-badge" style="background:var(--success);">Option B Active</span>
+                </div>
+                <div class="dash-section-body">
+                    <p style="font-size:0.85rem;color:var(--gray);margin-bottom:16px;">Upload spreadsheet containing offline/walk-in swimmer entries before heat generation.</p>
+                    <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--gray-light);margin-bottom:14px;">
+                        <i class="fas fa-users" style="color:var(--primary);font-size:1.1rem;"></i>
+                        <div>
+                            <strong style="font-size:0.88rem;">Current Uploaded Roster Count:</strong>
+                            <span style="color:var(--primary);font-weight:700;"> 184 Swimmers</span>
+                            <span style="color:var(--gray);"> | </span>
+                            <span style="color:var(--success);font-weight:700;">462 Event Entries</span>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                        <button class="admin-btn admin-btn-outline" onclick="downloadTemplate()">
+                            <i class="fas fa-download"></i> Download Blank Bulk Roster Template (.xlsx)
+                        </button>
+                        <button class="admin-btn admin-btn-primary" onclick="document.getElementById('bulkRosterFile').click()">
+                            <i class="fas fa-upload"></i> Upload Bulk Roster Excel
+                        </button>
+                        <input type="file" id="bulkRosterFile" accept=".xlsx,.csv,.xls" style="display:none;" onchange="handleRosterUpload(this)">
+                    </div>
+                    <div id="rosterUploadStatus" style="display:none;margin-top:12px;"></div>
+                </div>
+            </div>
+
+            <!-- MODULE 2: Dual Result Import -->
+            <div class="admin-section-header">
+                <div>
+                    <div class="admin-section-label">Module 2</div>
+                    <h2 class="admin-section-title">Dual Result Import &amp; Timing Hardware Adapter</h2>
+                </div>
+            </div>
+
+            <div class="dash-section" style="margin-bottom:20px;">
+                <div class="dash-section-header">
+                    <span class="dash-section-title"><i class="fas fa-plug"></i> Select Poolside Timing Execution Method</span>
+                </div>
+                <div class="dash-section-body" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+                    <!-- Method A: CTS -->
+                    <div style="border:1.5px solid var(--gray-light);border-radius:var(--radius-sm);overflow:hidden;">
+                        <div style="padding:12px 16px;background:var(--dark);color:var(--white);font-size:0.8rem;font-weight:700;">
+                            <i class="fas fa-bolt" style="color:var(--accent);"></i> Method A: Electronic Touch-Pad System (CTS / Meet Manager Hardware)
+                        </div>
+                        <div style="padding:16px;">
+                            <div style="font-size:0.82rem;font-weight:600;color:var(--gray);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">1. Download generated heat sheets:</div>
+                            <button class="admin-btn admin-btn-primary" style="width:100%;justify-content:center;margin-bottom:12px;" onclick="showToast('Exporting heat sheet for CTS…','info')">
+                                <i class="fas fa-file-excel"></i> Export Heat Sheet (CTS Excel)
+                            </button>
+                            <div style="font-size:0.82rem;font-weight:600;color:var(--gray);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">2. Re-upload timing system output file:</div>
+                            <button class="admin-btn admin-btn-outline" style="width:100%;justify-content:center;" onclick="document.getElementById('ctsTouchpad').click()">
+                                <i class="fas fa-upload"></i> Upload Touch-Pad Result Excel
+                            </button>
+                            <input type="file" id="ctsTouchpad" accept=".xlsx,.csv" style="display:none;" onchange="handleCTSUpload(this)">
+                        </div>
+                    </div>
+
+                    <!-- Method B: Manual -->
+                    <div style="border:1.5px solid var(--gray-light);border-radius:var(--radius-sm);overflow:hidden;">
+                        <div style="padding:12px 16px;background:var(--gray);color:var(--white);font-size:0.8rem;font-weight:700;">
+                            <i class="fas fa-stopwatch" style="color:var(--white);"></i> Method B: Manual Timing / Offline Fill (Stopwatch / Manual Meets)
+                        </div>
+                        <div style="padding:16px;">
+                            <div style="font-size:0.82rem;font-weight:600;color:var(--gray);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">1. Download pre-filled result sheet template:</div>
+                            <button class="admin-btn admin-btn-outline" style="width:100%;justify-content:center;margin-bottom:12px;" onclick="downloadResultTemplate()">
+                                <i class="fas fa-download"></i> Download Blank Result Excel
+                            </button>
+                            <div style="font-size:0.82rem;font-weight:600;color:var(--gray);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">2. Re-upload completed times (MM:SS.ms):</div>
+                            <button class="admin-btn admin-btn-outline" style="width:100%;justify-content:center;" onclick="document.getElementById('manualResult').click()">
+                                <i class="fas fa-upload"></i> Re-Upload Filled Result Excel
+                            </button>
+                            <input type="file" id="manualResult" accept=".xlsx,.csv" style="display:none;" onchange="handleManualUpload(this)">
+                        </div>
+                    </div>
+                </div>
+                <div id="module2Status" style="display:none;margin:12px 16px 0;"></div>
+            </div>
+
+            <!-- MODULE 3: Direct On-Screen Override -->
+            <div class="admin-section-header">
+                <div>
+                    <div class="admin-section-label">Module 3</div>
+                    <h2 class="admin-section-title">Direct On-Screen Override &amp; Publishing</h2>
+                </div>
+            </div>
+
+            <div class="dash-section">
+                <div class="dash-section-header">
+                    <span class="dash-section-title"><i class="fas fa-keyboard"></i> Live Heat Entry — Pool 1, Event 3, Heat 3 of 3</span>
+                    <span class="res-entries-count" id="m3Count" style="font-size:0.75rem;font-weight:700;padding:4px 12px;border-radius:20px;background:var(--dark);color:var(--white);">3 / 8 times entered</span>
+                </div>
+                <div class="res-grid-wrap">
+                    <table class="res-grid" id="m3Grid">
+                        <thead>
+                            <tr>
+                                <th class="rg-lane">Lane</th>
+                                <th class="rg-swimmer">Swimmer Name</th>
+                                <th class="rg-academy">Academy</th>
+                                <th class="rg-time">Finish Time</th>
+                                <th class="rg-status">Status</th>
+                                <th class="rg-dq">DQ Fault Code</th>
+                            </tr>
+                        </thead>
+                        <tbody id="m3GridBody"></tbody>
+                    </table>
+                </div>
+                <div class="res-grid-actions">
+                    <button class="admin-btn admin-btn-outline" onclick="saveTimings()">
+                        <i class="fas fa-save"></i> Save Draft Timings
+                    </button>
+                    <button class="admin-btn res-publish-btn" onclick="convertPublish()">
+                        <i class="fas fa-paper-plane"></i> Convert &amp; Publish Official Results
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="results.js"></script>
+    <script>
+    'use strict';
+    const DQ_CODES_RC = {'':'— No DQ —','FS':'FS — False Start','IT':'IT — Illegal Turn','IS':'IS — Illegal Stroke','IK':'IK — Illegal Kick','OT':'OT — One-Hand Touch','LV':'LV — Lane Violation','ET':'ET — Relay Early Takeoff'};
+
+    const RC_LANES = [
+      { lane:1, name:null,         academy:null,        seedTime:null },
+      { lane:2, name:null,         academy:null,        seedTime:null },
+      { lane:3, name:'A. Sanjay',  academy:'YMCA Pool', seedTime:'00:33.00' },
+      { lane:4, name:'P. Vijay',   academy:'SDAT Club', seedTime:'00:31.10' },
+      { lane:5, name:'R. Dinesh',  academy:'Chennai SC',seedTime:'00:32.40' },
+      { lane:6, name:'K. Arjun',   academy:'SDAT Club', seedTime:'00:34.80' },
+      { lane:7, name:'V. Prakash', academy:'SRM Aquat.',seedTime:'00:35.40' },
+      { lane:8, name:'J. Naveen',  academy:'Chennai SC',seedTime:'00:00.00' },
+    ];
+
+    const rcResults = {
+      3: { finishTime:'00:33.00', status:'OK', dqCode:'' },
+      4: { finishTime:'00:31.10', status:'OK', dqCode:'' },
+      5: { finishTime:'00:32.40', status:'OK', dqCode:'' },
+      6: { finishTime:'00:00.00', status:'DQ',  dqCode:'FS' },
+      7: { finishTime:'00:35.40', status:'OK', dqCode:'' },
+      8: { finishTime:'00:00.00', status:'DNS', dqCode:'' },
+    };
+
+    function buildM3Grid() {
+      const tbody = document.getElementById('m3GridBody');
+      const dqOpts = Object.entries(DQ_CODES_RC).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+      tbody.innerHTML = RC_LANES.map(lane => {
+        if (!lane.name) return `<tr class="empty-lane"><td><span class="rg-lane-num">L-${lane.lane}</span></td><td colspan="5" style="color:var(--gray);font-style:italic;">(Empty Lane)</td></tr>`;
+        const r   = rcResults[lane.lane] || { finishTime:'', status:'OK', dqCode:'' };
+        const isDQ  = r.status === 'DQ';
+        const isDNS = r.status === 'DNS';
+        const statusCls = `status-${r.status.toLowerCase()}`;
+        return `<tr class="${isDQ?'row-dq':isDNS?'row-dns':''}">
+          <td><span class="rg-lane-num">L-${lane.lane}</span></td>
+          <td><strong>${lane.name}</strong></td>
+          <td>${lane.academy}</td>
+          <td><input type="text" class="res-time-input${r.finishTime&&r.finishTime!=='00:00.00'?' time-filled':''}" data-lane="${lane.lane}" value="${r.finishTime||''}" placeholder="MM:SS.ms" maxlength="8" ${isDNS?'disabled':''} onchange="rcUpdateTime(${lane.lane},this.value)"></td>
+          <td><select class="res-status-select ${statusCls}" data-lane="${lane.lane}" onchange="rcUpdateStatus(${lane.lane},this.value)">
+            <option value="OK" ${r.status==='OK'?'selected':''}>✓ OK</option>
+            <option value="DNS" ${r.status==='DNS'?'selected':''}>DNS</option>
+            <option value="DNF" ${r.status==='DNF'?'selected':''}>DNF</option>
+            <option value="DQ" ${r.status==='DQ'?'selected':''}>DQ</option>
+          </select></td>
+          <td><select class="res-dq-select" data-lane="${lane.lane}" ${!isDQ?'disabled':''} onchange="rcUpdateDQ(${lane.lane},this.value)">
+            ${Object.entries(DQ_CODES_RC).map(([k,v])=>`<option value="${k}" ${r.dqCode===k?'selected':''}>${v}</option>`).join('')}
+          </select></td>
+        </tr>`;
+      }).join('');
+    }
+
+    window.rcUpdateTime   = (l,v) => { if(!rcResults[l]) rcResults[l]={finishTime:'',status:'OK',dqCode:''}; rcResults[l].finishTime=v; };
+    window.rcUpdateStatus = (l,v) => { if(!rcResults[l]) rcResults[l]={finishTime:'',status:'OK',dqCode:''}; rcResults[l].status=v; if(v!=='DQ') rcResults[l].dqCode=''; buildM3Grid(); };
+    window.rcUpdateDQ     = (l,v) => { if(!rcResults[l]) rcResults[l]={finishTime:'',status:'OK',dqCode:''}; rcResults[l].dqCode=v; };
+
+    function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+    function showToast(msg,type='info'){
+      const e=document.querySelector('.admin-toast');if(e)e.remove();
+      const t=document.createElement('div');t.className=`admin-toast admin-toast-${type}`;
+      const icon=type==='success'?'check-circle':type==='warn'?'exclamation-triangle':'info-circle';
+      t.innerHTML=`<i class="fas fa-${icon}"></i> ${escHtml(msg)}`;
+      document.body.appendChild(t);
+      setTimeout(()=>t.classList.add('show'),10);
+      setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400);},3200);
+    }
+
+    window.saveTimings = () => showToast('Draft timings saved for Pool 1 — Event 3, Heat 3.','info');
+    window.convertPublish = () => showToast('Results aggregated and published. Rankings awarded.','success');
+
+    window.handleRosterUpload = function(input) {
+      if (!input.files[0]) return;
+      const st = document.getElementById('rosterUploadStatus');
+      st.style.display='';st.className='res-upload-status loading';
+      st.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Parsing roster file…';
+      setTimeout(()=>{
+        st.className='res-upload-status success';
+        st.innerHTML=`<i class="fas fa-check-circle"></i> Roster imported: ${input.files[0].name} — 184 swimmers, 462 entries created.`;
+        showToast('Bulk roster imported successfully.','success');
+      },1400);
+    };
+
+    window.handleCTSUpload = function(input) {
+      if (!input.files[0]) return;
+      const st = document.getElementById('module2Status');
+      st.style.display='';st.className='res-upload-status loading';
+      st.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Parsing CTS touch-pad file…';
+      setTimeout(()=>{
+        st.className='res-upload-status success';
+        st.innerHTML=`<i class="fas fa-check-circle"></i> CTS file parsed: ${input.files[0].name} — 84 lane records imported.`;
+        buildM3Grid();
+        showToast('Touch-pad results imported and grid updated.','success');
+      },1400);
+    };
+
+    window.handleManualUpload = function(input) {
+      if (!input.files[0]) return;
+      const st = document.getElementById('module2Status');
+      st.style.display='';st.className='res-upload-status loading';
+      st.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Parsing manual result file…';
+      setTimeout(()=>{
+        st.className='res-upload-status success';
+        st.innerHTML=`<i class="fas fa-check-circle"></i> Manual result file parsed: ${input.files[0].name} — times populated.`;
+        showToast('Manual result file imported.','success');
+      },1200);
+    };
+
+    window.downloadTemplate = function() {
+      const headers = ['Swimmer ID','Full Name','Gender','DOB','Category','Academy','Coach','Event 1','Seed Time 1','Event 2','Seed Time 2','Event 3','Seed Time 3'];
+      const csv = headers.join(',') + '\n' + 'SWM-2026-XXXXX,Sample Name,Boy,2015-06-14,U-12,Academy Name,Coach Name,50m Freestyle,00:39.20,,,,';
+      const b = new Blob([csv],{type:'text/csv'});
+      const a = document.createElement('a');a.href=URL.createObjectURL(b);a.download='SwimFest_BulkRosterTemplate.csv';a.click();
+      showToast('Blank roster template downloaded.','info');
+    };
+
+    window.downloadResultTemplate = function() {
+      const headers = ['Pool ID','Event No','Heat No','Lane No','Swimmer ID','Swimmer Name','Finish Time (MM:SS.ms)','Status (OK/DNS/DNF/DQ)','DQ Code'];
+      const csv = headers.join(',') + '\n' + 'P1,3,3,4,SWM-8492,P. Vijay,,OK,';
+      const b = new Blob([csv],{type:'text/csv'});
+      const a = document.createElement('a');a.href=URL.createObjectURL(b);a.download='SwimFest_BlankResultTemplate.csv';a.click();
+      showToast('Blank result template downloaded.','info');
+    };
+
+    (function(){const s=document.createElement('style');s.textContent=`
+      .admin-toast{position:fixed;bottom:28px;right:28px;z-index:99999;padding:12px 20px;background:var(--dark);color:var(--white);border-radius:var(--radius-sm);font-size:0.85rem;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,0.25);transform:translateY(20px);opacity:0;transition:all 0.3s ease;max-width:420px;font-family:'Inter',sans-serif;}
+      .admin-toast.show{transform:translateY(0);opacity:1;}
+      .admin-toast i{color:var(--accent);}
+      .admin-toast.admin-toast-success i{color:var(--success);}
+      .admin-toast.admin-toast-warn i{color:var(--warning);}
+      .empty-lane td{color:var(--gray);font-style:italic;background:#fafafa;}`;
+    document.head.appendChild(s);})();
+
+    document.addEventListener('DOMContentLoaded', buildM3Grid);
+    </script>
+</body>
+</html>

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Meet — SwimFest Organizer Portal</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="emdashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="dash-body">
+
+    <!-- Topbar -->
+    <header class="dash-topbar">
+        <div class="dash-topbar-inner">
+            <div style="display:flex;align-items:center;gap:16px;">
+                <a href="index.html" class="dash-logo"><i class="fas fa-swimmer"></i> SwimFest</a>
+                <span class="dash-role-tag">Organizer Console | Create New Event</span>
+            </div>
+            <a href="orgdashboard.html" class="dash-logout">
+                <i class="fas fa-times"></i> Cancel / Dashboard
+            </a>
+        </div>
+    </header>
+
+    <!-- Step indicator -->
+    <div style="background:var(--white);border-bottom:1px solid var(--gray-light);padding:0 32px;display:flex;align-items:center;gap:0;overflow-x:auto;">
+        <div style="font-size:0.68rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.8px;padding:14px 16px 14px 0;white-space:nowrap;">CREATION STEP:</div>
+        <div class="mc-step-item active" id="ocStep1Ind"><div class="mc-step-circle">1</div><span class="mc-step-label">Meet Specs</span></div>
+        <div class="mc-step-divider"></div>
+        <div class="mc-step-item" id="ocStep2Ind"><div class="mc-step-circle">2</div><span class="mc-step-label">Payment Model &amp; Fee</span></div>
+        <div class="mc-step-divider"></div>
+        <div class="mc-step-item" id="ocStep3Ind"><div class="mc-step-circle">3</div><span class="mc-step-label">Strokes &amp; Submit</span></div>
+    </div>
+
+    <main>
+        <div class="dash-container" style="max-width:860px;">
+
+            <!-- Step 1: General Meet Specs & Pool Infrastructure -->
+            <div id="ocStep1">
+                <div class="mc-form-card">
+                    <div class="mc-form-title">Step 1: General Meet Specs &amp; Pool Infrastructure</div>
+                    <div class="mc-form-sub">Define the competition identity, venue standards, and key dates.</div>
+                    <div class="mc-grid">
+                        <div class="mc-field mc-full">
+                            <label class="mc-label">Meet Title *</label>
+                            <input class="mc-input" id="ocTitle" value="Coimbatore District Swimming Championship 2026" placeholder="Meet title">
+                        </div>
+                        <div class="mc-field mc-full">
+                            <label class="mc-label">Host Club Name *</label>
+                            <input class="mc-input" id="ocHostClub" value="Kovai Amateur Aquatic Club" placeholder="Host club name">
+                        </div>
+                        <div class="mc-field">
+                            <label class="mc-label">State *</label>
+                            <select class="mc-select" id="ocState">
+                                <option selected>Tamil Nadu</option><option>Karnataka</option><option>Kerala</option>
+                            </select>
+                        </div>
+                        <div class="mc-field">
+                            <label class="mc-label">City *</label>
+                            <input class="mc-input" id="ocCity" value="Coimbatore" placeholder="City">
+                        </div>
+                        <div class="mc-field mc-full">
+                            <label class="mc-label">Venue Name *</label>
+                            <input class="mc-input" id="ocVenue" value="SDAT Aquatic Complex, Kovai" placeholder="Venue name">
+                        </div>
+                        <div class="mc-field">
+                            <label class="mc-label">Pool Configuration *</label>
+                            <div class="mc-option-row">
+                                <label class="mc-option"><input type="radio" name="ocPoolStd" value="50m" checked> Standard: 50m LCM</label>
+                                <label class="mc-option"><input type="radio" name="ocPoolStd" value="25m"> 25m SCM</label>
+                            </div>
+                            <div class="mc-option-row" style="margin-top:8px;">
+                                <label class="mc-option"><input type="radio" name="ocLanes" value="6"> Lanes: 6</label>
+                                <label class="mc-option"><input type="radio" name="ocLanes" value="8" checked> Lanes: 8</label>
+                            </div>
+                        </div>
+                        <div class="mc-field">
+                            <label class="mc-label">Meet Dates *</label>
+                            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                                <div>
+                                    <div style="font-size:0.68rem;color:var(--gray);margin-bottom:3px;">Start</div>
+                                    <input type="date" class="mc-input" id="ocStart" value="2026-11-12" style="width:140px;">
+                                </div>
+                                <div>
+                                    <div style="font-size:0.68rem;color:var(--gray);margin-bottom:3px;">End</div>
+                                    <input type="date" class="mc-input" id="ocEnd" value="2026-11-13" style="width:140px;">
+                                </div>
+                                <div>
+                                    <div style="font-size:0.68rem;color:var(--gray);margin-bottom:3px;">Deadline</div>
+                                    <input type="date" class="mc-input" id="ocDeadline" value="2026-10-31" style="width:140px;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mc-nav-bar">
+                        <a href="orgdashboard.html" class="mc-btn mc-btn-ghost"><i class="fas fa-arrow-left"></i> Back</a>
+                        <button class="mc-btn mc-btn-primary" onclick="ocGoStep(2)">Continue <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Payment Gateway Model Selection & Upfront Fee -->
+            <div id="ocStep2" style="display:none;">
+                <div class="mc-form-card">
+                    <div class="mc-form-title">Step 2: Payment Gateway Model Selection &amp; Upfront Software Utility Fee</div>
+                    <div class="mc-form-sub">Select how participant entry fees will be collected for this meet.</div>
+
+                    <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:24px;" id="ocGatewayGroup">
+                        <label class="ae-gateway-opt" id="ocOptA">
+                            <input type="radio" name="ocGateway" value="A" id="ocGwA">
+                            <div class="ae-gw-icon"><i class="fas fa-credit-card"></i></div>
+                            <div class="ae-gw-body">
+                                <strong>Option A: Use Integrated Platform Payment Gateway</strong>
+                                <ul>
+                                    <li>Swimmers register and pay entry fees online directly on this portal.</li>
+                                    <li>Platform deducts standard tech fee per booking and remits net balance to Host.</li>
+                                    <li><strong>No upfront software fee required.</strong></li>
+                                </ul>
+                            </div>
+                        </label>
+                        <label class="ae-gateway-opt" id="ocOptB">
+                            <input type="radio" name="ocGateway" value="B" id="ocGwB" checked>
+                            <div class="ae-gw-icon" style="background:var(--warning);"><i class="fas fa-file-excel"></i></div>
+                            <div class="ae-gw-body">
+                                <strong>Option B: No Payment Gateway (External / Offline Payments)</strong>
+                                <ul>
+                                    <li>Host collects registration fees offline / externally through their own channels.</li>
+                                    <li>Online swimmer checkout payment step is <strong>DISABLED</strong> for this event.</li>
+                                    <li>Host receives Bulk Roster Excel Import tool to upload offline entries.</li>
+                                </ul>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Upfront fee block (shown for Option B) -->
+                    <div class="oc-upfront-block" id="ocUpfrontBlock">
+                        <div class="oc-upfront-header">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Mandatory Upfront Software Utility Tariff (For Option B Meets)
+                        </div>
+                        <div class="oc-upfront-body">
+                            <div class="oc-upfront-fee-row">
+                                <span>Fixed Platform License Fee for Heat Sheet Generation &amp; Results Engine:</span>
+                                <span class="oc-upfront-amount">₹5,000.00 (Flat)</span>
+                            </div>
+                            <p class="oc-upfront-note">
+                                <i class="fas fa-info-circle"></i>
+                                This fee is processed securely via Razorpay. Your meet will be submitted to Super Admin approval queue only after successful payment confirmation.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mc-nav-bar">
+                        <button class="mc-btn mc-btn-ghost" onclick="ocGoStep(1)"><i class="fas fa-arrow-left"></i> Back</button>
+                        <button class="mc-btn mc-btn-primary" onclick="ocGoStep(3)">Continue <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Stroke Matrix, Rules & Submit -->
+            <div id="ocStep3" style="display:none;">
+                <div class="mc-form-card">
+                    <div class="mc-form-title">Step 3: Stroke Matrix, Rules &amp; Submit</div>
+                    <div class="mc-form-sub">Configure event strokes and finalize registration rules before submitting.</div>
+
+                    <div class="mc-grid" style="margin-bottom:20px;">
+                        <div class="mc-field">
+                            <label class="mc-label">Base Entry Package Fee (₹)</label>
+                            <input type="number" class="mc-input" id="ocBaseFee" value="800">
+                            <span style="font-size:0.72rem;color:var(--gray);">Covers up to 3 individual events</span>
+                        </div>
+                        <div class="mc-field">
+                            <label class="mc-label">Relay Add-On Fee (₹)</label>
+                            <input type="number" class="mc-input" id="ocRelayFee" value="300">
+                            <span style="font-size:0.72rem;color:var(--gray);">Per team entry</span>
+                        </div>
+                    </div>
+
+                    <div class="mc-label" style="margin-bottom:10px;">Stroke Matrix</div>
+                    <div style="overflow-x:auto;margin-bottom:16px;">
+                        <table class="stroke-matrix" id="ocStrokeMatrix">
+                            <thead><tr><th>Stroke</th><th>50m</th><th>100m</th><th>200m</th></tr></thead>
+                            <tbody id="ocMatrixBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div style="border:1px solid var(--gray-light);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:20px;">
+                        <div class="mc-toggle-row" style="padding:12px 16px;">
+                            <div class="mc-toggle-info">
+                                <strong>Non-Medalist Rule: <span id="ocNmLabel" style="color:var(--primary);">ENABLED</span></strong>
+                                <span>Blocks State/National/CBSE/SGFI/ICSE/DyES medalists</span>
+                            </div>
+                            <label class="mc-toggle"><input type="checkbox" id="ocNmRule" checked onchange="document.getElementById('ocNmLabel').textContent=this.checked?'ENABLED':'DISABLED';document.getElementById('ocNmLabel').style.color=this.checked?'var(--primary)':'var(--gray)';"><span class="mc-toggle-track"></span></label>
+                        </div>
+                        <div class="mc-toggle-row" style="padding:12px 16px;">
+                            <div class="mc-toggle-info">
+                                <strong>Swim-Up Policy: <span id="ocSuLabel" style="color:var(--gray);">Single Category Only</span></strong>
+                                <span>Allow swimmers to compete in next higher age group</span>
+                            </div>
+                            <label class="mc-toggle"><input type="checkbox" id="ocSwimUp" onchange="document.getElementById('ocSuLabel').textContent=this.checked?'Swim-Up Allowed':'Single Category Only';document.getElementById('ocSuLabel').style.color=this.checked?'var(--primary)':'var(--gray)';"><span class="mc-toggle-track"></span></label>
+                        </div>
+                    </div>
+
+                    <div class="mc-field mc-full" style="margin-bottom:24px;">
+                        <label class="mc-label">Upload Event Poster</label>
+                        <div class="mc-upload-zone" onclick="this.querySelector('input').click()">
+                            <i class="fas fa-image"></i>
+                            <span id="ocPosterLabel">Choose File — kovai_poster.jpg</span>
+                            <input type="file" accept="image/*" style="display:none;" onchange="document.getElementById('ocPosterLabel').textContent=this.files[0]?.name||'Choose File'">
+                        </div>
+                    </div>
+
+                    <div class="mc-nav-bar">
+                        <button class="mc-btn mc-btn-ghost" onclick="saveDraftOC()"><i class="fas fa-save"></i> Save as Draft</button>
+                        <button class="mc-btn mc-btn-primary" id="ocSubmitBtn" onclick="showPaymentModal()">
+                            <i class="fas fa-credit-card"></i> <span id="ocSubmitLabel">Pay Upfront Software Fee &amp; Submit (₹5,000)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Processing State -->
+            <div id="ocPayment" style="display:none;">
+                <div class="mc-form-card" style="text-align:center;padding:56px 40px;">
+                    <div style="font-size:3rem;color:var(--primary);margin-bottom:20px;">
+                        <i class="fas fa-circle-notch fa-spin"></i>
+                    </div>
+                    <h2 style="font-size:1.4rem;font-weight:800;color:var(--dark);margin-bottom:8px;">Processing Razorpay Payment</h2>
+                    <p style="color:var(--gray);margin-bottom:8px;">Upfront Software Utility Fee: <strong>₹5,000.00</strong></p>
+                    <p style="color:var(--gray);font-size:0.85rem;">Please do not close this window…</p>
+                    <div style="margin-top:20px;padding:10px 20px;background:var(--light);border-radius:var(--radius-sm);font-size:0.78rem;color:var(--gray);display:inline-flex;gap:8px;align-items:center;">
+                        <i class="fas fa-shield-alt" style="color:var(--primary);"></i> Secured by Razorpay
+                        &nbsp;|&nbsp; <i class="fas fa-credit-card"></i> Cards &nbsp;·&nbsp;
+                        <i class="fas fa-mobile-alt"></i> UPI &nbsp;·&nbsp;
+                        <i class="fas fa-university"></i> Net Banking
+                    </div>
+                </div>
+            </div>
+
+            <!-- Success State -->
+            <div id="ocSuccess" style="display:none;">
+                <div class="mc-form-card" style="text-align:center;padding:56px 40px;">
+                    <div style="font-size:3.5rem;color:var(--success);margin-bottom:20px;animation:popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h2 style="font-size:1.5rem;font-weight:800;color:var(--dark);margin-bottom:8px;">Meet Submitted!</h2>
+                    <p style="color:var(--success);font-weight:700;margin-bottom:4px;">Payment: PAID_SUCCESSFULLY</p>
+                    <p style="color:var(--warning);font-weight:700;margin-bottom:16px;">Status: PENDING_SUPER_ADMIN_APPROVAL</p>
+                    <div style="background:var(--light);border:1px solid var(--gray-light);border-radius:var(--radius-sm);padding:16px 24px;max-width:400px;margin:0 auto 28px;text-align:left;">
+                        <div style="font-size:0.78rem;display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray-light);">
+                            <span style="color:var(--gray);">Tournament ID</span>
+                            <span id="ocTrnId" style="font-family:monospace;font-weight:700;">TRN-TN-2026-089</span>
+                        </div>
+                        <div style="font-size:0.78rem;display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray-light);">
+                            <span style="color:var(--gray);">Razorpay Payment ID</span>
+                            <span style="font-family:monospace;font-weight:700;color:var(--success);" id="ocPayId">pay_Pk9832Jks82</span>
+                        </div>
+                        <div style="font-size:0.78rem;display:flex;justify-content:space-between;padding:6px 0;">
+                            <span style="color:var(--gray);">Amount Paid</span>
+                            <span style="font-weight:700;color:var(--primary);">₹5,000.00</span>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+                        <a href="orgdashboard.html" class="mc-btn mc-btn-ghost"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+                        <a href="superadmin.html"   class="mc-btn mc-btn-primary"><i class="fas fa-shield-alt"></i> View Super Admin Queue</a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Payment confirm modal -->
+    <div class="modal-overlay" id="ocPayModal">
+        <div class="modal" style="max-width:440px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-credit-card" style="color:var(--primary);"></i> Confirm Upfront Software Fee</h3>
+                <button class="modal-close" onclick="closeOcModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding:20px 24px;">
+                <div style="background:var(--light);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px;">
+                    <div style="font-size:0.82rem;display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray-light);">
+                        <span style="color:var(--gray);">Fee Type</span><span style="font-weight:700;">Platform Software Utility Fee (Option B)</span>
+                    </div>
+                    <div style="font-size:0.82rem;display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray-light);">
+                        <span style="color:var(--gray);">Covers</span><span style="font-weight:600;">Heat Sheet Generation + Results Engine</span>
+                    </div>
+                    <div style="font-size:1rem;display:flex;justify-content:space-between;padding:10px 0;">
+                        <span style="font-weight:700;">Total Amount</span>
+                        <span style="font-weight:800;color:var(--primary);font-size:1.2rem;">₹5,000.00</span>
+                    </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <label class="mc-label">UPI ID</label>
+                    <input class="mc-input" id="ocUpiId" placeholder="yourname@upi" value="kovaiaqua@hdfc">
+                    <p style="font-size:0.75rem;color:var(--gray);"><i class="fas fa-info-circle" style="color:var(--primary);"></i> Payment request will be sent to your UPI app. You can also pay by Card or Net Banking.</p>
+                </div>
+            </div>
+            <div class="modal-footer admin-modal-footer">
+                <button class="admin-btn admin-btn-outline" onclick="closeOcModal()">Cancel</button>
+                <button class="admin-btn" style="background:var(--primary);color:var(--white);" onclick="processPayment()">
+                    <i class="fas fa-lock"></i> Pay ₹5,000 Securely
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    'use strict';
+    const OC_STROKES = [
+      { name:'Freestyle (FS)',    dists:['50m','100m','200m'], def:[true,true,false]  },
+      { name:'Backstroke (BK)',   dists:['50m','100m','200m'], def:[true,true,false]  },
+      { name:'Breaststroke (BR)', dists:['50m','100m','200m'], def:[true,true,false]  },
+      { name:'Butterfly (BF)',    dists:['50m','100m','200m'], def:[true,true,false]  },
+      { name:'Ind. Medley (IM)',  dists:['50m','100m','200m'], def:[false,true,false] },
+    ];
+    const ocState = {};
+    OC_STROKES.forEach(s=>s.dists.forEach((d,i)=>{ocState[`${s.name}_${d}`]=s.def[i];}));
+
+    function buildMatrix(){
+      document.getElementById('ocMatrixBody').innerHTML = OC_STROKES.map(s=>`
+        <tr><td>${s.name}</td>${s.dists.map((d,i)=>{
+          const k=`${s.name}_${d}`,on=ocState[k];
+          return `<td><button class="stroke-toggle-btn ${on?'on':'off'}" data-k="${k}" onclick="toggleOC(this)">${on?'ON':'OFF'}</button></td>`;
+        }).join('')}</tr>`).join('');
+    }
+    window.toggleOC=function(btn){const k=btn.dataset.k;ocState[k]=!ocState[k];btn.className=`stroke-toggle-btn ${ocState[k]?'on':'off'}`;btn.textContent=ocState[k]?'ON':'OFF';};
+
+    // Gateway option change
+    document.addEventListener('DOMContentLoaded',()=>{
+      buildMatrix();
+      document.querySelectorAll('input[name="ocGateway"]').forEach(r=>{
+        r.addEventListener('change',()=>{
+          const b = r.value==='B';
+          document.getElementById('ocUpfrontBlock').style.display = b ? '' : 'none';
+          document.getElementById('ocSubmitLabel').textContent = b
+            ? 'Pay Upfront Software Fee & Submit (₹5,000)'
+            : 'Submit for Super Admin Approval';
+        });
+      });
+    });
+
+    window.ocGoStep=function(n){
+      [1,2,3].forEach(i=>{
+        document.getElementById(`ocStep${i}`).style.display = i===n ? '' : 'none';
+        const si = document.getElementById(`ocStep${i}Ind`);
+        si.classList.remove('active','done');
+        if(i<n) si.classList.add('done'); else if(i===n) si.classList.add('active');
+        const c = si.querySelector('.mc-step-circle');
+        c.innerHTML = i<n ? '<i class="fas fa-check" style="font-size:0.7rem;"></i>' : i;
+      });
+      window.scrollTo({top:0,behavior:'smooth'});
+    };
+
+    window.saveDraftOC=function(){showToast('Meet saved as draft.','info');};
+
+    window.showPaymentModal=function(){
+      const isB = document.querySelector('input[name="ocGateway"]:checked')?.value === 'B';
+      if (isB) {
+        const m = document.getElementById('ocPayModal');
+        m.classList.add('active'); m.style.display='flex';
+      } else {
+        submitOC(false);
+      }
+    };
+
+    window.closeOcModal=function(){
+      const m = document.getElementById('ocPayModal');
+      m.classList.remove('active'); m.style.display='none';
+    };
+
+    window.processPayment=function(){
+      closeOcModal();
+      [1,2,3].forEach(i=>document.getElementById(`ocStep${i}`).style.display='none');
+      document.getElementById('ocPayment').style.display='';
+      window.scrollTo({top:0,behavior:'smooth'});
+      setTimeout(()=>submitOC(true), 2500);
+    };
+
+    function submitOC(paid){
+      document.getElementById('ocPayment').style.display='none';
+      document.getElementById('ocSuccess').style.display='';
+      document.getElementById('ocTrnId').textContent = 'TRN-TN-2026-0'+Math.floor(80+Math.random()*20);
+      document.getElementById('ocPayId').textContent = paid ? 'pay_'+Math.random().toString(36).substr(2,12) : 'N/A (Option A)';
+      window.scrollTo({top:0,behavior:'smooth'});
+      showToast(paid?'Payment confirmed. Meet submitted for Super Admin approval.':'Meet submitted for Super Admin approval.','success');
+    }
+
+    function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+    function showToast(msg,type='info'){
+      const e=document.querySelector('.admin-toast');if(e)e.remove();
+      const t=document.createElement('div');t.className=`admin-toast admin-toast-${type}`;
+      const icon=type==='success'?'check-circle':type==='warn'?'exclamation-triangle':'info-circle';
+      t.innerHTML=`<i class="fas fa-${icon}"></i> ${escHtml(msg)}`;
+      document.body.appendChild(t);
+      setTimeout(()=>t.classList.add('show'),10);
+      setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400);},3200);
+    }
+    window.showToast=showToast;
+
+    (function(){const s=document.createElement('style');s.textContent=`
+      @keyframes popIn{from{transform:scale(0.4);opacity:0;}to{transform:scale(1);opacity:1;}}
+      .oc-upfront-block{border:2px solid var(--warning);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:16px;}
+      .oc-upfront-header{display:flex;align-items:center;gap:10px;padding:11px 16px;background:#fffbeb;color:#92400e;font-size:0.82rem;font-weight:700;border-bottom:1px solid #fde68a;}
+      .oc-upfront-header i{color:var(--warning);}
+      .oc-upfront-body{padding:14px 16px;}
+      .oc-upfront-fee-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--gray-light);font-size:0.85rem;color:var(--dark);gap:16px;}
+      .oc-upfront-amount{font-size:1.1rem;font-weight:800;color:var(--primary);white-space:nowrap;}
+      .oc-upfront-note{font-size:0.78rem;color:var(--gray);margin-top:10px;display:flex;gap:6px;align-items:flex-start;line-height:1.55;}
+      .oc-upfront-note i{color:var(--primary);flex-shrink:0;margin-top:2px;}
+      .ae-gateway-opt{display:flex;align-items:flex-start;gap:14px;padding:16px 18px;border:2px solid var(--gray-light);border-radius:var(--radius-sm);cursor:pointer;transition:var(--transition);background:var(--white);}
+      .ae-gateway-opt:has(input:checked){border-color:var(--primary);background:#edf7ff;}
+      .ae-gateway-opt input{position:absolute;opacity:0;}
+      .ae-gw-icon{width:40px;height:40px;border-radius:var(--radius-sm);background:var(--primary);color:var(--white);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+      .ae-gw-body{flex:1;font-size:0.85rem;color:var(--dark);line-height:1.55;}
+      .ae-gw-body strong{display:block;font-size:0.88rem;font-weight:700;margin-bottom:6px;}
+      .ae-gw-body ul{padding-left:16px;color:var(--gray);margin-top:4px;}
+      .ae-gw-body li{margin-bottom:3px;}
+      .admin-toast{position:fixed;bottom:28px;right:28px;z-index:99999;padding:12px 20px;background:var(--dark);color:var(--white);border-radius:var(--radius-sm);font-size:0.85rem;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,0.25);transform:translateY(20px);opacity:0;transition:all 0.3s ease;max-width:420px;font-family:'Inter',sans-serif;}
+      .admin-toast.show{transform:translateY(0);opacity:1;}
+      .admin-toast i{color:var(--accent);}
+      .admin-toast.admin-toast-success i{color:var(--success);}`;
+    document.head.appendChild(s);})();
+    </script>
+</body>
+</html>

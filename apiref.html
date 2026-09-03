@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Reference — SwimFest Developer Docs</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .api-body { background:#0d1117; min-height:100vh; }
+        .api-topbar { background:#161b22; border-bottom:1px solid #30363d; height:56px; position:sticky; top:0; z-index:999; }
+        .api-topbar-inner { max-width:1200px; margin:0 auto; padding:0 24px; height:100%; display:flex; align-items:center; gap:20px; }
+        .api-logo { font-size:1.1rem; font-weight:800; color:#e6edf3; text-decoration:none; display:flex; align-items:center; gap:8px; }
+        .api-logo i { color:#58a6ff; }
+        .api-subnav { background:#161b22; border-bottom:1px solid #30363d; }
+        .api-subnav-inner { max-width:1200px; margin:0 auto; padding:0 24px; display:flex; gap:4px; height:44px; align-items:center; overflow-x:auto; }
+        .api-nav-link { padding:8px 14px; color:#8b949e; font-size:0.8rem; font-weight:600; text-decoration:none; border-radius:6px; transition:0.2s; white-space:nowrap; }
+        .api-nav-link:hover, .api-nav-link.active { background:rgba(88,166,255,0.1); color:#58a6ff; }
+        .api-container { max-width:1200px; margin:0 auto; padding:32px 24px 80px; display:grid; grid-template-columns:220px 1fr; gap:32px; }
+        .api-sidebar { position: sticky; top:100px; align-self:start; }
+        .api-sidebar-title { font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#8b949e; margin-bottom:10px; }
+        .api-sidebar-link { display:block; padding:7px 12px; color:#8b949e; font-size:0.8rem; text-decoration:none; border-radius:6px; transition:0.2s; border-left:2px solid transparent; }
+        .api-sidebar-link:hover { color:#e6edf3; background:rgba(255,255,255,0.05); border-left-color:#58a6ff; }
+        .api-sidebar-link.active { color:#58a6ff; border-left-color:#58a6ff; background:rgba(88,166,255,0.07); }
+        .api-content { min-width:0; }
+        .api-page-title { font-size:1.6rem; font-weight:800; color:#e6edf3; margin-bottom:8px; letter-spacing:-0.3px; }
+        .api-page-sub { font-size:0.9rem; color:#8b949e; line-height:1.65; margin-bottom:32px; }
+        .api-endpoint { margin-bottom:40px; border:1px solid #30363d; border-radius:10px; overflow:hidden; }
+        .api-ep-header { padding:16px 20px; background:#161b22; border-bottom:1px solid #30363d; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+        .api-method { font-size:0.78rem; font-weight:800; padding:4px 10px; border-radius:6px; font-family:monospace; }
+        .method-post { background:rgba(63,185,80,0.15); color:#3fb950; }
+        .method-get  { background:rgba(88,166,255,0.15); color:#58a6ff; }
+        .api-path { font-size:0.9rem; font-weight:700; color:#e6edf3; font-family:'Courier New',monospace; }
+        .api-ep-desc { font-size:0.82rem; color:#8b949e; margin-left:auto; }
+        .api-ep-body { padding:20px; }
+        .api-sub-title { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#8b949e; margin-bottom:8px; }
+        .api-meta-row { display:flex; gap:20px; flex-wrap:wrap; margin-bottom:14px; }
+        .api-meta-pill { font-size:0.78rem; color:#8b949e; display:flex; align-items:center; gap:6px; }
+        .api-meta-pill strong { color:#e6edf3; }
+        .api-code-block { background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:16px 18px; font-family:'Courier New',monospace; font-size:0.82rem; line-height:1.7; overflow-x:auto; white-space:pre; color:#e6edf3; margin-bottom:14px; }
+        .code-key    { color:#79c0ff; }
+        .code-str    { color:#a5d6ff; }
+        .code-num    { color:#f2cc60; }
+        .code-bool   { color:#ff7b72; }
+        .code-null   { color:#ff7b72; }
+        .code-comment{ color:#8b949e; font-style:italic; }
+        .code-method { color:#3fb950; }
+        .code-url    { color:#79c0ff; }
+        .code-header { color:#d2a8ff; }
+        .api-schema-table { width:100%; border-collapse:collapse; font-size:0.8rem; margin-bottom:20px; }
+        .api-schema-table th { padding:9px 14px; text-align:left; font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#8b949e; background:#161b22; border-bottom:1px solid #30363d; }
+        .api-schema-table td { padding:9px 14px; border-bottom:1px solid #21262d; color:#e6edf3; vertical-align:top; }
+        .api-schema-table tr:last-child td { border-bottom:none; }
+        .schema-field { color:#79c0ff; font-family:monospace; }
+        .schema-type  { color:#f2cc60; font-size:0.75rem; }
+        .schema-const { color:#a5d6ff; font-size:0.75rem; font-family:monospace; }
+        .sprint-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+        .sprint-table th { padding:10px 14px; text-align:left; background:#161b22; color:#8b949e; font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #30363d; }
+        .sprint-table td { padding:12px 14px; border-bottom:1px solid #21262d; color:#e6edf3; vertical-align:top; }
+        .sprint-table tr:last-child td { border-bottom:none; }
+        .sprint-badge { display:inline-block; padding:3px 9px; border-radius:20px; font-size:0.7rem; font-weight:700; }
+        .sb-week { background:rgba(88,166,255,0.15); color:#58a6ff; }
+        @media (max-width:768px) { .api-container { grid-template-columns:1fr; } .api-sidebar { display:none; } }
+    </style>
+</head>
+<body class="api-body">
+
+    <header class="api-topbar">
+        <div class="api-topbar-inner">
+            <a href="index.html" class="api-logo"><i class="fas fa-swimmer"></i> SwimFest</a>
+            <span style="font-size:0.72rem;color:#8b949e;border-left:1px solid #30363d;padding-left:16px;">Developer API Reference</span>
+            <div style="margin-left:auto;display:flex;gap:10px;">
+                <a href="emdashboard.html" style="color:#8b949e;font-size:0.78rem;text-decoration:none;padding:6px 12px;border:1px solid #30363d;border-radius:6px;">EM Dashboard</a>
+                <a href="superadmin.html"  style="color:#8b949e;font-size:0.78rem;text-decoration:none;padding:6px 12px;border:1px solid #30363d;border-radius:6px;">Super Admin</a>
+            </div>
+        </div>
+    </header>
+
+    <nav class="api-subnav">
+        <div class="api-subnav-inner">
+            <a href="#endpoints" class="api-nav-link active">EM Endpoints</a>
+            <a href="#organizer" class="api-nav-link">Organizer Endpoints</a>
+            <a href="#superadmin" class="api-nav-link">Super Admin Endpoints</a>
+            <a href="#erd"       class="api-nav-link">Database ERD</a>
+            <a href="#schema"    class="api-nav-link">DB Schema</a>
+            <a href="#sprints"   class="api-nav-link">Sprint Roadmap</a>
+            <a href="#security"  class="api-nav-link">Security &amp; NFRs</a>
+            <a href="#handoff"   class="api-nav-link">Tech Stack &amp; Hand-Off</a>
+            <a href="orgdashboard.html" class="api-nav-link" style="margin-left:auto;color:#3fb950;"><i class="fas fa-building"></i> Organizer Dashboard</a>
+        </div>
+    </nav>
+
+    <div class="api-container">
+        <!-- Sidebar -->
+        <aside class="api-sidebar">
+            <div class="api-sidebar-title">REST API Endpoints</div>
+            <a href="#ep1" class="api-sidebar-link active">POST Submit Event</a>
+            <a href="#ep2" class="api-sidebar-link">POST Import Roster</a>
+            <a href="#ep3" class="api-sidebar-link">POST Submit Academy</a>
+            <a href="#ep4" class="api-sidebar-link">POST Import Results</a>
+            <div class="api-sidebar-title" style="margin-top:20px;">Database Schema</div>
+            <a href="#db-enums"       class="api-sidebar-link">Enums</a>
+            <a href="#db-academies"   class="api-sidebar-link">academies</a>
+            <a href="#db-coaches"     class="api-sidebar-link">coaches</a>
+            <a href="#db-tournaments" class="api-sidebar-link">tournaments</a>
+            <a href="#db-heat"        class="api-sidebar-link">heat_entries</a>
+            <div class="api-sidebar-title" style="margin-top:20px;">Roadmap</div>
+            <a href="#sprints" class="api-sidebar-link">4-Sprint Plan</a>
+        </aside>
+
+        <!-- Content -->
+        <main class="api-content">
+            <h1 class="api-page-title" id="endpoints">Event Manager Portal — API Reference</h1>
+            <p class="api-page-sub">REST API specifications for the SwimFest Event Manager Portal module. All endpoints require a valid JWT token with the appropriate role claim.</p>
+
+            <!-- EP1 -->
+            <div class="api-endpoint" id="ep1">
+                <div class="api-ep-header">
+                    <span class="api-method method-post">POST</span>
+                    <span class="api-path">/api/v1/event-manager/tournaments</span>
+                    <span class="api-ep-desc">Submit Event for Approval — Option A or B</span>
+                </div>
+                <div class="api-ep-body">
+                    <div class="api-meta-row">
+                        <div class="api-meta-pill"><i class="fas fa-key" style="color:#f2cc60;"></i> Role: <strong>EVENT_MANAGER</strong></div>
+                        <div class="api-meta-pill"><i class="fas fa-code-branch" style="color:#3fb950;"></i> Returns: <strong>201 Created</strong></div>
+                    </div>
+                    <div class="api-sub-title">Request Payload</div>
+                    <div class="api-code-block"><span class="code-comment">// POST /api/v1/event-manager/tournaments
+// Authorization: Bearer &lt;JWT_TOKEN&gt; (Role: EVENT_MANAGER)
+// Content-Type: application/json</span>
+
+{
+  <span class="code-key">"title"</span>: <span class="code-str">"Tamil Nadu District Schools Championship 2026"</span>,
+  <span class="code-key">"host_organization"</span>: <span class="code-str">"Tamil Nadu Amateur Aquatic Association"</span>,
+  <span class="code-key">"state"</span>: <span class="code-str">"Tamil Nadu"</span>,
+  <span class="code-key">"city"</span>: <span class="code-str">"Chennai"</span>,
+  <span class="code-key">"venue_name"</span>: <span class="code-str">"SDAT Aquatic Complex, Velachery, Chennai"</span>,
+  <span class="code-key">"pool_length"</span>: <span class="code-str">"50m"</span>,
+  <span class="code-key">"lane_count"</span>: <span class="code-num">8</span>,
+  <span class="code-key">"start_date"</span>: <span class="code-str">"2026-11-05"</span>,
+  <span class="code-key">"end_date"</span>: <span class="code-str">"2026-11-07"</span>,
+  <span class="code-key">"registration_deadline"</span>: <span class="code-str">"2026-10-20T23:59:59+05:30"</span>,
+  <span class="code-key">"gateway_option"</span>: <span class="code-str">"OPTION_B_NO_GATEWAY"</span>,
+  <span class="code-key">"base_package_fee"</span>: <span class="code-num">800.00</span>,
+  <span class="code-key">"relay_add_on_fee"</span>: <span class="code-num">300.00</span>,
+  <span class="code-key">"allow_swim_up"</span>: <span class="code-bool">false</span>,
+  <span class="code-key">"non_medalist_rule_enabled"</span>: <span class="code-bool">true</span>,
+  <span class="code-key">"poster_url"</span>: <span class="code-str">"https://s3.ap-south-1.amazonaws.com/swim-assets/posters/poster_v1.jpg"</span>
+}</div>
+                    <div class="api-sub-title">Response (201 Created)</div>
+                    <div class="api-code-block">{
+  <span class="code-key">"status"</span>: <span class="code-str">"SUCCESS"</span>,
+  <span class="code-key">"tournament_id"</span>: <span class="code-str">"TRN-TN-2026-012"</span>,
+  <span class="code-key">"gateway_option"</span>: <span class="code-str">"OPTION_B_NO_GATEWAY"</span>,
+  <span class="code-key">"current_status"</span>: <span class="code-str">"PENDING_APPROVAL"</span>,
+  <span class="code-key">"message"</span>: <span class="code-str">"Event successfully submitted for Super Admin review."</span>
+}</div>
+                </div>
+            </div>
+
+            <!-- EP2 -->
+            <div class="api-endpoint" id="ep2">
+                <div class="api-ep-header">
+                    <span class="api-method method-post">POST</span>
+                    <span class="api-path">/api/v1/event-manager/tournaments/{tournament_id}/import-roster</span>
+                    <span class="api-ep-desc">Import Bulk Offline Swimmer Roster — Option B</span>
+                </div>
+                <div class="api-ep-body">
+                    <div class="api-meta-row">
+                        <div class="api-meta-pill"><i class="fas fa-key" style="color:#f2cc60;"></i> Role: <strong>EVENT_MANAGER</strong></div>
+                        <div class="api-meta-pill"><i class="fas fa-file-upload" style="color:#3fb950;"></i> Content-Type: <strong>multipart/form-data</strong></div>
+                        <div class="api-meta-pill"><i class="fas fa-code-branch" style="color:#3fb950;"></i> Returns: <strong>200 OK</strong></div>
+                    </div>
+                    <div class="api-sub-title">Payload</div>
+                    <div class="api-code-block"><span class="code-comment">// Binary .xlsx or .csv spreadsheet containing offline swimmer registrations
+// Required columns: Swimmer ID, Full Name, Gender, DOB, Category, Academy, Event 1..3, Seed Times</span></div>
+                    <div class="api-sub-title">Response (200 OK)</div>
+                    <div class="api-code-block">{
+  <span class="code-key">"status"</span>: <span class="code-str">"SUCCESS"</span>,
+  <span class="code-key">"swimmers_imported"</span>: <span class="code-num">184</span>,
+  <span class="code-key">"event_entries_created"</span>: <span class="code-num">462</span>,
+  <span class="code-key">"validation_warnings"</span>: []
+}</div>
+                </div>
+            </div>
+
+            <!-- EP3 -->
+            <div class="api-endpoint" id="ep3">
+                <div class="api-ep-header">
+                    <span class="api-method method-post">POST</span>
+                    <span class="api-path">/api/v1/event-manager/academies</span>
+                    <span class="api-ep-desc">Submit Academy / Coach for Verification</span>
+                </div>
+                <div class="api-ep-body">
+                    <div class="api-meta-row">
+                        <div class="api-meta-pill"><i class="fas fa-key" style="color:#f2cc60;"></i> Role: <strong>EVENT_MANAGER</strong></div>
+                        <div class="api-meta-pill"><i class="fas fa-code-branch" style="color:#3fb950;"></i> Returns: <strong>201 Created</strong></div>
+                    </div>
+                    <div class="api-sub-title">Request Payload</div>
+                    <div class="api-code-block">{
+  <span class="code-key">"academy_name"</span>: <span class="code-str">"Poseidon Aquatic Center"</span>,
+  <span class="code-key">"city"</span>: <span class="code-str">"Madurai"</span>,
+  <span class="code-key">"state"</span>: <span class="code-str">"Tamil Nadu"</span>,
+  <span class="code-key">"registration_no"</span>: <span class="code-str">"TN-REG-2026-9982"</span>,
+  <span class="code-key">"head_coach_name"</span>: <span class="code-str">"Coach M. Selvam"</span>,
+  <span class="code-key">"document_proof_url"</span>: <span class="code-str">"https://s3.ap-south-1.amazonaws.com/swim-assets/docs/poseidon_reg.pdf"</span>
+}</div>
+                    <div class="api-sub-title">Response (201 Created)</div>
+                    <div class="api-code-block">{
+  <span class="code-key">"status"</span>: <span class="code-str">"SUCCESS"</span>,
+  <span class="code-key">"academy_id"</span>: <span class="code-str">"ACAD-TN-2026-104"</span>,
+  <span class="code-key">"verification_status"</span>: <span class="code-str">"PENDING_VERIFICATION"</span>,
+  <span class="code-key">"message"</span>: <span class="code-str">"Submitted to Super Admin verification queue."</span>
+}</div>
+                </div>
+            </div>
+
+            <!-- EP4 -->
+            <div class="api-endpoint" id="ep4">
+                <div class="api-ep-header">
+                    <span class="api-method method-post">POST</span>
+                    <span class="api-path">/api/v1/event-manager/tournaments/{tournament_id}/heats/results</span>
+                    <span class="api-ep-desc">Import Electronic Touch-Pad or Manual Results</span>
+                </div>
+                <div class="api-ep-body">
+                    <div class="api-meta-row">
+                        <div class="api-meta-pill"><i class="fas fa-key" style="color:#f2cc60;"></i> Role: <strong>EVENT_MANAGER</strong></div>
+                        <div class="api-meta-pill"><i class="fas fa-code-branch" style="color:#3fb950;"></i> Returns: <strong>200 OK</strong></div>
+                    </div>
+                    <div class="api-sub-title">Request Payload</div>
+                    <div class="api-code-block">{
+  <span class="code-key">"event_no"</span>: <span class="code-num">3</span>,
+  <span class="code-key">"heat_no"</span>: <span class="code-num">3</span>,
+  <span class="code-key">"entries"</span>: [
+    { <span class="code-key">"lane_no"</span>: <span class="code-num">4</span>, <span class="code-key">"swimmer_id"</span>: <span class="code-str">"SWM-8492"</span>, <span class="code-key">"finish_time_ms"</span>: <span class="code-num">31100</span>, <span class="code-key">"status"</span>: <span class="code-str">"OK"</span>,  <span class="code-key">"dq_code"</span>: <span class="code-null">null</span> },
+    { <span class="code-key">"lane_no"</span>: <span class="code-num">5</span>, <span class="code-key">"swimmer_id"</span>: <span class="code-str">"SWM-8493"</span>, <span class="code-key">"finish_time_ms"</span>: <span class="code-num">32400</span>, <span class="code-key">"status"</span>: <span class="code-str">"OK"</span>,  <span class="code-key">"dq_code"</span>: <span class="code-null">null</span> },
+    { <span class="code-key">"lane_no"</span>: <span class="code-num">6</span>, <span class="code-key">"swimmer_id"</span>: <span class="code-str">"SWM-8494"</span>, <span class="code-key">"finish_time_ms"</span>: <span class="code-num">0</span>,     <span class="code-key">"status"</span>: <span class="code-str">"DQ"</span>, <span class="code-key">"dq_code"</span>: <span class="code-str">"FS"</span> }
+  ]
+}</div>
+                    <div class="api-sub-title">Response (200 OK)</div>
+                    <div class="api-code-block">{
+  <span class="code-key">"status"</span>: <span class="code-str">"SUCCESS"</span>,
+  <span class="code-key">"records_updated"</span>: <span class="code-num">3</span>,
+  <span class="code-key">"message"</span>: <span class="code-str">"Heat results recorded and rankings published."</span>
+}</div>
+                </div>
+            </div>
+
+            <!-- DB Schema -->
+            <h2 id="schema" style="font-size:1.2rem;font-weight:800;color:#e6edf3;margin:40px 0 8px;">Database Schema Extensions</h2>
+            <p style="color:#8b949e;font-size:0.85rem;margin-bottom:20px;">PostgreSQL schema supporting gateway mode choices, bulk offline roster imports, academy/coach submission queues, and dual result import formats.</p>
+
+            <div id="db-enums">
+                <div class="api-sub-title">Enums</div>
+                <table class="api-schema-table">
+                    <thead><tr><th>Type Name</th><th>Values</th></tr></thead>
+                    <tbody>
+                        <tr><td class="schema-field">payment_gateway_option_enum</td><td class="schema-const">OPTION_A_PLATFORM_GATEWAY, OPTION_B_NO_GATEWAY</td></tr>
+                        <tr><td class="schema-field">tournament_status_enum</td><td class="schema-const">DRAFT, PENDING_APPROVAL, REJECTED_DRAFT, PUBLISHED, CLOSURE_REQUESTED, COMPLETED</td></tr>
+                        <tr><td class="schema-field">verification_status_enum</td><td class="schema-const">PENDING_VERIFICATION, APPROVED_ACTIVE, REJECTED</td></tr>
+                        <tr><td class="schema-field">dq_fault_code_enum</td><td class="schema-const">FS, IT, IS, IK, OT, LV, ET</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="db-academies">
+                <div class="api-sub-title" style="margin-top:16px;">academies Table</div>
+                <table class="api-schema-table">
+                    <thead><tr><th>Field</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td class="schema-field">academy_id</td><td class="schema-type">VARCHAR(36)</td><td>PRIMARY KEY</td><td style="color:#8b949e;">UUID auto-generated</td></tr>
+                        <tr><td class="schema-field">academy_name</td><td class="schema-type">VARCHAR(200)</td><td>NOT NULL</td><td style="color:#8b949e;">Official name</td></tr>
+                        <tr><td class="schema-field">city / state</td><td class="schema-type">VARCHAR(100)</td><td>NOT NULL, Indexed</td><td style="color:#8b949e;">Location fields</td></tr>
+                        <tr><td class="schema-field">status</td><td class="schema-type">verification_status_enum</td><td>DEFAULT 'PENDING_VERIFICATION'</td><td style="color:#8b949e;">Super Admin controlled</td></tr>
+                        <tr><td class="schema-field">submitted_by_em_id</td><td class="schema-type">VARCHAR(36)</td><td>NOT NULL</td><td style="color:#8b949e;">FK to event managers</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="db-coaches">
+                <div class="api-sub-title" style="margin-top:16px;">coaches Table</div>
+                <table class="api-schema-table">
+                    <thead><tr><th>Field</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td class="schema-field">coach_id</td><td class="schema-type">VARCHAR(36)</td><td>PRIMARY KEY</td><td style="color:#8b949e;">UUID auto-generated</td></tr>
+                        <tr><td class="schema-field">full_name</td><td class="schema-type">VARCHAR(120)</td><td>NOT NULL</td><td style="color:#8b949e;"></td></tr>
+                        <tr><td class="schema-field">certification_body</td><td class="schema-type">VARCHAR(100)</td><td>NOT NULL</td><td style="color:#8b949e;">ASCA, NIS, SFI</td></tr>
+                        <tr><td class="schema-field">affiliated_academy_id</td><td class="schema-type">VARCHAR(36)</td><td>FK → academies, ON DELETE SET NULL</td><td style="color:#8b949e;"></td></tr>
+                        <tr><td class="schema-field">status</td><td class="schema-type">verification_status_enum</td><td>DEFAULT 'PENDING_VERIFICATION'</td><td style="color:#8b949e;"></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="db-tournaments">
+                <div class="api-sub-title" style="margin-top:16px;">tournaments Table (key fields)</div>
+                <table class="api-schema-table">
+                    <thead><tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td class="schema-field">tournament_id</td><td class="schema-type">VARCHAR(36)</td><td>PRIMARY KEY</td><td style="color:#8b949e;"></td></tr>
+                        <tr><td class="schema-field">gateway_option</td><td class="schema-type">payment_gateway_option_enum</td><td>OPTION_A_PLATFORM_GATEWAY</td><td style="color:#8b949e;">Gateway selection mode</td></tr>
+                        <tr><td class="schema-field">base_package_fee</td><td class="schema-type">DECIMAL(10,2)</td><td>800.00</td><td style="color:#8b949e;">Locked after approval</td></tr>
+                        <tr><td class="schema-field">non_medalist_rule_enabled</td><td class="schema-type">BOOLEAN</td><td>TRUE</td><td style="color:#8b949e;"></td></tr>
+                        <tr><td class="schema-field">status</td><td class="schema-type">tournament_status_enum</td><td>DRAFT</td><td style="color:#8b949e;">Workflow state machine</td></tr>
+                        <tr><td class="schema-field">assigned_event_manager_id</td><td class="schema-type">VARCHAR(36)</td><td>NOT NULL</td><td style="color:#8b949e;"></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="db-heat">
+                <div class="api-sub-title" style="margin-top:16px;">heat_entries Table</div>
+                <table class="api-schema-table">
+                    <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td class="schema-field">heat_entry_id</td><td class="schema-type">VARCHAR(36) PK</td><td style="color:#8b949e;">UUID</td></tr>
+                        <tr><td class="schema-field">tournament_id</td><td class="schema-type">FK → tournaments</td><td style="color:#8b949e;">ON DELETE CASCADE</td></tr>
+                        <tr><td class="schema-field">event_no / heat_no / lane_no</td><td class="schema-type">INT NOT NULL</td><td style="color:#8b949e;">Composite key for result lookup</td></tr>
+                        <tr><td class="schema-field">finish_time_ms</td><td class="schema-type">INT DEFAULT 0</td><td style="color:#8b949e;">Milliseconds — 31100 = 00:31.10</td></tr>
+                        <tr><td class="schema-field">status</td><td class="schema-type">VARCHAR(10)</td><td style="color:#8b949e;">CHECK IN ('OK','DNS','DNF','DQ')</td></tr>
+                        <tr><td class="schema-field">dq_code</td><td class="schema-type">dq_fault_code_enum</td><td style="color:#8b949e;">Nullable — only when status=DQ</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Organizer Endpoints -->
+            <h2 id="organizer" style="font-size:1.2rem;font-weight:800;color:#e6edf3;margin:40px 0 8px;">Tournament Organizer Portal — API Endpoints</h2>
+            <p style="color:#8b949e;font-size:0.85rem;margin-bottom:20px;">REST endpoints for third-party organizer authentication, upfront fee payment, bulk roster import, and manual result upload.</p>
+
+            <!-- ORG EP1 -->
+            <div class="api-endpoint" id="org-ep1">
+                <div class="api-ep-header">
+                    <span class="api-method method-post">POST</span>
+                    <span class="api-path">/api/v1/organizer/tournaments</span>
+                    <span class="api-ep-desc">Create Event &amp; Select Payment Gateway Option</span>
+                </div>
+                <div class="api-ep-body">
+                    <div class="api-meta-row">
+                        <div class="api-meta-pill"><i class="fas fa-key" style="color:#f2cc60;"></i> Role: <strong>TOURNAMENT_ORGANIZER</strong></div>
+                        <div class="api-meta-pill"><i class="fas fa-code-branch" style="color:#3fb950;"></i> Returns: <strong>201 Created</strong></div>
+                    </div>
+                    <div class="api-sub-title">Request Payload</div>
+                    <div class="api-code-block">{
+  <span class="code-key">"title"</span>: <span class="code-str">"Coimbatore District Swimming Championship 2026"</span>,
+  <span class="code-key">"host_club_name"</span>: <span class="code-str">"Kovai Amateur Aquatic Club"</span>,
+  <span class="code-key">"state"</span>: <span class="code-str">"Tamil Nadu"</span>,
+  <span class="code-key">"city"</span>: <span class="code-str">"Coimbatore"</span>,
+  <span class="code-key">"venue_name"</span>: <span class="code-str">"SDAT Aquatic Complex, Kovai"</span>,
+  <span class="code-key">"pool_length"</span>: <span class="code-str">"50m"</span>,
+  <span class="code-key">"lane_count"</span>: <span class="code-num">8</span>,
+  <span class="code-key">"start_date"</span>: <span class="code-str">"2026-11-12"</span>,
+  <span class="code-key">"end_date"</span>: <span class="code-str">"2026-11-13"</span>,
+  <span class="code-key">"registration_deadline"</span>: <span class="code-str">"2026-10-31T23:59:59+05:30"</span>,
+  <span class="code-key">"gateway_option"</span>: <span class="code-str">"OPTION_B_NO_GATEWAY"</span>,
+  <span class="code-key">"base_package_fee"</span>: <span class="code-num">800.00</span>,
+  <span class="code-key">"relay_add_on_fee"</span>: <span class="code-num">300.00</span>,
+  <span class="code-key">"allow_swim_up"</span>: <span class="code-bool">false</span>,
+  <span class="code-key">"non_medalist_rule_enabled"</span>: <span class="code-bool">true</span>
+}</div>
+                    <div class="api-sub-title">Response (201 Created)</div>
+                    <div class="api-code-block">{
+  <span class="code-key">"status"</span>: <span class="code-str">"SUCCESS"</span>,
+  <span class="code-key">"tournament_id"</span>: <span class="code-str">"TRN-TN-2026-089"</span>,
+  <span class="code-key">"gateway_option"</span>: <span class="code-str">"OPTION_B_NO_GATEWAY"</span>,
+  <span class="code-key">"upfront_fee_required"</span>: <span class="code-bool">true</span>,
+  <span class="code-key">"upfront_fee_amount"</span>: <span class="code-num">5000.00</span>,
+  <span class="code-key">"currency"</span>: <span class="code-str">"INR"</span>,
+  <span class="code-key">"razorpay_order_id"</span>: <span class="code-str">"order_Kovai8832_01"</span>,
+  <span class="code-key">"message"</span>: <span class="code-str">"Tournament created. Complete the upfront software fee payment to submit for Super Admin approval."</span>
+}</div>
+                </div>
+            </div>
+
+            <!-- ORG EP2 -->
+            <div class="api-endpoint" id="org-ep2">
+                <div class="api-ep-header">
+                    <span class="api-method method-post">POST</span>
+                    <span class="api-path">/api/v1/organizer/tournaments/{tournament_id}/pay-upfront-fee</span>
+                    <span class="api-ep-desc">Process Upfront Software Utility Fee Payment</span>
+                </div>
+                <div class="api-ep-body">
+                    <div class="api-meta-row">
+                        <div class="api-meta-pill"><i class="fas fa-key" style="color:#f2cc60;"></i> Role: <strong>TOURNAMENT_ORGANIZER</strong></div>
+                        <div class="api-meta-pill"><i class="fas fa-code-branch" style="color:#3fb950;"></i> Returns: <strong>200 OK</strong></div>
+                    </div>
+                    <div class="api-sub-title">Request Payload (Razorpay Callback)</div>
+                    <div class="api-code-block">{
+  <span class="code-key">"razorpay_payment_id"</span>: <span class="code-str">"pay_Pk9832Jks82"</span>,
+  <span class="code-key">"razorpay_order_id"</span>: <span class="code-str">"order_Kovai8832_01"</span>,
+  <span class="code-key">"razorpay_signature"</span>: <span class="code-str">"9a8f7e6d5c4b3a21..."</span>
+}</div>
+                    <div class="api-sub-title">Response (200 OK)</div>
+                    <div class="api-code-block">{
+  <span class="code-key">"status"</span>: <span class="code-str">"SUCCESS"</span>,
+  <span class="code-key">"tournament_id"</span>: <span class="code-str">"TRN-TN-2026-089"</span>,
+  <span class="code-key">"current_status"</span>: <span class="code-str">"PENDING_APPROVAL"</span>,
+  <span class="code-key">"upfront_fee_status"</span>: <span class="code-str">"PAID_SUCCESSFULLY"</span>,
+  <span class="code-key">"message"</span>: <span class="code-str">"Upfront software fee verified. Meet submitted to Super Admin approval queue."</span>
+}</div>
+                </div>
+            </div>
+
+            <!-- ORG EP3 -->
+            <div class="api-endpoint" id="org-ep3">
+                <div class="api-ep-header">
+                    <span class="api-method method-post">POST</span>
+                    <span class="api-path">/api/v1/organizer/tournaments/{tournament_id}/import-roster</span>
+                    <span class="api-ep-desc">Upload Bulk Offline Swimmer Roster (Option B)</span>
+                </div>
+                <div class="api-ep-body">
+                    <div class="api-meta-row">
+                        <div class="api-meta-pill"><i class="fas fa-key" style="color:#f2cc60;"></i> Role: <strong>TOURNAMENT_ORGANIZER</strong></div>
+                        <div class="api-meta-pill"><i class="fas fa-file-upload" style="color:#3fb950;"></i> Content-Type: <strong>multipart/form-data</strong></div>
+                    </div>
+                    <div class="api-sub-title">Response (200 OK)</div>
+                    <div class="api-code-block">{
+  <span class="code-key">"status"</span>: <span class="code-str">"SUCCESS"</span>,
+  <span class="code-key">"athletes_imported"</span>: <span class="code-num">142</span>,
+  <span class="code-key">"event_entries_created"</span>: <span class="code-num">398</span>,
+  <span class="code-key">"validation_warnings"</span>: []
+}</div>
+                </div>
+            </div>
+
+            <!-- ORG EP4 -->
+            <div class="api-endpoint" id="org-ep4">
+                <div class="api-ep-header">
+                    <span class="api-method method-post">POST</span>
+                    <span class="api-path">/api/v1/organizer/tournaments/{tournament_id}/import-manual-results</span>
+                    <span class="api-ep-desc">Upload Manual Result Excel Spreadsheet (Path B)</span>
+                </div>
+                <div class="api-ep-body">
+                    <div class="api-meta-row">
+                        <div class="api-meta-pill"><i class="fas fa-key" style="color:#f2cc60;"></i> Role: <strong>TOURNAMENT_ORGANIZER</strong></div>
+                        <div class="api-meta-pill"><i class="fas fa-code-branch" style="color:#3fb950;"></i> Returns: <strong>200 OK</strong></div>
+                    </div>
+                    <div class="api-sub-title">Response (200 OK)</div>
+                    <div class="api-code-block">{
+  <span class="code-key">"status"</span>: <span class="code-str">"SUCCESS"</span>,
+  <span class="code-key">"records_processed"</span>: <span class="code-num">398</span>,
+  <span class="code-key">"successful_matches"</span>: <span class="code-num">398</span>,
+  <span class="code-key">"dq_records_tagged"</span>: <span class="code-num">4</span>,
+  <span class="code-key">"message"</span>: <span class="code-str">"Manual Excel results imported successfully. Official rankings published."</span>
+}</div>
+                </div>
+            </div>
+
+            <!-- New DB Schema tables -->
+            <div id="db-organizers" style="margin-top:20px;">
+                <div class="api-sub-title">tournament_organizers Table</div>
+                <table class="api-schema-table">
+                    <thead><tr><th>Field</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td class="schema-field">organizer_id</td><td class="schema-type">VARCHAR(36)</td><td>PRIMARY KEY</td><td style="color:#8b949e;">UUID auto-generated</td></tr>
+                        <tr><td class="schema-field">organization_name</td><td class="schema-type">VARCHAR(200)</td><td>NOT NULL</td><td style="color:#8b949e;">Official club/association name</td></tr>
+                        <tr><td class="schema-field">contact_person_name</td><td class="schema-type">VARCHAR(120)</td><td>NOT NULL</td><td style="color:#8b949e;">Primary contact</td></tr>
+                        <tr><td class="schema-field">email</td><td class="schema-type">VARCHAR(100)</td><td>UNIQUE NOT NULL</td><td style="color:#8b949e;">Login email</td></tr>
+                        <tr><td class="schema-field">is_verified</td><td class="schema-type">BOOLEAN</td><td>DEFAULT FALSE</td><td style="color:#8b949e;">Super Admin verification flag</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="db-upfront" style="margin-top:16px;">
+                <div class="api-sub-title">upfront_software_payments Table</div>
+                <table class="api-schema-table">
+                    <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td class="schema-field">payment_id</td><td class="schema-type">VARCHAR(36) PK</td><td style="color:#8b949e;">UUID</td></tr>
+                        <tr><td class="schema-field">tournament_id</td><td class="schema-type">FK → tournaments</td><td style="color:#8b949e;">ON DELETE CASCADE</td></tr>
+                        <tr><td class="schema-field">organizer_id</td><td class="schema-type">FK → tournament_organizers</td><td style="color:#8b949e;"></td></tr>
+                        <tr><td class="schema-field">amount_paid</td><td class="schema-type">DECIMAL(10,2)</td><td style="color:#8b949e;">DEFAULT 5000.00</td></tr>
+                        <tr><td class="schema-field">razorpay_payment_id</td><td class="schema-type">VARCHAR(100)</td><td style="color:#8b949e;">NOT NULL — verified signature</td></tr>
+                        <tr><td class="schema-field">payment_status</td><td class="schema-type">VARCHAR(20)</td><td style="color:#8b949e;">DEFAULT 'SUCCESS'</td></tr>
+                        <tr><td class="schema-field">paid_at</td><td class="schema-type">TIMESTAMP WITH TIME ZONE</td><td style="color:#8b949e;">DEFAULT CURRENT_TIMESTAMP</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="margin-top:16px;">
+                <div class="api-sub-title">New Enum: upfront_fee_status_enum</div>
+                <table class="api-schema-table">
+                    <thead><tr><th>Type Name</th><th>Values</th></tr></thead>
+                    <tbody>
+                        <tr><td class="schema-field">upfront_fee_status_enum</td><td class="schema-const">NOT_REQUIRED, PENDING_PAYMENT, PAID_SUCCESSFULLY</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Organizer Sprint Roadmap -->
+            <h2 style="font-size:1.1rem;font-weight:800;color:#e6edf3;margin:32px 0 8px;">Sprint Roadmap — Tournament Organizer Module</h2>
+            <table class="sprint-table" style="margin-bottom:40px;">
+                <thead><tr><th>Sprint</th><th>Scope</th><th>Deliverables</th></tr></thead>
+                <tbody>
+                    <tr>
+                        <td><span class="sprint-badge sb-week">Sprint 1</span><br><span style="font-size:0.72rem;color:#8b949e;">Week 1–2</span></td>
+                        <td style="font-weight:600;color:#e6edf3;">Organizer Auth &amp; Upfront Fee Gateway</td>
+                        <td style="color:#8b949e;font-size:0.8rem;">Organizer Dashboard routes and sticky header navigation<br>Option A vs. Option B creation canvas with Razorpay upfront fee<br>Tenant data isolation — organizers view ONLY owned meets</td>
+                    </tr>
+                    <tr>
+                        <td><span class="sprint-badge sb-week">Sprint 2</span><br><span style="font-size:0.72rem;color:#8b949e;">Week 3–4</span></td>
+                        <td style="font-weight:600;color:#e6edf3;">Offline Roster Import &amp; Super Admin Queue</td>
+                        <td style="color:#8b949e;font-size:0.8rem;">Bulk Swimmer Roster Excel parser for Option B meets<br>Super Admin approval queue for third-party meets</td>
+                    </tr>
+                    <tr>
+                        <td><span class="sprint-badge sb-week">Sprint 3</span><br><span style="font-size:0.72rem;color:#8b949e;">Week 5–6</span></td>
+                        <td style="font-weight:600;color:#e6edf3;">Dual-Mode Result Import &amp; Hardware Adapters</td>
+                        <td style="color:#8b949e;font-size:0.8rem;">Path A: CTS/Meet Manager hardware Excel exporter and importer<br>Path B: Blank result Excel generator and manual result importer</td>
+                    </tr>
+                    <tr>
+                        <td><span class="sprint-badge sb-week">Sprint 4</span><br><span style="font-size:0.72rem;color:#8b949e;">Week 7</span></td>
+                        <td style="font-weight:600;color:#e6edf3;">Archive Linking &amp; Final Event Closure</td>
+                        <td style="color:#8b949e;font-size:0.8rem;">Organizer past event archive dashboard linking to public result books<br>Immutable data locking upon Super Admin closure sign-off</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Super Admin Endpoints -->
+            <h2 id="superadmin" style="font-size:1.2rem;font-weight:800;color:#e6edf3;margin:40px 0 8px;">Super Admin Master Control — API Endpoints</h2>
+            <p style="color:#8b949e;font-size:0.85rem;margin-bottom:20px;">Exclusive REST endpoints requiring <code style="background:#21262d;padding:1px 6px;border-radius:4px;color:#79c0ff;">SUPER_ADMIN</code> JWT role claim. All actions are written to the immutable <code style="background:#21262d;padding:1px 6px;border-radius:4px;color:#79c0ff;">system_audit_logs</code> table.</p>
+
+            <div class="api-endpoint" id="sa-ep1">
+                <div class="api-ep-header">
+                    <span class="api-method" style="background:rgba(240,185,11,0.15);color:#f0b90b;">PATCH</span>
+                    <span class="api-path">/api/v1/admin/tournaments/{tournament_id}/approval</span>
+                    <span class="api-ep-desc">Review &amp; Approve/Reject Meet</span>
+                </div>
+                <div class="api-ep-body">
+                    <div class="api-meta-row"><div class="api-meta-pill"><i class="fas fa-key" style="color:#f2cc60;"></i> Role: <strong>SUPER_ADMIN</strong></div></div>
+                    <div class="api-sub-title">Request Payload</div>
+                    <div class="api-code-block">{
+  <span class="code-key">"action"</span>: <span class="code-str">"APPROVE"</span>, <span class="code-comment">// Options: "APPROVE" or "REJECT"</span>
+  <span class="code-key">"rejection_notes"</span>: <span class="code-null">null</span>
+}</div>
+                    <div class="api-sub-title">Response (200 OK)</div>
+                    <div class="api-code-block">{
+  <span class="code-key">"status"</span>: <span class="code-str">"SUCCESS"</span>,
+  <span class="code-key">"tournament_id"</span>: <span class="code-str">"TRN-TN-2026-004"</span>,
+  <span class="code-key">"current_status"</span>: <span class="code-str">"PUBLISHED"</span>,
+  <span class="code-key">"message"</span>: <span class="code-str">"Tournament approved and published to the public home directory."</span>
+}</div>
+                </div>
+            </div>
+
+            <div class="api-endpoint" id="sa-ep2">
+                <div class="api-ep-header">
+                    <span class="api-method" style="background:rgba(240,185,11,0.15);color:#f0b90b;">PATCH</span>
+                    <span class="api-path">/api/v1/admin/verifications/{entity_type}/{entity_id}</span>
+                    <span class="api-ep-desc">Verify Academy or Coach Submission</span>
+                </div>
+                <div class="api-ep-body">
+                    <div class="api-meta-row">
+                        <div class="api-meta-pill"><i class="fas fa-key" style="color:#f2cc60;"></i> Role: <strong>SUPER_ADMIN</strong></div>
+                        <div class="api-meta-pill"><i class="fas fa-info" style="color:#58a6ff;"></i> entity_type: <strong>academy</strong> or <strong>coach</strong></div>
+                    </div>
+                    <div class="api-sub-title">Request Payload</div>
+                    <div class="api-code-block">{
+  <span class="code-key">"action"</span>: <span class="code-str">"APPROVE"</span>, <span class="code-comment">// Options: "APPROVE" or "REJECT"</span>
+  <span class="code-key">"rejection_notes"</span>: <span class="code-null">null</span>
+}</div>
+                    <div class="api-sub-title">Response (200 OK)</div>
+                    <div class="api-code-block">{
+  <span class="code-key">"status"</span>: <span class="code-str">"SUCCESS"</span>,
+  <span class="code-key">"entity_id"</span>: <span class="code-str">"ACAD-TN-2026-104"</span>,
+  <span class="code-key">"verification_status"</span>: <span class="code-str">"APPROVED_ACTIVE"</span>,
+  <span class="code-key">"message"</span>: <span class="code-str">"Entity verified and published to global master database."</span>
+}</div>
+                </div>
+            </div>
+
+            <div class="api-endpoint" id="sa-ep3">
+                <div class="api-ep-header">
+                    <span class="api-method method-post">POST</span>
+                    <span class="api-path">/api/v1/admin/tournaments/{tournament_id}/override</span>
+                    <span class="api-ep-desc">Reopen / Force Override Completed Event</span>
+                </div>
+                <div class="api-ep-body">
+                    <div class="api-meta-row"><div class="api-meta-pill"><i class="fas fa-key" style="color:#f2cc60;"></i> Role: <strong>SUPER_ADMIN</strong></div></div>
+                    <div class="api-sub-title">Request Payload</div>
+                    <div class="api-code-block">{
+  <span class="code-key">"action"</span>: <span class="code-str">"REOPEN_EVENT"</span>, <span class="code-comment">// Options: "REOPEN_EVENT" | "FORCE_EDIT_FEES" | "CANCEL_EVENT"</span>
+  <span class="code-key">"override_notes"</span>: <span class="code-str">"Reopening event to adjust Heat 2 finish time dispute."</span>,
+  <span class="code-key">"new_status"</span>: <span class="code-str">"PUBLISHED"</span>
+}</div>
+                    <div class="api-sub-title">Response (200 OK)</div>
+                    <div class="api-code-block">{
+  <span class="code-key">"status"</span>: <span class="code-str">"SUCCESS"</span>,
+  <span class="code-key">"tournament_id"</span>: <span class="code-str">"TRN-TN-2026-004"</span>,
+  <span class="code-key">"current_status"</span>: <span class="code-str">"PUBLISHED"</span>,
+  <span class="code-key">"audit_log_id"</span>: <span class="code-str">"LOG-TN-2026-9921"</span>,
+  <span class="code-key">"message"</span>: <span class="code-str">"Event state reopened. Audit trail recorded."</span>
+}</div>
+                </div>
+            </div>
+
+            <div class="api-endpoint" id="sa-ep4">
+                <div class="api-ep-header">
+                    <span class="api-method method-post">POST</span>
+                    <span class="api-path">/api/v1/admin/notices</span>
+                    <span class="api-ep-desc">Publish Emergency System Notice</span>
+                </div>
+                <div class="api-ep-body">
+                    <div class="api-meta-row"><div class="api-meta-pill"><i class="fas fa-key" style="color:#f2cc60;"></i> Role: <strong>SUPER_ADMIN</strong></div></div>
+                    <div class="api-sub-title">Request Payload</div>
+                    <div class="api-code-block">{
+  <span class="code-key">"title"</span>: <span class="code-str">"Weather Alert: SDAT Velachery Pool"</span>,
+  <span class="code-key">"message"</span>: <span class="code-str">"Morning sessions delayed by 45 minutes due to heavy rain."</span>,
+  <span class="code-key">"is_active"</span>: <span class="code-bool">true</span>,
+  <span class="code-key">"expiry_hours"</span>: <span class="code-num">12</span>
+}</div>
+                    <div class="api-sub-title">Response (201 Created)</div>
+                    <div class="api-code-block">{
+  <span class="code-key">"status"</span>: <span class="code-str">"SUCCESS"</span>,
+  <span class="code-key">"notice_id"</span>: <span class="code-str">"NTC-2026-088"</span>,
+  <span class="code-key">"message"</span>: <span class="code-str">"Emergency banner published across portal home page."</span>
+}</div>
+                </div>
+            </div>
+
+            <!-- Super Admin DB Schema -->
+            <div style="margin-top:20px;">
+                <div class="api-sub-title">super_admins Table</div>
+                <table class="api-schema-table">
+                    <thead><tr><th>Field</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td class="schema-field">admin_id</td><td class="schema-type">VARCHAR(36)</td><td>PRIMARY KEY</td><td style="color:#8b949e;">UUID</td></tr>
+                        <tr><td class="schema-field">full_name</td><td class="schema-type">VARCHAR(120)</td><td>NOT NULL</td><td style="color:#8b949e;"></td></tr>
+                        <tr><td class="schema-field">email</td><td class="schema-type">VARCHAR(100)</td><td>UNIQUE NOT NULL</td><td style="color:#8b949e;"></td></tr>
+                        <tr><td class="schema-field">is_master_owner</td><td class="schema-type">BOOLEAN</td><td>DEFAULT FALSE</td><td style="color:#8b949e;">Platform Owner flag</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="margin-top:16px;">
+                <div class="api-sub-title">system_audit_logs Table (Immutable Security Trail)</div>
+                <table class="api-schema-table">
+                    <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td class="schema-field">log_id</td><td class="schema-type">VARCHAR(36) PK</td><td style="color:#8b949e;">UUID</td></tr>
+                        <tr><td class="schema-field">admin_id</td><td class="schema-type">FK → super_admins</td><td style="color:#8b949e;">NOT NULL</td></tr>
+                        <tr><td class="schema-field">action_type</td><td class="schema-type">audit_action_enum</td><td style="color:#8b949e;">EVENT_APPROVED | EVENT_REJECTED | ACADEMY_VERIFIED | COACH_VERIFIED | FEE_OVERRIDE | EVENT_REOPENED | RESULTS_OVERRIDDEN</td></tr>
+                        <tr><td class="schema-field">target_entity</td><td class="schema-type">VARCHAR(50)</td><td style="color:#8b949e;">'TOURNAMENT', 'ACADEMY', 'COACH', 'RESULT'</td></tr>
+                        <tr><td class="schema-field">notes</td><td class="schema-type">TEXT NOT NULL</td><td style="color:#8b949e;">Mandatory override reason</td></tr>
+                        <tr><td class="schema-field">ip_address</td><td class="schema-type">VARCHAR(45)</td><td style="color:#8b949e;">Admin IP for security trail</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="margin-top:16px;">
+                <div class="api-sub-title">emergency_notices Table</div>
+                <table class="api-schema-table">
+                    <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td class="schema-field">notice_id</td><td class="schema-type">VARCHAR(36) PK</td><td style="color:#8b949e;"></td></tr>
+                        <tr><td class="schema-field">title</td><td class="schema-type">VARCHAR(200)</td><td style="color:#8b949e;">NOT NULL</td></tr>
+                        <tr><td class="schema-field">message</td><td class="schema-type">TEXT</td><td style="color:#8b949e;">NOT NULL</td></tr>
+                        <tr><td class="schema-field">is_active</td><td class="schema-type">BOOLEAN</td><td style="color:#8b949e;">DEFAULT TRUE</td></tr>
+                        <tr><td class="schema-field">expired_at</td><td class="schema-type">TIMESTAMP WITH TIME ZONE</td><td style="color:#8b949e;">Auto-computed from expiry_hours</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h2 style="font-size:1.1rem;font-weight:800;color:#e6edf3;margin:32px 0 8px;">Sprint Roadmap — Super Admin Module</h2>
+            <table class="sprint-table" style="margin-bottom:40px;">
+                <thead><tr><th>Sprint</th><th>Scope</th><th>Deliverables</th></tr></thead>
+                <tbody>
+                    <tr><td><span class="sprint-badge sb-week">Sprint 1</span><br><span style="font-size:0.72rem;color:#8b949e;">Week 1–2</span></td><td style="font-weight:600;color:#e6edf3;">Master Dashboard &amp; Approval Queues</td><td style="color:#8b949e;font-size:0.8rem;">Persistent Super Admin nav header and statewide metric counters<br>Section 1A (Internal) &amp; 1B (Third-Party) approval queues<br>Connect meet state transitions to public directory publishing API</td></tr>
+                    <tr><td><span class="sprint-badge sb-week">Sprint 2</span><br><span style="font-size:0.72rem;color:#8b949e;">Week 3–4</span></td><td style="font-weight:600;color:#e6edf3;">Academy &amp; Coach Verification Engine</td><td style="color:#8b949e;font-size:0.8rem;">Section 2 Academy &amp; Coach verification review queue<br>Connect approval actions to populate global master lookup dropdowns</td></tr>
+                    <tr><td><span class="sprint-badge sb-week">Sprint 3</span><br><span style="font-size:0.72rem;color:#8b949e;">Week 5–6</span></td><td style="font-weight:600;color:#e6edf3;">Universal Override Engine &amp; Audit Logs</td><td style="color:#8b949e;font-size:0.8rem;">Override canvas for reopening archived meets and adjusting locked fees<br>Implement immutable system_audit_logs database ledger for security tracking</td></tr>
+                    <tr><td><span class="sprint-badge sb-week">Sprint 4</span><br><span style="font-size:0.72rem;color:#8b949e;">Week 7</span></td><td style="font-weight:600;color:#e6edf3;">Financial Governance &amp; Emergency Notices</td><td style="color:#8b949e;font-size:0.8rem;">Build Razorpay payment tracking and third-party host payout disbursement ledger<br>Build platform-wide emergency notice banner publishing system</td></tr>
+                </tbody>
+            </table>
+
+            <!-- Comprehensive ERD & Schema -->
+            <h2 id="erd" style="font-size:1.2rem;font-weight:800;color:#e6edf3;margin:40px 0 8px;">Comprehensive Database Schema &amp; Entity-Relationship Model (ERD)</h2>
+            <p style="color:#8b949e;font-size:0.85rem;margin-bottom:16px;">Conceptual entity mapping and normalized PostgreSQL DDL for the full platform data model.</p>
+
+            <div class="api-sub-title">Entity-Relationship Diagram (Conceptual Mapping)</div>
+            <div class="api-code-block" style="line-height:1.5;">+-------------------+     1:N      +-------------------+
+|  SUPER ADMINS /   |------------->|    ACADEMIES      |
+|  EVENT MANAGERS   |              |   (academies)     |
++-------------------+              +-------------------+
+        |                                   |
+        | 1:N                               | 1:N
+        v                                   v
++-------------------+              +-------------------+
+|   TOURNAMENTS     |              |     COACHES       |
+|  (tournaments)    |              |    (coaches)      |
++-------------------+              +-------------------+
+   |            |                          |
+1:N|         1:N|                          | 0:N (Optional)
+   v            v                          v
++--------+  +---------------+     +-------------------+
+| POOLS  |  |  BOOKINGS     |     |    SWIMMERS       |
+|(pool_  |  | (bookings)    |&lt;----|   (swimmers)      |
+| cfg)   |  +---------------+ 1:N +-------------------+
++--------+       |                          |
+   |         1:N |                          | 1:N
+1:N|             v                          v
+   v    +--------------------------------------------+
+        |            EVENT ENTRIES                   |
+        |           (event_entries)                  |
+        +--------------------------------------------+
+                          |
+                          | 1:N
+                          v
+        +--------------------------------------------+
+        |            HEAT SHEET ROWS                 |
+        |              (heat_rows)                   |
+        +--------------------------------------------+</div>
+
+            <div class="api-sub-title" style="margin-top:20px;">1. Swimmer Accounts Table (swimmers)</div>
+            <div class="api-code-block"><span class="code-comment">CREATE TABLE</span> swimmers (
+  swimmer_id     <span class="schema-type">VARCHAR(36)</span> PRIMARY KEY,
+  full_name      <span class="schema-type">VARCHAR(120)</span> NOT NULL,
+  gender         <span class="schema-type">VARCHAR(10)</span> CHECK (gender IN (<span class="code-str">'Boy'</span>, <span class="code-str">'Girl'</span>)) NOT NULL,
+  date_of_birth  <span class="schema-type">DATE</span> NOT NULL,
+  sfi_serial_no  <span class="schema-type">VARCHAR(50)</span> UNIQUE,
+  parent_name    <span class="schema-type">VARCHAR(120)</span> NOT NULL,
+  parent_phone   <span class="schema-type">VARCHAR(15)</span> NOT NULL,
+  parent_email   <span class="schema-type">VARCHAR(100)</span> NOT NULL,
+  academy_id     <span class="schema-type">VARCHAR(36)</span> REFERENCES academies(academy_id) ON DELETE SET NULL,
+  coach_id       <span class="schema-type">VARCHAR(36)</span> REFERENCES coaches(coach_id) ON DELETE SET NULL,
+  created_at     <span class="schema-type">TIMESTAMP</span> DEFAULT CURRENT_TIMESTAMP
+);</div>
+
+            <div class="api-sub-title" style="margin-top:16px;">2. Tournaments Table (tournaments)</div>
+            <div class="api-code-block"><span class="code-comment">CREATE TABLE</span> tournaments (
+  tournament_id        <span class="schema-type">VARCHAR(36)</span> PRIMARY KEY,
+  title                <span class="schema-type">VARCHAR(200)</span> NOT NULL,
+  state                <span class="schema-type">VARCHAR(100)</span> NOT NULL,
+  city                 <span class="schema-type">VARCHAR(100)</span> NOT NULL,
+  venue_name           <span class="schema-type">VARCHAR(200)</span> NOT NULL,
+  start_date           <span class="schema-type">DATE</span> NOT NULL,
+  end_date             <span class="schema-type">DATE</span> NOT NULL,
+  registration_deadline <span class="schema-type">TIMESTAMP</span> NOT NULL,
+  reg_fee_amount       <span class="schema-type">DECIMAL(10,2)</span> DEFAULT 800.00,
+  relay_add_on_fee     <span class="schema-type">DECIMAL(10,2)</span> DEFAULT 300.00,
+  allow_swim_up        <span class="schema-type">BOOLEAN</span> DEFAULT FALSE,
+  status               <span class="schema-type">VARCHAR(20)</span> CHECK (status IN (<span class="code-str">'DRAFT'</span>, <span class="code-str">'PUBLISHED'</span>, <span class="code-str">'CLOSED'</span>, <span class="code-str">'LOCKED'</span>, <span class="code-str">'COMPLETED'</span>)) DEFAULT <span class="code-str">'DRAFT'</span>,
+  created_by           <span class="schema-type">VARCHAR(36)</span> NOT NULL
+);</div>
+
+            <div class="api-sub-title" style="margin-top:16px;">3. Event Entry Master Table (event_entries)</div>
+            <div class="api-code-block"><span class="code-comment">CREATE TABLE</span> event_entries (
+  entry_id       <span class="schema-type">VARCHAR(36)</span> PRIMARY KEY,
+  booking_id     <span class="schema-type">VARCHAR(36)</span> REFERENCES bookings(booking_id) ON DELETE CASCADE,
+  swimmer_id     <span class="schema-type">VARCHAR(36)</span> REFERENCES swimmers(swimmer_id),
+  tournament_id  <span class="schema-type">VARCHAR(36)</span> REFERENCES tournaments(tournament_id),
+  stroke         <span class="schema-type">VARCHAR(30)</span> CHECK (stroke IN (<span class="code-str">'FREESTYLE'</span>, <span class="code-str">'BACKSTROKE'</span>, <span class="code-str">'BREASTSTROKE'</span>, <span class="code-str">'BUTTERFLY'</span>, <span class="code-str">'MEDLEY'</span>)) NOT NULL,
+  distance       <span class="schema-type">INT</span> CHECK (distance IN (50, 100, 200, 400)) NOT NULL,
+  category       <span class="schema-type">VARCHAR(20)</span> CHECK (category IN (<span class="code-str">'U10'</span>, <span class="code-str">'U12'</span>, <span class="code-str">'U14'</span>, <span class="code-str">'U16'</span>)) NOT NULL,
+  seed_time_ms   <span class="schema-type">INT</span>, <span class="code-comment">-- Null or 0 represents 'NT' (No Time) in milliseconds</span>
+  created_at     <span class="schema-type">TIMESTAMP</span> DEFAULT CURRENT_TIMESTAMP
+);</div>
+
+            <div class="api-sub-title" style="margin-top:16px;">4. Heat Sheet Execution Table (heat_rows)</div>
+            <div class="api-code-block"><span class="code-comment">CREATE TABLE</span> heat_rows (
+  heat_row_id    <span class="schema-type">VARCHAR(36)</span> PRIMARY KEY,
+  tournament_id  <span class="schema-type">VARCHAR(36)</span> REFERENCES tournaments(tournament_id),
+  pool_id        <span class="schema-type">VARCHAR(36)</span> REFERENCES pool_configs(pool_id),
+  event_entry_id <span class="schema-type">VARCHAR(36)</span> REFERENCES event_entries(entry_id),
+  heat_number    <span class="schema-type">INT</span> NOT NULL,
+  lane_number    <span class="schema-type">INT</span> NOT NULL,
+  finish_time_ms <span class="schema-type">INT</span>,
+  status         <span class="schema-type">VARCHAR(10)</span> CHECK (status IN (<span class="code-str">'OK'</span>, <span class="code-str">'DNS'</span>, <span class="code-str">'DNF'</span>, <span class="code-str">'DQ'</span>)) DEFAULT <span class="code-str">'OK'</span>,
+  dq_code        <span class="schema-type">VARCHAR(10)</span> CHECK (dq_code IN (<span class="code-str">'FS'</span>, <span class="code-str">'IT'</span>, <span class="code-str">'IS'</span>, <span class="code-str">'IK'</span>, <span class="code-str">'OT'</span>, <span class="code-str">'LV'</span>, <span class="code-str">'ET'</span>, NULL)),
+  points_awarded <span class="schema-type">INT</span> DEFAULT 0,
+  official_rank  <span class="schema-type">INT</span>
+);</div>
+
+            <!-- Sprint Roadmap -->
+            <h2 id="sprints" style="font-size:1.2rem;font-weight:800;color:#e6edf3;margin:40px 0 8px;">Development Sprint Roadmap</h2>
+            <table class="sprint-table">
+                <thead><tr><th>Sprint</th><th>Scope</th><th>Deliverables</th></tr></thead>
+                <tbody>
+                    <tr>
+                        <td><span class="sprint-badge sb-week">Sprint 1</span><br><span style="font-size:0.72rem;color:#8b949e;">Week 1–2</span></td>
+                        <td style="font-weight:600;color:#e6edf3;">EM Navigation &amp; Dual Creation Canvas</td>
+                        <td style="color:#8b949e;font-size:0.8rem;">Sticky EM menu: [+ADD EVENT, +ADD ACADEMY, +ADD COACH]<br>Event creation canvas supporting Option A (Online) vs Option B (Bulk Offline)<br>Master intake forms for Academies &amp; Coaches</td>
+                    </tr>
+                    <tr>
+                        <td><span class="sprint-badge sb-week">Sprint 2</span><br><span style="font-size:0.72rem;color:#8b949e;">Week 3–4</span></td>
+                        <td style="font-weight:600;color:#e6edf3;">Bulk Roster Parser &amp; Super Admin Queues</td>
+                        <td style="color:#8b949e;font-size:0.8rem;">Bulk Offline Swimmer Roster Excel/CSV parser for Option B meets<br>Connect meet, academy, and coach submissions to Super Admin approval queues</td>
+                    </tr>
+                    <tr>
+                        <td><span class="sprint-badge sb-week">Sprint 3</span><br><span style="font-size:0.72rem;color:#8b949e;">Week 5–6</span></td>
+                        <td style="font-weight:600;color:#e6edf3;">Race Control &amp; CTS Touch-Pad Import Engine</td>
+                        <td style="color:#8b949e;font-size:0.8rem;">Implement CTS/Meet Manager heat sheet exporter and result importer<br>Implement direct Excel digital timing grid with DQ fault code dropdowns<br>Build automated 1st–8th place ranking and Academy points recalculation engine</td>
+                    </tr>
+                    <tr>
+                        <td><span class="sprint-badge sb-week">Sprint 4</span><br><span style="font-size:0.72rem;color:#8b949e;">Week 7</span></td>
+                        <td style="font-weight:600;color:#e6edf3;">Event Closure &amp; Immutable Data Lock</td>
+                        <td style="color:#8b949e;font-size:0.8rem;">Build "Request Event Closure" trigger and Super Admin sign-off route<br>Enforce immutable DB lock when status transitions to COMPLETED</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Security, Privacy & NFRs -->
+            <h2 id="security" style="font-size:1.2rem;font-weight:800;color:#e6edf3;margin:44px 0 8px;">Security, Privacy &amp; Non-Functional Requirements (NFRs)</h2>
+            <p style="color:#8b949e;font-size:0.85rem;margin-bottom:20px;">Compliance, access control, and performance requirements governing the platform.</p>
+
+            <div class="api-sub-title">Security &amp; DPDP Compliance</div>
+            <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
+                <div style="border:1px solid #30363d;border-left:3px solid #ff7b72;border-radius:8px;padding:14px 18px;background:#161b22;">
+                    <div style="font-size:0.85rem;font-weight:700;color:#e6edf3;margin-bottom:5px;"><i class="fas fa-child" style="color:#ff7b72;"></i> Child Data Protection (DPDP Act 2023 Compliance)</div>
+                    <div style="font-size:0.82rem;color:#8b949e;line-height:1.6;">Since the portal handles minor athletes (U-10 to U-16), explicit consent is captured from parents/guardians during checkout. Minor phone numbers and DOB records are encrypted at rest using <code style="background:#21262d;padding:1px 6px;border-radius:4px;color:#79c0ff;">AES-256</code>.</div>
+                </div>
+                <div style="border:1px solid #30363d;border-left:3px solid #58a6ff;border-radius:8px;padding:14px 18px;background:#161b22;">
+                    <div style="font-size:0.85rem;font-weight:700;color:#e6edf3;margin-bottom:5px;"><i class="fas fa-key" style="color:#58a6ff;"></i> Role-Based Access Control (RBAC)</div>
+                    <div style="font-size:0.82rem;color:#8b949e;line-height:1.6;">JWT tokens carry embedded role claims (<code style="background:#21262d;padding:1px 6px;border-radius:4px;color:#3fb950;">SUPER_ADMIN</code>, <code style="background:#21262d;padding:1px 6px;border-radius:4px;color:#3fb950;">EVENT_MANAGER</code>, <code style="background:#21262d;padding:1px 6px;border-radius:4px;color:#3fb950;">TOURNAMENT_ORGANIZER</code>, <code style="background:#21262d;padding:1px 6px;border-radius:4px;color:#3fb950;">SWIMMER</code>) signed with <code style="background:#21262d;padding:1px 6px;border-radius:4px;color:#79c0ff;">RS256</code>. API endpoints strictly enforce access boundaries.</div>
+                </div>
+                <div style="border:1px solid #30363d;border-left:3px solid #f0b90b;border-radius:8px;padding:14px 18px;background:#161b22;">
+                    <div style="font-size:0.85rem;font-weight:700;color:#e6edf3;margin-bottom:5px;"><i class="fas fa-clipboard-list" style="color:#f0b90b;"></i> Data Integrity &amp; Audit Logging</div>
+                    <div style="font-size:0.82rem;color:#8b949e;line-height:1.6;">Immutable administrative audit logs record all manual player additions, category changes, seed time overrides, and timing alterations.</div>
+                </div>
+            </div>
+
+            <div class="api-sub-title">Non-Functional Requirements (Performance &amp; Reliability)</div>
+            <table class="api-schema-table" style="margin-bottom:24px;">
+                <thead><tr><th style="width:200px;">Requirement</th><th>Specification</th></tr></thead>
+                <tbody>
+                    <tr>
+                        <td class="schema-field">Concurrent Load Handling</td>
+                        <td style="color:#8b949e;">Supports <strong style="color:#e6edf3;">5,000+ concurrent connections</strong> during tournament opening hours without latency degraded below <strong style="color:#e6edf3;">500ms API response time</strong>.</td>
+                    </tr>
+                    <tr>
+                        <td class="schema-field">High Availability (HA)</td>
+                        <td style="color:#8b949e;">Database runs in Active-Passive multi-AZ replication mode targeting <strong style="color:#e6edf3;">99.9% uptime</strong>.</td>
+                    </tr>
+                    <tr>
+                        <td class="schema-field">Off-Line / Weak Network Resilience</td>
+                        <td style="color:#8b949e;">Poolside result entry forms cache input data in browser <code style="background:#21262d;padding:1px 6px;border-radius:4px;color:#79c0ff;">IndexedDB</code> local storage, syncing automatically once connection is re-established.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Developer Hand-Off & Executive Package -->
+            <h2 id="handoff" style="font-size:1.2rem;font-weight:800;color:#e6edf3;margin:44px 0 8px;">Developer Hand-Off &amp; Executive Package</h2>
+            <p style="color:#8b949e;font-size:0.85rem;margin-bottom:20px;">Recommended technology stack and 4-phase, 12-week execution roadmap for the full platform build.</p>
+
+            <div class="api-sub-title">Target Technology Stack Recommendations</div>
+            <table class="api-schema-table" style="margin-bottom:24px;">
+                <thead><tr><th style="width:190px;">Layer</th><th>Recommendation</th></tr></thead>
+                <tbody>
+                    <tr><td class="schema-field">Frontend</td><td style="color:#8b949e;">React.js / Next.js, Tailwind CSS (Responsive Desktop &amp; Mobile Views)</td></tr>
+                    <tr><td class="schema-field">Backend</td><td style="color:#8b949e;">Node.js (TypeScript) or Python (FastAPI)</td></tr>
+                    <tr><td class="schema-field">Database</td><td style="color:#8b949e;">PostgreSQL 15+ (Relational engine handling ACID transactions)</td></tr>
+                    <tr><td class="schema-field">Cache &amp; Message Queue</td><td style="color:#8b949e;">Redis (Session state, rate limiting, and PDF rendering queue)</td></tr>
+                    <tr><td class="schema-field">Storage &amp; File Delivery</td><td style="color:#8b949e;">AWS S3 (Event posters, Excel exports, and downloadable PDF Result Books)</td></tr>
+                </tbody>
+            </table>
+
+            <div class="api-sub-title">Milestone &amp; Sprint Execution Roadmap</div>
+            <div style="display:flex;flex-direction:column;gap:0;align-items:center;margin-top:12px;">
+
+                <div style="width:100%;border:1px solid #30363d;border-left:3px solid #58a6ff;border-radius:8px;padding:16px 20px;background:#161b22;">
+                    <div style="font-size:0.85rem;font-weight:800;color:#58a6ff;margin-bottom:8px;">PHASE 1: CORE ENGINE <span style="color:#8b949e;font-weight:400;">(Weeks 1–4)</span></div>
+                    <ul style="margin:0;padding-left:18px;color:#8b949e;font-size:0.8rem;line-height:1.7;">
+                        <li>DB Schema Migration, Authentication &amp; Profile Modules</li>
+                        <li>Directory, Event Creation Engine, &amp; Booking Gateway Integration</li>
+                    </ul>
+                </div>
+                <div style="color:#30363d;font-size:1.2rem;padding:6px 0;">▼</div>
+
+                <div style="width:100%;border:1px solid #30363d;border-left:3px solid #3fb950;border-radius:8px;padding:16px 20px;background:#161b22;">
+                    <div style="font-size:0.85rem;font-weight:800;color:#3fb950;margin-bottom:8px;">PHASE 2: COMPETITION OPERATIONS <span style="color:#8b949e;font-weight:400;">(Weeks 5–8)</span></div>
+                    <ul style="margin:0;padding-left:18px;color:#8b949e;font-size:0.8rem;line-height:1.7;">
+                        <li>Master Player List Inline Editing &amp; Locking Console</li>
+                        <li>Multi-Pool Setup &amp; Spearhead Seeding Algorithm</li>
+                        <li>CTS Excel File Export / Import Adapters</li>
+                    </ul>
+                </div>
+                <div style="color:#30363d;font-size:1.2rem;padding:6px 0;">▼</div>
+
+                <div style="width:100%;border:1px solid #30363d;border-left:3px solid #f0b90b;border-radius:8px;padding:16px 20px;background:#161b22;">
+                    <div style="font-size:0.85rem;font-weight:800;color:#f0b90b;margin-bottom:8px;">PHASE 3: RESULTS &amp; DASHBOARDS <span style="color:#8b949e;font-weight:400;">(Weeks 9–11)</span></div>
+                    <ul style="margin:0;padding-left:18px;color:#8b949e;font-size:0.8rem;line-height:1.7;">
+                        <li>Direct Heat Sheet Result Entry &amp; DQ Fault Engine</li>
+                        <li>Academy Championship Standings Calculation Engine</li>
+                        <li>Super Admin, Event Manager &amp; Organizer Dashboards</li>
+                    </ul>
+                </div>
+                <div style="color:#30363d;font-size:1.2rem;padding:6px 0;">▼</div>
+
+                <div style="width:100%;border:1px solid #30363d;border-left:3px solid #ff7b72;border-radius:8px;padding:16px 20px;background:#161b22;">
+                    <div style="font-size:0.85rem;font-weight:800;color:#ff7b72;margin-bottom:8px;">PHASE 4: AUDIT, TESTING &amp; DEPLOYMENT <span style="color:#8b949e;font-weight:400;">(Week 12)</span></div>
+                    <ul style="margin:0;padding-left:18px;color:#8b949e;font-size:0.8rem;line-height:1.7;">
+                        <li>Security Penetration Testing &amp; Data Protection Compliance Audit</li>
+                        <li>Poolside Dry-Run Simulation &amp; Final Launch</li>
+                    </ul>
+                </div>
+
+            </div>
+
+            <div style="margin-top:24px;padding:16px 20px;background:rgba(88,166,255,0.08);border:1px solid rgba(88,166,255,0.2);border-radius:8px;color:#8b949e;font-size:0.83rem;line-height:1.6;">
+                <i class="fas fa-check-circle" style="color:#3fb950;"></i>
+                With Chapters 11 through 14 added, the <strong style="color:#e6edf3;">Swimming Competition Management Platform PRD</strong> now includes all technical architecture specifications alongside the earlier operational logic and UI wireframes.
+            </div>
+
+        </main>
+    </div>
+</body>
+</html>

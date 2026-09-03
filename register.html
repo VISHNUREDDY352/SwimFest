@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register — SwimFest</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="register.css?v=2">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <header class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <i class="fas fa-swimmer"></i> SwimFest
+            </a>
+            <div class="nav-state-pill">
+                <i class="fas fa-map-marker-alt"></i> Tamil Nadu
+            </div>
+            <nav class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
+                <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+                <a href="index.html#past-events-archives" class="nav-link">Past</a>
+                <a href="academy.html" class="nav-link">Academy</a>
+            </nav>
+            <a href="index.html" class="btn-profile"><i class="fas fa-home"></i> Home</a>
+            <a href="profile.html" class="btn-register-login">My Profile</a>
+        </div>
+    </header>
+
+    <!-- Registration Page -->
+    <main class="reg-page">
+
+        <!-- Tournament Picker (shown when no tournament pre-selected) -->
+        <div class="reg-picker" id="tournamentPicker" style="display:none;">
+            <div class="reg-picker-inner">
+                <div class="reg-picker-head">
+                    <h1 class="reg-picker-title"><i class="fas fa-trophy"></i> Choose a Tournament to Register</h1>
+                    <p class="reg-picker-sub">Select the competition you'd like to register your swimmer for.</p>
+                </div>
+                <div class="reg-picker-grid" id="pickerGrid">
+                    <div class="reg-picker-loading"><i class="fas fa-circle-notch fa-spin"></i> Loading tournaments…</div>
+                </div>
+                <a href="index.html" class="reg-picker-back"><i class="fas fa-arrow-left"></i> Back to Home</a>
+            </div>
+        </div>
+
+        <!-- Wizard wrapper (hidden until a tournament is chosen) -->
+        <div id="wizardWrap">
+
+        <!-- Tournament Context Banner -->
+        <div class="reg-tournament-banner">
+            <div class="reg-tournament-inner">
+                <div class="reg-tournament-info">
+                    <span class="reg-tour-label">Registering for</span>
+                    <span class="reg-tour-name" id="tournamentName">Golden Non-Medalist Championship 2026</span>
+                    <span class="reg-tour-meta"><i class="fas fa-map-marker-alt"></i> SRM University Pool, Kattankulathur &nbsp;|&nbsp; <i class="fas fa-calendar-alt"></i> Oct 15–16, 2026</span>
+                </div>
+                <a href="event.html" class="reg-tour-back" id="backTop"><i class="fas fa-arrow-left"></i> Back to Event</a>
+            </div>
+        </div>
+
+        <div class="reg-container">
+
+            <!-- Stepper -->
+            <div class="reg-stepper">
+                <div class="step-item active" id="step-indicator-1">
+                    <div class="step-circle">1</div>
+                    <span class="step-label">Swimmer Profile</span>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step-item" id="step-indicator-2">
+                    <div class="step-circle">2</div>
+                    <span class="step-label">Select Events</span>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step-item" id="step-indicator-3">
+                    <div class="step-circle">3</div>
+                    <span class="step-label">Checkout</span>
+                </div>
+            </div>
+
+            <!-- ───── STEP 1: Swimmer Profile ───── -->
+            <div class="reg-step" id="step1">
+                <div class="reg-card">
+                    <div class="reg-card-header">
+                        <div>
+                            <h2 class="reg-step-title">Step 1 of 3: Swimmer Profile &amp; Eligibility Verification</h2>
+                            <p class="reg-step-sub">Swimmer ID: <strong id="swimmerIdDisplay">SWM-2026-——</strong></p>
+                        </div>
+                        <span class="verified-badge"><i class="fas fa-shield-alt"></i> Verified Account</span>
+                    </div>
+
+                    <div class="reg-section-label">Profile Data (Auto-Filled)</div>
+
+                    <div class="reg-form-grid">
+                        <!-- Full Name -->
+                        <div class="reg-field full-width">
+                            <label class="reg-label req">Full Name</label>
+                            <input type="text" id="fullName" class="reg-input" placeholder="Enter full name" autocomplete="name">
+                        </div>
+
+                        <!-- Gender -->
+                        <div class="reg-field">
+                            <label class="reg-label req">Gender <span class="locked-note"><i class="fas fa-lock"></i> Locked profile field</span></label>
+                            <div class="gender-toggle" id="genderToggle">
+                                <button type="button" class="gender-btn active" data-gender="Boy">
+                                    <i class="fas fa-mars"></i> Boy
+                                </button>
+                                <button type="button" class="gender-btn" data-gender="Girl">
+                                    <i class="fas fa-venus"></i> Girl
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Date of Birth -->
+                        <div class="reg-field">
+                            <label class="reg-label req">Date of Birth <span class="locked-note"><i class="fas fa-lock"></i> Locked to prevent category manipulation</span></label>
+                            <input type="date" id="dob" class="reg-input" max="">
+                            <!-- Derived metrics -->
+                            <div class="derived-metrics" id="derivedMetrics" style="display:none;">
+                                <span class="metric-pill"><i class="fas fa-calendar"></i> YOB: <strong id="derivedYob">—</strong></span>
+                                <span class="metric-pill"><i class="fas fa-birthday-cake"></i> Age: <strong id="derivedAge">—</strong> yrs</span>
+                                <span class="metric-pill category-pill"><i class="fas fa-tag"></i> <strong id="derivedCategory">—</strong></span>
+                            </div>
+                            <div class="derived-metrics ineligible-msg" id="ineligibleMsg" style="display:none;">
+                                <span class="metric-pill error-pill"><i class="fas fa-exclamation-triangle"></i> <strong>Not eligible</strong> — age does not fall within U-10 to U-16 range.</span>
+                            </div>
+                        </div>
+
+                        <!-- All-India Serial No -->
+                        <div class="reg-field">
+                            <label class="reg-label">All-India / State Serial No. <span class="optional-note">Optional</span></label>
+                            <input type="text" id="serialNo" class="reg-input" placeholder="e.g. SFI-TN-2026-992">
+                        </div>
+
+                        <!-- Parent/Guardian Contact -->
+                        <div class="reg-field">
+                            <label class="reg-label req">Parent / Guardian Contact</label>
+                            <input type="tel" id="parentContact" class="reg-input" placeholder="+91 98765 43210">
+                        </div>
+
+                        <!-- Affiliated Academy -->
+                        <div class="reg-field">
+                            <label class="reg-label">Affiliated Academy <span class="optional-note">Default: None / Unattached</span></label>
+                            <select id="affiliatedAcademy" class="reg-select">
+                                <option value="">None / Unattached</option>
+                                <!-- Populated dynamically from Academy Master (Rule 6.2) -->
+                            </select>
+                        </div>
+
+                        <!-- Assigned Coach (filtered by academy — Rule 6.2) -->
+                        <div class="reg-field">
+                            <label class="reg-label">Assigned Coach <span class="optional-note">Default: None / Self-Coached</span></label>
+                            <select id="assignedCoach" class="reg-select">
+                                <option value="">None / Self-Coached</option>
+                                <!-- Filtered dynamically when academy is selected -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="reg-actions">
+                        <a href="event.html" class="btn-reg btn-reg-ghost" id="backStep1"><i class="fas fa-arrow-left"></i> Back to Details</a>
+                        <button type="button" class="btn-reg btn-reg-primary" id="step1Next">
+                            Continue to Events <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ───── STEP 2: Select Events ───── -->
+            <div class="reg-step" id="step2" style="display:none;">
+                <div class="reg-card">
+                    <div class="reg-card-header">
+                        <div>
+                            <h2 class="reg-step-title">Step 2 of 3: Select Events</h2>
+                            <div class="swimmer-tag-row" id="swimmerTagRow">
+                                <span class="swimmer-tag gender-tag" id="tagGender">BOYS</span>
+                                <span class="swimmer-tag cat-tag" id="tagCategory">CATEGORY: U-12</span>
+                                <span class="swimmer-tag info-tag">Gender-locked &amp; age-filtered event grid</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Package Banner -->
+                    <div class="package-banner">
+                        <i class="fas fa-info-circle"></i>
+                        Flat base registration package fee for <strong>₹800.00</strong> — covers up to <strong>3 individual events</strong> plus the optional Individual Medley. Relays are billed separately.
+                    </div>
+
+                    <!-- Individual Events -->
+                    <div class="reg-section-label">
+                        Individual Events
+                        <span class="event-counter" id="eventCounter">0 / 3 selected</span>
+                    </div>
+
+                    <div class="events-list" id="eventsList">
+                        <!-- Rendered by JS -->
+                    </div>
+
+                    <!-- Individual Medley -->
+                    <div class="reg-section-label">Individual Medley (IM) Option</div>
+                    <div class="events-list">
+                        <div class="event-row im-row" id="imRow">
+                            <label class="event-check-label">
+                                <input type="checkbox" class="event-checkbox" id="imCheckbox">
+                                <span class="event-name">100m Individual Medley</span>
+                            </label>
+                            <div class="event-right">
+                                <span class="im-included-tag">Included in package</span>
+                                <div class="seed-time-group" id="imSeedGroup" style="display:none;">
+                                    <input type="text" class="seed-input" id="imSeedTime" placeholder="MM:SS.ms or NT" maxlength="10">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Relay Add-On -->
+                    <div class="reg-section-label">Relay Add-On Entry <span class="billed-sep-tag">Billed Separately</span></div>
+                    <div class="events-list">
+                        <div class="event-row relay-row">
+                            <label class="event-check-label">
+                                <input type="checkbox" class="event-checkbox" id="relayCheckbox">
+                                <span class="event-name">4×50m Freestyle Relay Entry</span>
+                            </label>
+                            <div class="event-right">
+                                <span class="relay-fee-tag">+ ₹300.00 add-on fee per team</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Summary Calculation -->
+                    <div class="fee-summary" id="feeSummary">
+                        <div class="fee-summary-title">Summary Calculation</div>
+                        <div class="fee-row">
+                            <span>Base Swimmer Package Fee (up to 3 events + IM)</span>
+                            <span>₹800.00</span>
+                        </div>
+                        <div class="fee-row" id="relayFeeRow" style="display:none;">
+                            <span>Optional Relay Add-On Fee</span>
+                            <span>₹300.00</span>
+                        </div>
+                        <div class="fee-divider"></div>
+                        <div class="fee-row fee-total">
+                            <span>Subtotal Payable</span>
+                            <span id="totalAmount">₹800.00</span>
+                        </div>
+                    </div>
+
+                    <div class="reg-actions">
+                        <button type="button" class="btn-reg btn-reg-ghost" id="step2Back"><i class="fas fa-arrow-left"></i> Back to Profile</button>
+                        <button type="button" class="btn-reg btn-reg-primary" id="step2Next">
+                            Proceed to Checkout <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ───── STEP 3: Review, Declarations & Payment ───── -->
+            <div class="reg-step" id="step3" style="display:none;">
+
+                <!-- Step title -->
+                <div class="step3-title-row">
+                    <div>
+                        <p class="reg-step-eyebrow">Step 3 of 3</p>
+                        <h2 class="step3-heading">Review Booking, Declarations &amp; Payment</h2>
+                    </div>
+                    <span class="verified-badge"><i class="fas fa-lock"></i> Secure Checkout</span>
+                </div>
+
+                <!-- A. Booking Summary Header -->
+                <div class="booking-summary-card" id="bookingSummaryCard">
+                    <div class="booking-summary-header">
+                        <i class="fas fa-clipboard-list"></i> Booking Summary
+                    </div>
+                    <div class="booking-summary-grid">
+                        <div class="bs-cell">
+                            <div class="bs-label"><i class="fas fa-trophy"></i> Tournament</div>
+                            <div class="bs-value" id="bsTournament">Golden Non-Medalist Swimming Championship 2026</div>
+                            <div class="bs-meta" id="bsRegClose">Registration closes 30 Aug 2026</div>
+                        </div>
+                        <div class="bs-cell">
+                            <div class="bs-label"><i class="fas fa-swimmer"></i> Swimmer</div>
+                            <div class="bs-value" id="bsSwimmerName">—</div>
+                            <div class="bs-meta" id="bsSwimmerMeta">—</div>
+                        </div>
+                        <div class="bs-cell">
+                            <div class="bs-label"><i class="fas fa-building"></i> Academy</div>
+                            <div class="bs-value" id="bsAcademy">—</div>
+                            <div class="bs-meta" id="bsCoach">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- B. Itemized Cart Breakdown -->
+                <div class="cart-card">
+                    <div class="cart-card-header">
+                        <span><i class="fas fa-shopping-cart"></i> Itemized Cart Breakdown</span>
+                        <span class="cart-slots-badge" id="cartSlotsBadge">0 of 3 events used</span>
+                    </div>
+
+                    <!-- Selected individual events (numbered) -->
+                    <div class="cart-section-label">Selected Individual Events <span class="cart-section-note">(Up to 3 included in registration fee)</span></div>
+                    <div id="cartEventsList"></div>
+
+                    <!-- Fee lines -->
+                    <div class="cart-fee-block">
+                        <div class="cart-fee-row">
+                            <div>
+                                <div class="cart-fee-name">Swimmer Registration Package Fee</div>
+                                <div class="cart-fee-sub">Covers up to 3 events + IM</div>
+                            </div>
+                            <div class="cart-fee-amount">₹800.00</div>
+                        </div>
+                        <div class="cart-fee-row" id="cartRelayRow" style="display:none;">
+                            <div>
+                                <div class="cart-fee-name">Optional Relay Add-On</div>
+                                <div class="cart-fee-sub" id="cartRelaySub">Boys 4×50m Relay</div>
+                            </div>
+                            <div class="cart-fee-amount">₹300.00</div>
+                        </div>
+                        <div class="cart-divider"></div>
+                        <div class="cart-fee-row">
+                            <div>
+                                <div class="cart-fee-name">Subtotal Payable</div>
+                            </div>
+                            <div class="cart-fee-amount" id="cartSubtotal">₹800.00</div>
+                        </div>
+                        <div class="cart-fee-row">
+                            <div>
+                                <div class="cart-fee-name">Platform &amp; Technology Fee <span class="gst-note">(Inclusive of GST)</span></div>
+                            </div>
+                            <div class="cart-fee-amount">₹50.00</div>
+                        </div>
+                        <div class="cart-total-row">
+                            <span>Total Payable Amount</span>
+                            <span id="cartGrandTotal">₹850.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- C. Mandatory Declarations & Parent Consent -->
+                <div class="declarations-card">
+                    <div class="declarations-header">
+                        <span><i class="fas fa-file-signature"></i> Mandatory Declarations &amp; Parent Consent</span>
+                        <span class="declarations-req-tag">All Required</span>
+                    </div>
+                    <div class="declarations-list">
+                        <label class="declaration-item" id="decl1-label">
+                            <input type="checkbox" class="decl-checkbox" id="decl1" data-decl="1">
+                            <span class="decl-box"></span>
+                            <span class="decl-text">I declare the swimmer has <strong>NOT</strong> won an individual medal at State, Zonal, National, or major school games (CBSE/SGFI/ICSE/DyES).</span>
+                        </label>
+                        <label class="declaration-item" id="decl2-label">
+                            <input type="checkbox" class="decl-checkbox" id="decl2" data-decl="2">
+                            <span class="decl-box"></span>
+                            <span class="decl-text">I agree to the Tournament Rules, Regulations, and Eligibility Terms.</span>
+                        </label>
+                        <label class="declaration-item" id="decl3-label">
+                            <input type="checkbox" class="decl-checkbox" id="decl3" data-decl="3">
+                            <span class="decl-box"></span>
+                            <span class="decl-text">I accept the Refund, Cancellation, and Event Postponement Policy.</span>
+                        </label>
+                        <label class="declaration-item" id="decl4-label">
+                            <input type="checkbox" class="decl-checkbox" id="decl4" data-decl="4">
+                            <span class="decl-box"></span>
+                            <span class="decl-text">I grant Medical Emergency Consent &amp; Media/Photography Release.</span>
+                        </label>
+                    </div>
+                    <div class="declarations-progress" id="declProgress">
+                        <span id="declProgressText">0 of 4 declarations accepted</span>
+                        <div class="decl-progress-bar"><div class="decl-progress-fill" id="declProgressFill" style="width:0%"></div></div>
+                    </div>
+                </div>
+
+                <!-- D. Sticky Footer Action Bar -->
+                <div class="checkout-footer-bar">
+                    <button type="button" class="btn-reg btn-reg-ghost" id="step3Back">
+                        <i class="fas fa-arrow-left"></i> Edit Events
+                    </button>
+                    <div class="checkout-footer-right">
+                        <div class="checkout-footer-total">
+                            <span class="cft-label">Total Payable</span>
+                            <span class="cft-amount" id="footerTotal">₹850.00</span>
+                        </div>
+                        <button type="button" class="btn-reg btn-proceed-payment" id="confirmPay" disabled>
+                            <i class="fas fa-lock"></i> Proceed to Payment <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+            </div><!-- /step3 -->
+
+            <!-- ───── PAYMENT PROCESSING STATE ───── -->
+            <div class="reg-step" id="stepProcessing" style="display:none;">
+                <div class="reg-card processing-card">
+                    <div class="processing-spinner"><i class="fas fa-circle-notch fa-spin"></i></div>
+                    <h2 class="processing-title">Processing Payment…</h2>
+                    <p class="processing-sub">Please do not close this window or press back.</p>
+                    <div class="processing-gateway-note">
+                        <i class="fas fa-shield-alt"></i> Secured by Razorpay &nbsp;|&nbsp;
+                        <i class="fas fa-mobile-alt"></i> UPI &nbsp;·&nbsp;
+                        <i class="fas fa-credit-card"></i> Cards &nbsp;·&nbsp;
+                        <i class="fas fa-university"></i> Net Banking
+                    </div>
+                </div>
+            </div>
+
+            <!-- ───── PAYMENT FAILURE STATE ───── -->
+            <div class="reg-step" id="stepFailed" style="display:none;">
+                <div class="reg-card failure-card">
+                    <div class="failure-icon"><i class="fas fa-times-circle"></i></div>
+                    <h2 class="failure-title">Payment Failed</h2>
+                    <p class="failure-sub" id="failureReason">Your payment could not be processed. Please try again.</p>
+                    <div class="failure-actions">
+                        <button class="btn-reg btn-reg-ghost" id="retryPayBtn"><i class="fas fa-redo"></i> Retry Payment</button>
+                        <a href="index.html" class="btn-reg btn-reg-ghost"><i class="fas fa-home"></i> Back to Home</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ───── SUCCESS STATE ───── -->
+            <div class="reg-step" id="stepSuccess" style="display:none;">
+                <!-- Confirmation banner -->
+                <div class="success-banner">
+                    <div class="success-banner-icon"><i class="fas fa-check-circle"></i></div>
+                    <div>
+                        <h2 class="success-banner-title">Registration Confirmed!</h2>
+                        <p class="success-banner-sub">Booking Reference: <strong id="successRefNo">BK-2026-——</strong></p>
+                    </div>
+                </div>
+
+                <!-- Printable receipt card -->
+                <div class="receipt-card" id="receiptCard">
+                    <div class="receipt-header">
+                        <div class="receipt-logo"><i class="fas fa-swimmer"></i> SwimFest</div>
+                        <div class="receipt-title-block">
+                            <div class="receipt-title">Official Registration Receipt</div>
+                            <div class="receipt-ref" id="receiptRef">BK-2026-——</div>
+                        </div>
+                        <div class="receipt-paid-stamp">PAID</div>
+                    </div>
+
+                    <div class="receipt-section-label">Swimmer Details</div>
+                    <div class="receipt-grid" id="receiptSwimmerDetails"></div>
+
+                    <div class="receipt-section-label">Tournament</div>
+                    <div class="receipt-grid" id="receiptTournamentDetails"></div>
+
+                    <div class="receipt-section-label">Events Entered</div>
+                    <div id="receiptEventsList"></div>
+
+                    <div class="receipt-section-label">Fee Summary</div>
+                    <div id="receiptFeeSummary"></div>
+
+                    <div class="receipt-footer-note">
+                        <i class="fas fa-info-circle"></i>
+                        This is an auto-generated receipt. For queries contact: support@swimfest.in &nbsp;|&nbsp; +91 98400 00000
+                    </div>
+                </div>
+
+                <!-- Notification confirmation -->
+                <div class="notif-confirm-card">
+                    <i class="fas fa-bell"></i>
+                    <span>Confirmation sent to <strong id="notifContact">—</strong> via SMS &amp; WhatsApp.</span>
+                </div>
+
+                <!-- Actions -->
+                <div class="success-cta-bar">
+                    <a href="index.html" class="btn-reg btn-reg-ghost"><i class="fas fa-home"></i> Back to Home</a>
+                    <button class="btn-reg btn-reg-primary" onclick="printReceipt()"><i class="fas fa-download"></i> Download Receipt (PDF)</button>
+                    <button class="btn-reg btn-reg-primary" id="dashboardBtn"><i class="fas fa-user"></i> Go to Swimmer Dashboard</button>
+                </div>
+            </div>
+
+        </div><!-- /reg-container -->
+        </div><!-- /wizardWrap -->
+    </main>
+
+    <!-- Sub-cap soft prompt modal -->
+    <div class="modal-overlay" id="subCapModal">
+        <div class="modal subcap-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-info-circle"></i> Fewer than 3 Events Selected</h3>
+                <button class="modal-close" id="subCapClose"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <p id="subCapMsg">Your ₹800 package includes up to 3 individual events. You have currently selected <strong id="subCapCount">1</strong> event(s). Would you like to select more or proceed?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-reg btn-reg-ghost" id="subCapGoBack">Select More Events</button>
+                <button class="btn-reg btn-reg-primary" id="subCapProceed">Proceed Anyway</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
+    <script src="register.js"></script>
+</body>
+</html>

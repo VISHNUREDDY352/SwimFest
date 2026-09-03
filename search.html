@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Profile — SwimFest</title>
+    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="search.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <header class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo"><i class="fas fa-swimmer"></i> SwimFest</a>
+            <button class="state-selector"><i class="fas fa-map-marker-alt"></i> Tamil Nadu <i class="fas fa-caret-down"></i></button>
+            <nav class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
+                <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+                <a href="index.html#past-events-archives" class="nav-link">Past</a>
+                <a href="academy.html" class="nav-link">Academy</a>
+            </nav>
+            <a href="profile.html" class="btn-profile"><i class="fas fa-user"></i> Profile</a>
+            <a href="login.html" class="btn-register-login">Register / Login</a>
+            <button class="mobile-menu-btn" id="mobileMenuBtn"><i class="fas fa-bars"></i></button>
+        </div>
+    </header>
+
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
+        <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+        <a href="index.html#past-events-archives" class="nav-link">Past</a>
+        <a href="academy.html" class="nav-link">Academy</a>
+        <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> My Profile</a>
+    </div>
+
+    <main class="sp-page">
+        <!-- Hero header -->
+        <div class="sp-hero">
+            <div class="sp-hero-inner">
+                <p class="sp-eyebrow"><i class="fas fa-search"></i> Swimmer Directory</p>
+                <h1 class="sp-title">Search Swimmer Profiles</h1>
+                <p class="sp-sub">Find a swimmer by name, then filter by category or academy.</p>
+
+                <div class="sp-searchbar">
+                    <i class="fas fa-search sp-search-icon"></i>
+                    <input type="text" id="spQuery" class="sp-search-input"
+                           placeholder="Type a swimmer's name…" autocomplete="off">
+                    <button class="sp-search-btn" id="spSearchBtn">Search</button>
+                </div>
+
+                <div class="sp-filters">
+                    <select id="spCategory" class="sp-select">
+                        <option value="">All Categories</option>
+                        <option value="U-10">U-10</option>
+                        <option value="U-12">U-12</option>
+                        <option value="U-14">U-14</option>
+                        <option value="U-16">U-16</option>
+                    </select>
+                    <select id="spGender" class="sp-select">
+                        <option value="">All Genders</option>
+                        <option value="Boy">Boys</option>
+                        <option value="Girl">Girls</option>
+                    </select>
+                    <select id="spAcademy" class="sp-select">
+                        <option value="">All Academies</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="sp-container">
+            <div class="sp-meta" id="spMeta"></div>
+            <div id="spResults">
+                <div class="sp-hint">
+                    <i class="fas fa-user-friends"></i>
+                    <p>Start typing a name and press Search to find swimmers.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
+    <script src="search.js"></script>
+</body>
+</html>

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizer Race Control — SwimFest</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="emdashboard.css">
+    <link rel="stylesheet" href="results.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="admin-body">
+
+    <!-- Topbar -->
+    <header class="admin-topbar">
+        <div class="admin-topbar-inner">
+            <div class="admin-topbar-left">
+                <a href="index.html" class="admin-logo"><i class="fas fa-swimmer"></i> SwimFest</a>
+                <span class="admin-role-tag"><i class="fas fa-broadcast-tower"></i> Organizer Race Control | Meet: Coimbatore District Championship 2026</span>
+            </div>
+            <div class="admin-topbar-right">
+                <span style="font-size:0.75rem;padding:5px 12px;border-radius:20px;background:#d4edda;color:#155724;font-weight:700;">
+                    <i class="fas fa-circle" style="font-size:0.5rem;animation:pulse-anim 1.5s ease-in-out infinite;"></i> Live Operations Active
+                </span>
+                <button class="admin-btn admin-btn-danger admin-btn-sm" id="requestClosureBtn" onclick="requestClosure()" style="font-size:0.78rem;">
+                    <i class="fas fa-flag-checkered"></i> Request Final Event Closure
+                </button>
+                <a href="orgdashboard.html" class="admin-logout-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Status bar -->
+    <div style="background:var(--dark-secondary);border-bottom:1px solid rgba(255,255,255,0.07);padding:8px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+        <div style="max-width:1400px;margin:0 auto;width:100%;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+            <span style="font-size:0.75rem;color:rgba(255,255,255,0.4);">EVENT STATUS:</span>
+            <span style="font-size:0.78rem;font-weight:700;color:var(--success);">LIVE OPERATIONS ACTIVE</span>
+            <span style="font-size:0.75rem;color:rgba(255,255,255,0.3);">|</span>
+            <span style="font-size:0.75rem;color:rgba(255,255,255,0.5);">Registration Mode: <strong style="color:var(--warning);">Option B (No Gateway)</strong></span>
+            <span style="font-size:0.75rem;color:rgba(255,255,255,0.3);">|</span>
+            <span style="font-size:0.75rem;color:rgba(255,255,255,0.5);">Permission: <strong style="color:var(--success);">Owned Meet — Full Execution</strong></span>
+        </div>
+    </div>
+
+    <main class="admin-main">
+        <div class="admin-container">
+
+            <!-- SECTION 1: Participant Roster Management -->
+            <div class="admin-section-header" style="margin-top:0;">
+                <div>
+                    <div class="admin-section-label">Section 1</div>
+                    <h2 class="admin-section-title">Participant Roster Management <span style="font-size:0.78rem;font-weight:500;color:var(--gray);">(Option B Meets)</span></h2>
+                </div>
+            </div>
+
+            <div class="dash-section" style="margin-bottom:20px;">
+                <div class="dash-section-header">
+                    <span class="dash-section-title"><i class="fas fa-users"></i> Bulk Offline Roster Upload &amp; Master Player List</span>
+                    <span class="dash-section-badge" style="background:var(--success);">Option B Active</span>
+                </div>
+                <div class="dash-section-body">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                        <div style="padding:16px;background:var(--light);border-radius:var(--radius-sm);border:1px solid var(--gray-light);">
+                            <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--gray);margin-bottom:8px;">Total Athletes Uploaded</div>
+                            <div style="font-size:1.8rem;font-weight:800;color:var(--primary);">142</div>
+                            <div style="font-size:0.75rem;color:var(--gray);">Confirmed entries</div>
+                        </div>
+                        <div style="padding:16px;background:var(--light);border-radius:var(--radius-sm);border:1px solid var(--gray-light);">
+                            <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--gray);margin-bottom:8px;">Total Event Entries</div>
+                            <div style="font-size:1.8rem;font-weight:800;color:var(--success);">398</div>
+                            <div style="font-size:0.75rem;color:var(--gray);">Individual event rows</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                        <button class="admin-btn admin-btn-primary" onclick="document.getElementById('orgRosterFile').click()">
+                            <i class="fas fa-upload"></i> Upload Bulk Roster (Excel/CSV)
+                        </button>
+                        <a href="admin.html" class="admin-btn admin-btn-outline">
+                            <i class="fas fa-table"></i> Edit Master Player List Grid
+                        </a>
+                        <input type="file" id="orgRosterFile" accept=".xlsx,.csv,.xls" style="display:none;" onchange="handleRosterUpload(this)">
+                    </div>
+                    <div id="orgRosterStatus" style="display:none;margin-top:12px;"></div>
+                </div>
+            </div>
+
+            <!-- SECTION 2: Dual-Mode Result Import -->
+            <div class="admin-section-header">
+                <div>
+                    <div class="admin-section-label">Section 2</div>
+                    <h2 class="admin-section-title">Dual-Mode Result Import &amp; Timing Hardware Adapter</h2>
+                </div>
+            </div>
+
+            <div class="dash-section" style="margin-bottom:20px;">
+                <div class="dash-section-header">
+                    <span class="dash-section-title"><i class="fas fa-plug"></i> Select Poolside Timing Workflow</span>
+                </div>
+                <div class="dash-section-body" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+                    <!-- Path A: CTS -->
+                    <div style="border:1.5px solid var(--gray-light);border-radius:var(--radius-sm);overflow:hidden;">
+                        <div style="padding:12px 16px;background:var(--dark);color:var(--white);font-size:0.8rem;font-weight:700;">
+                            <i class="fas fa-bolt" style="color:var(--accent);"></i> Path A: Electronic Touch-Pad System (CTS / Meet Manager / Hardware)
+                        </div>
+                        <div style="padding:16px;">
+                            <div style="font-size:0.78rem;font-weight:600;color:var(--gray);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">1. Download active lane assignments:</div>
+                            <button class="admin-btn admin-btn-primary" style="width:100%;justify-content:center;margin-bottom:14px;" onclick="exportHeatSheet()">
+                                <i class="fas fa-file-excel"></i> Export Heat Sheet (CTS Excel)
+                            </button>
+                            <div style="font-size:0.78rem;font-weight:600;color:var(--gray);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">2. Re-upload file returned from timing system:</div>
+                            <button class="admin-btn admin-btn-outline" style="width:100%;justify-content:center;" onclick="document.getElementById('orgCtsFile').click()">
+                                <i class="fas fa-upload"></i> Upload Touch-Pad Result Excel
+                            </button>
+                            <input type="file" id="orgCtsFile" accept=".xlsx,.csv" style="display:none;" onchange="handleCTSUpload(this)">
+                        </div>
+                    </div>
+
+                    <!-- Path B: Manual -->
+                    <div style="border:1.5px solid var(--gray-light);border-radius:var(--radius-sm);overflow:hidden;">
+                        <div style="padding:12px 16px;background:var(--gray);color:var(--white);font-size:0.8rem;font-weight:700;">
+                            <i class="fas fa-stopwatch"></i> Path B: Manual Timing / Offline Fill (Stopwatch / Manual Meets)
+                        </div>
+                        <div style="padding:16px;">
+                            <div style="font-size:0.78rem;font-weight:600;color:var(--gray);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">1. Download pre-filled template with lanes:</div>
+                            <button class="admin-btn admin-btn-outline" style="width:100%;justify-content:center;margin-bottom:14px;" onclick="downloadResultTemplate()">
+                                <i class="fas fa-download"></i> Download Blank Result Excel
+                            </button>
+                            <div style="font-size:0.78rem;font-weight:600;color:var(--gray);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">2. Fill finish times (MM:SS.ms) &amp; status, then:</div>
+                            <button class="admin-btn admin-btn-outline" style="width:100%;justify-content:center;" onclick="document.getElementById('orgManualFile').click()">
+                                <i class="fas fa-upload"></i> Re-Upload Filled Result Excel
+                            </button>
+                            <input type="file" id="orgManualFile" accept=".xlsx,.csv" style="display:none;" onchange="handleManualUpload(this)">
+                        </div>
+                    </div>
+                </div>
+                <div id="orgResultStatus" style="display:none;margin:12px 16px 0;"></div>
+            </div>
+
+            <!-- SECTION 3: Direct On-Screen Override & Publishing -->
+            <div class="admin-section-header">
+                <div>
+                    <div class="admin-section-label">Section 3</div>
+                    <h2 class="admin-section-title">Direct On-Screen Override &amp; Publishing</h2>
+                </div>
+            </div>
+
+            <div class="dash-section">
+                <div class="dash-section-header">
+                    <span class="dash-section-title"><i class="fas fa-keyboard"></i> Live Heat Entry — Pool 1, Event 3, Heat Final</span>
+                    <span class="res-entries-count" style="font-size:0.75rem;font-weight:700;padding:4px 12px;border-radius:20px;background:var(--dark);color:var(--white);">3 / 8 times entered</span>
+                </div>
+                <div class="res-grid-wrap">
+                    <table class="res-grid" id="orgResultGrid">
+                        <thead>
+                            <tr>
+                                <th class="rg-lane">Lane</th>
+                                <th class="rg-swimmer">Swimmer Name</th>
+                                <th class="rg-academy">Academy</th>
+                                <th class="rg-time">Finish Time</th>
+                                <th class="rg-status">Status</th>
+                                <th class="rg-dq">DQ Fault Code</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orgResultGridBody"></tbody>
+                    </table>
+                </div>
+                <div class="res-grid-actions">
+                    <button class="admin-btn admin-btn-outline" onclick="showToast('Draft timings saved.','info')">
+                        <i class="fas fa-save"></i> Publish Official Results
+                    </button>
+                    <button class="admin-btn res-publish-btn" onclick="showToast('Results published. Rankings & PDF available.','success')">
+                        <i class="fas fa-print"></i> Print PDF Result Book for Posting
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Request Closure Modal -->
+    <div class="modal-overlay" id="closureModal">
+        <div class="modal" style="max-width:460px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-flag-checkered" style="color:var(--warning);"></i> Request Final Event Closure</h3>
+                <button class="modal-close" onclick="closeClosureModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding:20px 24px;">
+                <p style="font-size:0.9rem;line-height:1.65;color:var(--dark);">You are requesting final closure for:</p>
+                <p style="font-size:0.95rem;font-weight:700;color:var(--primary);margin:8px 0;">Coimbatore District Championship 2026</p>
+                <div style="background:var(--light);border-radius:var(--radius-sm);padding:14px 16px;margin:12px 0;font-size:0.82rem;">
+                    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--gray-light);"><span style="color:var(--gray);">Total Athletes</span><strong>142</strong></div>
+                    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--gray-light);"><span style="color:var(--gray);">Event Entries</span><strong>398</strong></div>
+                    <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="color:var(--gray);">Results Published</span><strong style="color:var(--success);">Yes</strong></div>
+                </div>
+                <p style="font-size:0.82rem;color:var(--gray);line-height:1.55;">
+                    <i class="fas fa-info-circle" style="color:var(--primary);"></i>
+                    This request will be sent to Super Admin for final sign-off. Once approved, the event transitions to <strong>COMPLETED_ARCHIVED</strong> and all data becomes read-only permanently.
+                </p>
+            </div>
+            <div class="modal-footer admin-modal-footer">
+                <button class="admin-btn admin-btn-outline" onclick="closeClosureModal()">Cancel</button>
+                <button class="admin-btn admin-btn-danger" onclick="confirmClosure()">
+                    <i class="fas fa-paper-plane"></i> Send Closure Request
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    'use strict';
+    const ORG_LANES = [
+      { lane:1, name:null,          academy:null,         seedTime:null },
+      { lane:2, name:null,          academy:null,         seedTime:null },
+      { lane:3, name:'A. Sanjay',   academy:'YMCA Kovai', seedTime:'00:33.00' },
+      { lane:4, name:'P. Vijay',    academy:'SDAT Kovai', seedTime:'00:31.10' },
+      { lane:5, name:'R. Dinesh',   academy:'Bluefins',   seedTime:'00:32.40' },
+      { lane:6, name:'K. Arjun',    academy:'SDAT Kovai', seedTime:null },
+      { lane:7, name:'V. Prakash',  academy:'Kovai SC',   seedTime:null },
+      { lane:8, name:'S. Thomas',   academy:'Bluefins',   seedTime:null },
+    ];
+    const orgResults = {
+      3:{ finishTime:'00:33.00', status:'OK', dqCode:'' },
+      4:{ finishTime:'00:31.10', status:'OK', dqCode:'' },
+      5:{ finishTime:'00:32.40', status:'OK', dqCode:'' },
+    };
+    const DQ_CODES = {'':'— No DQ —','FS':'FS — False Start','IT':'IT — Illegal Turn','IS':'IS — Illegal Stroke','IK':'IK — Illegal Kick','OT':'OT — One-Hand Touch','LV':'LV — Lane Violation','ET':'ET — Relay Early Takeoff'};
+
+    function buildGrid(){
+      const tbody = document.getElementById('orgResultGridBody');
+      tbody.innerHTML = ORG_LANES.map(lane=>{
+        if (!lane.name) return `<tr class="empty-lane"><td><span class="rg-lane-num">L-${lane.lane}</span></td><td colspan="5" style="color:var(--gray);font-style:italic;">(Empty Lane)</td></tr>`;
+        const r = orgResults[lane.lane]||{finishTime:'',status:'OK',dqCode:''};
+        const isDQ=r.status==='DQ', isDNS=r.status==='DNS';
+        const dqOpts=Object.entries(DQ_CODES).map(([k,v])=>`<option value="${k}" ${r.dqCode===k?'selected':''}>${v}</option>`).join('');
+        return `<tr class="${isDQ?'row-dq':isDNS?'row-dns':''}">
+          <td><span class="rg-lane-num">L-${lane.lane}</span></td>
+          <td><strong>${lane.name}</strong></td>
+          <td>${lane.academy}</td>
+          <td><input type="text" class="res-time-input${r.finishTime?' time-filled':''}" data-lane="${lane.lane}" value="${r.finishTime||''}" placeholder="MM:SS.ms" maxlength="8" ${isDNS?'disabled':''} onchange="orgResults[${lane.lane}]={...orgResults[${lane.lane}]||{},finishTime:this.value}"></td>
+          <td><select class="res-status-select status-${(r.status||'ok').toLowerCase()}" onchange="orgResults[${lane.lane}]={...orgResults[${lane.lane}]||{},status:this.value};if(this.value!=='DQ')orgResults[${lane.lane}].dqCode='';buildGrid();">
+            <option value="OK" ${r.status==='OK'?'selected':''}>✓ OK</option>
+            <option value="DNS" ${r.status==='DNS'?'selected':''}>DNS</option>
+            <option value="DNF" ${r.status==='DNF'?'selected':''}>DNF</option>
+            <option value="DQ" ${r.status==='DQ'?'selected':''}>DQ</option>
+          </select></td>
+          <td><select class="res-dq-select" ${!isDQ?'disabled':''} onchange="orgResults[${lane.lane}]={...orgResults[${lane.lane}]||{},dqCode:this.value}">
+            ${dqOpts}
+          </select></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+    function showToast(msg,type='info'){
+      const e=document.querySelector('.admin-toast');if(e)e.remove();
+      const t=document.createElement('div');t.className=`admin-toast admin-toast-${type}`;
+      const icon=type==='success'?'check-circle':type==='warn'?'exclamation-triangle':'info-circle';
+      t.innerHTML=`<i class="fas fa-${icon}"></i> ${escHtml(msg)}`;
+      document.body.appendChild(t);
+      setTimeout(()=>t.classList.add('show'),10);
+      setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400);},3200);
+    }
+    window.showToast=showToast;
+
+    window.handleRosterUpload=function(input){
+      if(!input.files[0])return;
+      const st=document.getElementById('orgRosterStatus');
+      st.style.display='';st.className='res-upload-status loading';
+      st.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Parsing roster…';
+      setTimeout(()=>{st.className='res-upload-status success';st.innerHTML=`<i class="fas fa-check-circle"></i> Imported: ${input.files[0].name} — 142 swimmers, 398 entries.`;showToast('Bulk roster imported successfully.','success');},1400);
+    };
+    window.handleCTSUpload=function(input){
+      if(!input.files[0])return;
+      const st=document.getElementById('orgResultStatus');
+      st.style.display='';st.className='res-upload-status loading';
+      st.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Parsing CTS file…';
+      setTimeout(()=>{st.className='res-upload-status success';st.innerHTML=`<i class="fas fa-check-circle"></i> CTS file parsed: ${input.files[0].name} — results populated.`;buildGrid();showToast('Touch-pad results imported.','success');},1400);
+    };
+    window.handleManualUpload=function(input){
+      if(!input.files[0])return;
+      const st=document.getElementById('orgResultStatus');
+      st.style.display='';st.className='res-upload-status loading';
+      st.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Parsing manual file…';
+      setTimeout(()=>{st.className='res-upload-status success';st.innerHTML=`<i class="fas fa-check-circle"></i> Manual results parsed: ${input.files[0].name}.`;showToast('Manual results imported.','success');},1200);
+    };
+    window.exportHeatSheet=function(){showToast('Heat sheet exported for CTS hardware.','info');};
+    window.downloadResultTemplate=function(){showToast('Blank result template downloaded.','info');};
+
+    window.requestClosure=function(){
+      const m=document.getElementById('closureModal');m.classList.add('active');m.style.display='flex';
+    };
+    window.closeClosureModal=function(){
+      const m=document.getElementById('closureModal');m.classList.remove('active');m.style.display='none';
+    };
+    window.confirmClosure=function(){
+      closeClosureModal();
+      showToast('Closure request sent to Super Admin for final sign-off. Status → CLOSURE_REQUESTED','success');
+      document.getElementById('requestClosureBtn').disabled=true;
+      document.getElementById('requestClosureBtn').textContent='Closure Requested';
+    };
+
+    (function(){const s=document.createElement('style');s.textContent=`
+      .admin-toast{position:fixed;bottom:28px;right:28px;z-index:99999;padding:12px 20px;background:var(--dark);color:var(--white);border-radius:var(--radius-sm);font-size:0.85rem;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,0.25);transform:translateY(20px);opacity:0;transition:all 0.3s ease;max-width:420px;font-family:'Inter',sans-serif;}
+      .admin-toast.show{transform:translateY(0);opacity:1;}
+      .admin-toast i{color:var(--accent);}
+      .admin-toast.admin-toast-success i{color:var(--success);}
+      .admin-toast.admin-toast-warn i{color:var(--warning);}
+      .empty-lane td{color:var(--gray);font-style:italic;background:#fafafa;}`;
+    document.head.appendChild(s);})();
+
+    document.addEventListener('DOMContentLoaded', buildGrid);
+    </script>
+</body>
+</html>

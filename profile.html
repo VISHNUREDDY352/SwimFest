@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swimmer Profile — SwimFest</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="profile.css?v=2">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <header class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo"><i class="fas fa-swimmer"></i> SwimFest</a>
+            <button class="state-selector">
+                <i class="fas fa-map-marker-alt"></i> Tamil Nadu <i class="fas fa-caret-down"></i>
+            </button>
+            <nav class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
+                <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+                <a href="index.html#past-events-archives" class="nav-link">Past</a>
+                <a href="academy.html" class="nav-link">Academy</a>
+            </nav>
+            <a href="index.html" class="btn-profile"><i class="fas fa-home"></i> Home</a>
+            <a href="profile.html" class="btn-register-login active-profile"><i class="fas fa-user"></i> My Profile</a>
+            <button class="mobile-menu-btn" id="mobileMenuBtn"><i class="fas fa-bars"></i></button>
+        </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="index.html" class="nav-link"><i class="fas fa-home"></i> Home</a>
+        <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
+        <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+        <a href="index.html#past-events-archives" class="nav-link">Past</a>
+        <a href="academy.html" class="nav-link">Academy</a>
+        <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> My Profile</a>
+    </div>
+
+    <main class="pf-page">
+        <div class="pf-container">
+
+            <!-- Profile Header Card -->
+            <div class="pf-header-card">
+                <div class="pf-header-cover"></div>
+                <div class="pf-header-body">
+                    <div class="pf-avatar" id="pfAvatar">AK</div>
+                    <div class="pf-header-info">
+                        <div class="pf-name-row">
+                            <h1 class="pf-name" id="pfName">Arun Kumar</h1>
+                            <span class="pf-verified" title="Verified account"><i class="fas fa-check-circle"></i> Verified</span>
+                        </div>
+                        <div class="pf-meta-row" id="pfMetaRow">
+                            <span class="pf-cat-pill" id="pfCategory">Boys U-12</span>
+                            <span class="pf-meta-item"><i class="fas fa-id-badge"></i> <span id="pfSwimmerId">SWM-2026-08492</span></span>
+                            <span class="pf-meta-item"><i class="fas fa-building"></i> <span id="pfAcademy">Chennai Swim Club</span></span>
+                            <span class="pf-meta-item"><i class="fas fa-map-marker-alt"></i> Chennai, Tamil Nadu</span>
+                        </div>
+                    </div>
+                    <div class="pf-header-actions">
+                        <button class="pf-btn pf-btn-outline" id="editProfileBtn"><i class="fas fa-pen"></i> Edit Profile</button>
+                        <a href="register.html" class="pf-btn pf-btn-primary"><i class="fas fa-plus"></i> Register for Event</a>
+                        <button class="pf-btn pf-btn-ghost" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stat Strip -->
+            <div class="pf-stats">
+                <div class="pf-stat">
+                    <div class="pf-stat-icon"><i class="fas fa-swimmer"></i></div>
+                    <div>
+                        <div class="pf-stat-value" id="statEvents">12</div>
+                        <div class="pf-stat-label">Events Swum</div>
+                    </div>
+                </div>
+                <div class="pf-stat">
+                    <div class="pf-stat-icon" style="background:#fef3c7;color:#b7791f;"><i class="fas fa-medal"></i></div>
+                    <div>
+                        <div class="pf-stat-value" id="statMedals">5</div>
+                        <div class="pf-stat-label">Medals Won</div>
+                    </div>
+                </div>
+                <div class="pf-stat">
+                    <div class="pf-stat-icon" style="background:#d1fae5;color:#065f46;"><i class="fas fa-bolt"></i></div>
+                    <div>
+                        <div class="pf-stat-value" id="statPB">4</div>
+                        <div class="pf-stat-label">Personal Bests</div>
+                    </div>
+                </div>
+                <div class="pf-stat">
+                    <div class="pf-stat-icon" style="background:#e0e7ff;color:#3730a3;"><i class="fas fa-trophy"></i></div>
+                    <div>
+                        <div class="pf-stat-value" id="statTournaments">6</div>
+                        <div class="pf-stat-label">Tournaments</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two column layout -->
+            <div class="pf-grid">
+
+                <!-- LEFT column -->
+                <div class="pf-col-main">
+
+                    <!-- Personal Bests -->
+                    <div class="pf-card">
+                        <div class="pf-card-header">
+                            <span><i class="fas fa-stopwatch"></i> Personal Best Times</span>
+                            <span class="pf-card-badge">Season 2026</span>
+                        </div>
+                        <div class="pf-pb-grid" id="pbGrid"></div>
+                    </div>
+
+                    <!-- Event History -->
+                    <div class="pf-card">
+                        <div class="pf-card-header">
+                            <span><i class="fas fa-history"></i> Recent Event History</span>
+                            <select class="pf-filter-select" id="historyFilter">
+                                <option value="">All Events</option>
+                                <option value="Freestyle">Freestyle</option>
+                                <option value="Backstroke">Backstroke</option>
+                                <option value="Breaststroke">Breaststroke</option>
+                                <option value="Butterfly">Butterfly</option>
+                            </select>
+                        </div>
+                        <div class="pf-history-wrap">
+                            <table class="pf-history-table" id="historyTable">
+                                <thead>
+                                    <tr>
+                                        <th>Event</th>
+                                        <th>Tournament</th>
+                                        <th>Time</th>
+                                        <th>Rank</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- RIGHT column -->
+                <div class="pf-col-side">
+
+                    <!-- Profile Details -->
+                    <div class="pf-card">
+                        <div class="pf-card-header"><span><i class="fas fa-user"></i> Profile Details</span></div>
+                        <div class="pf-detail-list" id="detailList"></div>
+                    </div>
+
+                    <!-- Registered Tournaments -->
+                    <div class="pf-card">
+                        <div class="pf-card-header"><span><i class="fas fa-clipboard-list"></i> My Registrations</span></div>
+                        <div id="regList"></div>
+                    </div>
+
+                    <!-- Academy Card -->
+                    <div class="pf-card pf-academy-card" id="academyCard"></div>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Edit Profile Modal -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal" style="max-width:520px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-pen"></i> Edit Profile</h3>
+                <button class="modal-close" onclick="closeEdit()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding:20px 24px;">
+                <div class="pf-form-grid">
+                    <div class="pf-field pf-full">
+                        <label class="pf-label">Swimmer Full Name</label>
+                        <input class="pf-input" id="editName" placeholder="Full name">
+                    </div>
+                    <div class="pf-field">
+                        <label class="pf-label">Gender</label>
+                        <div class="pf-gender-toggle" id="editGenderToggle">
+                            <button type="button" class="pf-gender-btn" data-gender="Boy"><i class="fas fa-mars"></i> Boy</button>
+                            <button type="button" class="pf-gender-btn" data-gender="Girl"><i class="fas fa-venus"></i> Girl</button>
+                        </div>
+                    </div>
+                    <div class="pf-field">
+                        <label class="pf-label">Date of Birth</label>
+                        <input class="pf-input" type="date" id="editDob">
+                        <div class="pf-derived" id="editDerived" style="display:none;"></div>
+                    </div>
+                    <div class="pf-field">
+                        <label class="pf-label">Parent / Guardian Phone</label>
+                        <input class="pf-input" id="editPhone" placeholder="+91 98765 43210">
+                    </div>
+                    <div class="pf-field">
+                        <label class="pf-label">Parent Email</label>
+                        <input class="pf-input" id="editEmail" placeholder="you@example.com">
+                    </div>
+                    <div class="pf-field">
+                        <label class="pf-label">SFI Serial No.</label>
+                        <input class="pf-input" id="editSerial" placeholder="Optional">
+                    </div>
+                    <div class="pf-field pf-full">
+                        <label class="pf-label">Affiliated Academy</label>
+                        <select class="pf-input" id="editAcademy"></select>
+                    </div>
+                </div>
+                <p class="pf-note"><i class="fas fa-info-circle"></i> Your age category is derived automatically from your date of birth (as of Dec 31 of the meet year).</p>
+            </div>
+            <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:10px;padding:14px 24px;border-top:1px solid var(--gray-light);">
+                <button class="pf-btn pf-btn-ghost" onclick="closeEdit()">Cancel</button>
+                <button class="pf-btn pf-btn-primary" onclick="saveProfile()"><i class="fas fa-save"></i> Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
+    <script src="profile.js"></script>
+</body>
+</html>
