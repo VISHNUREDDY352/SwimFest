@@ -190,9 +190,24 @@ window.handleLogin = async function(e) {
     return;
   }
 
-  const returnTo = getReturnTo();
-  // Route to the actual role's landing (role may be resolved from profile)
+  // The real role comes from the account's profile, not the picked button.
   const role = res.session.role || selectedRole;
+
+  // If the user picked a role that doesn't match their account, tell them.
+  // (swimmer<->organizer can coexist on one account, so allow that pair.)
+  const dualOk = (selectedRole === 'organizer' && role === 'swimmer')
+              || (selectedRole === 'swimmer'   && role === 'organizer');
+  if (selectedRole !== role && !dualOk) {
+    const nice = { swimmer:'Swimmer / Parent', event_manager:'Event Manager', organizer:'Tournament Organizer', super_admin:'Super Admin' };
+    showError('loginPassword',
+      `This account is registered as ${nice[role] || role}, not ${nice[selectedRole] || selectedRole}. ` +
+      `Pick the correct role above.`);
+    // Sign back out so a wrong-role session isn't left behind
+    if (window.SwimAuth) { try { await window.SwimAuth.logout(); } catch (_) {} }
+    return;
+  }
+
+  const returnTo = getReturnTo();
   const landing = (ROLE_CONFIG[role] && ROLE_CONFIG[role].landing) || cfg.landing;
   const dest = returnTo || landing;
 
