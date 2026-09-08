@@ -6,13 +6,12 @@
 
 // ── Role → landing page + demo credential map ────────────────
 const ROLE_CONFIG = {
-  swimmer:       { label:'Swimmer / Parent',      landing:'profile.html',     demoEmail:'arun.parent@gmail.com',   demoName:'Arun Kumar (Parent)',      demoPass:'demo1234' },
+  swimmer:       { label:'Swimmer / Parent',      landing:'index.html',       demoEmail:'arun.parent@gmail.com',   demoName:'Arun Kumar (Parent)',      demoPass:'demo1234' },
   event_manager: { label:'Event Manager',         landing:'emdashboard.html', demoEmail:'thangavishnuvardhanreddy@gmail.com', demoName:'Event Manager', demoPass:'vishnu@123' },
   organizer:     { label:'Tournament Organizer',  landing:'orgdashboard.html',demoEmail:'kovai@swimclub.org',      demoName:'Kovai Amateur Aquatic Club', demoPass:'demo1234' },
   super_admin:   { label:'Super Admin',           landing:'superadmin.html',  demoEmail:'superadmin@swimfest.in',  demoName:'SwimFest Super Admin',     demoPass:'SwimFest@2026' },
 };
 
-let selectedRole   = 'swimmer';
 let selectedGender = 'Boy';
 let accountType    = 'swimmer';  // 'swimmer' | 'organizer' (signup form)
 
@@ -74,17 +73,6 @@ window.togglePassword = function(fieldId, btn) {
     icon.className = 'fas fa-eye';
   }
 };
-
-// ── Role selection ────────────────────────────────────────────
-function initRoleButtons() {
-  document.querySelectorAll('.role-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      selectedRole = btn.dataset.role;
-    });
-  });
-}
 
 // ── Signup gender toggle + DOB category derive ────────────────
 function initSignupExtras() {
@@ -148,15 +136,6 @@ function updateSignupDerived() {
     <span class="sd-pill cat">${selectedGender === 'Girl' ? 'GIRLS' : 'BOYS'} ${cat.label}</span>`;
 }
 
-// ── Auto-fill demo ────────────────────────────────────────────
-window.fillDemo = function() {
-  const cfg = ROLE_CONFIG[selectedRole];
-  $('loginEmail').value    = cfg.demoEmail;
-  $('loginPassword').value = cfg.demoPass || 'demo1234';
-  clearAllErrors();
-  showToast(`Demo credentials for ${cfg.label} filled in.`, 'info');
-};
-
 // ── Login ─────────────────────────────────────────────────────
 window.handleLogin = async function(e) {
   e.preventDefault();
@@ -170,7 +149,6 @@ window.handleLogin = async function(e) {
   if (!pass)  { showError('loginPassword', 'Password is required.'); ok = false; }
   if (!ok) return;
 
-  const cfg = ROLE_CONFIG[selectedRole];
   const remember = $('rememberMe').checked;
   const btn = e.target.querySelector('.login-submit-btn');
   const orig = btn.innerHTML;
@@ -180,7 +158,7 @@ window.handleLogin = async function(e) {
   if (!window.SwimAuth) { showError('loginPassword', 'Auth not loaded — refresh the page.'); btn.innerHTML=orig; btn.disabled=false; return; }
   if (!window.SwimAuth.hasSupabase()) { console.warn('[SwimFest] Supabase SDK not loaded — using demo mode.'); }
 
-  const res = await window.SwimAuth.signIn({ email, password: pass, role: selectedRole, remember });
+  const res = await window.SwimAuth.signIn({ email, password: pass, remember });
   console.log('[SwimFest] signIn result:', res);
 
   btn.innerHTML = orig; btn.disabled = false;
@@ -190,28 +168,13 @@ window.handleLogin = async function(e) {
     return;
   }
 
-  // The real role comes from the account's profile, not the picked button.
-  const role = res.session.role || selectedRole;
-
-  // If the user picked a role that doesn't match their account, tell them.
-  // (swimmer<->organizer can coexist on one account, so allow that pair.)
-  const dualOk = (selectedRole === 'organizer' && role === 'swimmer')
-              || (selectedRole === 'swimmer'   && role === 'organizer');
-  if (selectedRole !== role && !dualOk) {
-    const nice = { swimmer:'Swimmer / Parent', event_manager:'Event Manager', organizer:'Tournament Organizer', super_admin:'Super Admin' };
-    showError('loginPassword',
-      `This account is registered as ${nice[role] || role}, not ${nice[selectedRole] || selectedRole}. ` +
-      `Pick the correct role above.`);
-    // Sign back out so a wrong-role session isn't left behind
-    if (window.SwimAuth) { try { await window.SwimAuth.logout(); } catch (_) {} }
-    return;
-  }
-
+  // Route purely on the account's role (resolved from the profile).
+  const role = res.session.role || 'swimmer';
   const returnTo = getReturnTo();
-  const landing = (ROLE_CONFIG[role] && ROLE_CONFIG[role].landing) || cfg.landing;
+  const landing = (ROLE_CONFIG[role] && ROLE_CONFIG[role].landing) || 'profile.html';
   const dest = returnTo || landing;
 
-  showToast(`Signed in. Redirecting…`, 'success');
+  showToast('Signed in. Redirecting…', 'success');
   setTimeout(() => { window.location.href = dest; }, 800);
 };
 
@@ -341,33 +304,17 @@ window.handleSignup = async function(e) {
   }
 
   const returnTo = getReturnTo();
-  const dest = returnTo || (isOrg ? 'orgdashboard.html' : 'profile.html');
+  const dest = returnTo || (isOrg ? 'orgdashboard.html' : 'index.html');
   showToast('Account created! Redirecting…', 'success');
   setTimeout(() => { window.location.href = dest; }, 1000);
 };
 
-// ── If already logged in, offer to continue ───────────────────
+// ── Login is mandatory for everyone ───────────────────────────
+// The login page never auto-redirects. Even if a session exists,
+// the user must explicitly sign in here. (No auto-forward.)
 function checkExistingSession() {
-  const raw = localStorage.getItem('swimfest_session') || sessionStorage.getItem('swimfest_session');
-  if (!raw) return;
-  try {
-    const s = JSON.parse(raw);
-    const cfg = ROLE_CONFIG[s.role];
-    if (!cfg) return;
-
-    // Pre-select their role
-    document.querySelectorAll('.role-btn').forEach(b => {
-      b.classList.toggle('active', b.dataset.role === s.role);
-    });
-    selectedRole = s.role;
-
-    // If they were sent here from a protected page, send them straight there
-    const returnTo = getReturnTo();
-    if (returnTo) {
-      showToast(`Already signed in as ${s.roleLabel}. Continuing…`, 'info');
-      setTimeout(() => { window.location.href = returnTo; }, 700);
-    }
-  } catch (_) {}
+  /* intentionally does nothing — the login page always stays put so
+     super admin / EM / organizer / swimmer all log in explicitly. */
 }
 
 // ── Toast ─────────────────────────────────────────────────────
@@ -418,14 +365,9 @@ function showReasonBanner() {
   const wrap = document.querySelector('.login-form-wrap');
   const tabs = document.querySelector('.login-tabs');
   if (wrap && tabs) wrap.insertBefore(banner, tabs);
-
-  // Default to swimmer role since that's who registers
-  document.querySelectorAll('.role-btn').forEach(b => b.classList.toggle('active', b.dataset.role === 'swimmer'));
-  selectedRole = 'swimmer';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  initRoleButtons();
   initSignupExtras();
   showReasonBanner();
   checkExistingSession();

@@ -24,6 +24,28 @@ const SwimAuth = {
   isLoggedIn() { return this.getSession() !== null; },
   getRole()    { const s = this.getSession(); return s ? s.role : null; },
 
+  // ── Validate the local mirror against the real Supabase session ──
+  // The local mirror is fast but can go stale (token expired, signed out
+  // elsewhere, account removed). This confirms with Supabase and clears
+  // the mirror if there's no real session, so the navbar stays honest.
+  async validateSession() {
+    const local = this.getSession();
+    if (!local) return null;              // already logged out
+    if (local.demo) return local;         // demo sessions have no Supabase backing
+    if (!this.hasSupabase()) return local; // SDK not loaded — trust the mirror
+
+    try {
+      const { data } = await window.sb.auth.getSession();
+      if (!data || !data.session) {
+        // Supabase says no valid session → the local mirror is stale
+        localStorage.removeItem(SESSION_KEY);
+        sessionStorage.removeItem(SESSION_KEY);
+        return null;
+      }
+    } catch (_) { /* network hiccup — keep the mirror */ }
+    return this.getSession();
+  },
+
   // ── Supabase availability ─────────────────────────────────
   hasSupabase() { return !!(window.sb && window.sb.auth); },
 
@@ -212,7 +234,12 @@ const SwimAuth = {
 window.SwimAuth = SwimAuth;
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Fast first paint from the local mirror…
   try { SwimAuth.updateNavButtons(); } catch (_) {}
+  // …then confirm with Supabase and correct the navbar if the mirror was stale.
+  (async () => {
+    try { await SwimAuth.validateSession(); SwimAuth.updateNavButtons(); } catch (_) {}
+  })();
 
   // Wire any staff-page logout control to a real logout + redirect.
   // Covers superadmin (.sa-logout), admin (.admin-logout-btn),

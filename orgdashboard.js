@@ -50,13 +50,25 @@ async function loadOrgPipeline() {
     } catch (_) {}
   }
 
+  // Which of this organizer's meets already have a PENDING reopen request?
+  const pendingReopen = new Set();
+  if (myIds && myIds.length) {
+    try {
+      const { data: reqs } = await window.sb.from('reopen_requests')
+        .select('tournament_id, status').in('tournament_id', myIds).eq('status', 'PENDING');
+      (reqs || []).forEach(r => pendingReopen.add(r.tournament_id));
+    } catch (_) {}
+  }
+
   ORG_TOURNAMENTS = rows.map(t => ({
+    id: t.tournament_id,
     title: t.title,
     sub: `${t.venue_name || ''}${t.city ? ', ' + t.city : ''} · ${counts[t.tournament_id] || 0} entries`,
     dates: fmtDates(t.start_date, t.end_date),
     payType: t.gateway_option === 'OPTION_A_PLATFORM_GATEWAY' ? 'A' : 'B',
     status: t.status,
     upfront: t.gateway_option !== 'OPTION_A_PLATFORM_GATEWAY',
+    reopenPending: pendingReopen.has(t.tournament_id),
   }));
 
   // ── Real header metrics ── (reuse `session` from above)
@@ -109,13 +121,39 @@ function actionBtns(t){
       <a href="orgracecontrol.html" class="em-action-btn em-btn-manage"><i class="fas fa-cogs"></i> Manage</a>
       <a href="results.html" class="em-action-btn em-btn-race"><i class="fas fa-broadcast-tower"></i> Results</a>
     </div>`;
-  if (t.status === 'COMPLETED') return `
+  if (t.status === 'COMPLETED') {
+    const reopenBtn = t.reopenPending
+      ? `<button class="em-action-btn em-btn-view" disabled title="Awaiting Super Admin approval"><i class="fas fa-clock"></i> Reopen Requested</button>`
+      : `<button class="em-action-btn em-btn-edit" onclick="requestReopen('${t.id}')"><i class="fas fa-unlock-alt"></i> Request Reopen</button>`;
+    return `
     <div class="em-action-group">
-      <a href="#" class="em-action-btn em-btn-archive"><i class="fas fa-archive"></i> View Archive</a>
-      <button class="em-action-btn em-btn-view" onclick="showToast('Printing result book…','info')"><i class="fas fa-print"></i> Print Results</button>
+      <a href="heatsheets.html?tournament=${encodeURIComponent(t.title)}" class="em-action-btn em-btn-archive"><i class="fas fa-archive"></i> View Archive</a>
+      ${reopenBtn}
     </div>`;
+  }
   return '';
 }
+
+// ── Request to reopen a completed meet (needs Super Admin approval) ──
+window.requestReopen = async function(tournamentId) {
+  const meet = ORG_TOURNAMENTS.find(m => m.id === tournamentId);
+  const title = meet ? meet.title : 'this meet';
+  const reason = prompt(`Request to reopen "${title}"\n\nWhy do you need this meet reopened? (sent to Super Admin for approval)`);
+  if (reason === null) return;                 // cancelled
+  if (!reason.trim()) { showToast('A reason is required to request a reopen.', 'warn'); return; }
+  if (!window.sb) { showToast('Database not connected.', 'warn'); return; }
+
+  const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
+  const { error } = await window.sb.from('reopen_requests').insert({
+    tournament_id: tournamentId,
+    requested_by: session ? session.userId : null,
+    reason: reason.trim(),
+    status: 'PENDING',
+  });
+  if (error) { console.error('[SwimFest] reopen request:', error.message); showToast('Request failed: ' + error.message, 'warn'); return; }
+  showToast('Reopen request sent to Super Admin for approval.', 'success');
+  loadOrgPipeline();  // refresh so the button shows "Reopen Requested"
+};
 
 function renderPipeline(){
   $('orgPipelineBody').innerHTML = ORG_TOURNAMENTS.map(t => `

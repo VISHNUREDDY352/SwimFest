@@ -46,14 +46,15 @@ begin
         now(), now()
       );
 
-      -- Identity row (required by Supabase Auth for email logins)
+      -- Identity row (required by Supabase Auth for email logins).
+      -- Newer Supabase adds an `email` column on auth.identities.
       insert into auth.identities (
-        id, user_id, provider_id, identity_data, provider,
+        id, user_id, provider_id, identity_data, provider, email,
         last_sign_in_at, created_at, updated_at
       ) values (
         gen_random_uuid(), uid, staff.email,
         jsonb_build_object('sub', uid::text, 'email', staff.email),
-        'email', now(), now(), now()
+        'email', staff.email, now(), now(), now()
       );
     end if;
 
@@ -72,8 +73,20 @@ where p.role in ('event_manager','super_admin')
 order by p.role;
 
 -- ============================================================
--- Done. Log in at login.html with:
+-- Done. Log in at login.html (single form — no role picker; you are
+-- routed by your account role automatically) with:
 --   thangavishnuvardhanreddy@gmail.com / vishnu@123    (Event Manager)
 --   superadmin@swimfest.in             / SwimFest@2026 (Super Admin)
--- Pick the matching role on the login form.
+--
+-- ⚠️ If the auth.users / auth.identities INSERT above errors (Supabase
+-- internal auth schema varies by version), use the DASHBOARD instead:
+--   1. Authentication → Users → Add user → enter the email + password,
+--      check "Auto Confirm User".
+--   2. Then run ONLY the role update:
+--        update public.profiles set role = 'event_manager'
+--        where id = (select id from auth.users
+--                    where email = 'thangavishnuvardhanreddy@gmail.com');
+--        update public.profiles set role = 'super_admin'
+--        where id = (select id from auth.users
+--                    where email = 'superadmin@swimfest.in');
 -- ============================================================

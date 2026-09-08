@@ -124,6 +124,67 @@ async function loadVerificationQueue() {
   renderS2();
 }
 
+// ── Supabase: meet reopen requests (from organizers) ──────────
+let REOPEN_QUEUE = [];
+async function loadReopenQueue() {
+  if (!window.sb) return;
+  const { data, error } = await window.sb
+    .from('reopen_request_queue')
+    .select('*')
+    .eq('status', 'PENDING')
+    .order('created_at', { ascending: true });
+  if (error) { console.error('[SwimFest] reopen queue:', error.message); return; }
+  REOPEN_QUEUE = data || [];
+  renderReopenQueue();
+}
+
+function renderReopenQueue() {
+  const badge = $('reopenBadge');
+  const body  = $('reopenBody');
+  if (badge) badge.textContent = `${REOPEN_QUEUE.length} pending`;
+  if (!body) return;
+  if (!REOPEN_QUEUE.length) {
+    body.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray);">No reopen requests.</td></tr>`;
+    return;
+  }
+  body.innerHTML = REOPEN_QUEUE.map((r, i) => `
+    <tr id="reopen-row-${i}">
+      <td>
+        <div class="sa-meet-title">${escHtml(r.org_name || 'Organizer')}</div>
+        <div class="sa-meet-sub">${escHtml(r.contact_person || '')}</div>
+      </td>
+      <td>${escHtml(r.tournament_title || '')}</td>
+      <td style="max-width:260px;">${escHtml(r.reason || '')}</td>
+      <td style="font-size:0.75rem;color:var(--gray);">${escHtml(new Date(r.created_at).toLocaleString('en-IN'))}</td>
+      <td id="reopen-act-${i}">
+        <button class="sa-btn-approve" onclick="approveReopen(${i})"><i class="fas fa-check"></i> Approve &amp; Reopen</button>
+        <button class="sa-btn-reject" onclick="denyReopen(${i})"><i class="fas fa-times"></i> Deny</button>
+      </td>
+    </tr>`).join('');
+}
+
+window.approveReopen = async function(i) {
+  const r = REOPEN_QUEUE[i];
+  if (!r || !window.sb) return;
+  const { error } = await window.sb.rpc('approve_reopen', { p_request_id: r.request_id });
+  if (error) { console.error('[SwimFest] approve reopen:', error.message); showToast('Approve failed: ' + error.message, 'warn'); return; }
+  await writeAudit('MEET_REOPENED', 'TOURNAMENT', r.tournament_id, `Reopen approved: ${r.tournament_title}`);
+  const act = $(`reopen-act-${i}`);
+  if (act) act.innerHTML = `<span class="sa-action-done approved-tag"><i class="fas fa-check-circle"></i> Reopened</span>`;
+  showToast(`Meet reopened: ${r.tournament_title}`, 'success');
+};
+
+window.denyReopen = async function(i) {
+  const r = REOPEN_QUEUE[i];
+  if (!r || !window.sb) return;
+  const { error } = await window.sb.rpc('deny_reopen', { p_request_id: r.request_id });
+  if (error) { console.error('[SwimFest] deny reopen:', error.message); showToast('Deny failed: ' + error.message, 'warn'); return; }
+  await writeAudit('MEET_REOPEN_DENIED', 'TOURNAMENT', r.tournament_id, `Reopen denied: ${r.tournament_title}`);
+  const act = $(`reopen-act-${i}`);
+  if (act) act.innerHTML = `<span class="sa-action-done rejected-tag"><i class="fas fa-times-circle"></i> Denied</span>`;
+  showToast(`Reopen denied: ${r.tournament_title}`, 'warn');
+};
+
 // ── State Machine Visual ───────────────────────────────────────
 function renderStateMachine() {
   $('saSmGrid').innerHTML = `
@@ -465,6 +526,7 @@ function refreshLiveData() {
   loadMetrics();
   loadMeetQueues();
   loadVerificationQueue();
+  loadReopenQueue();
 }
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -335,13 +335,26 @@
     };
 
     window.submitAE = async function () {
-      const id = await saveTournament('PENDING_APPROVAL');
+      // Super Admin creations are auto-approved (they ARE the approver);
+      // everyone else goes to the approval queue.
+      const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
+      const isSuperAdmin = session && session.role === 'super_admin';
+      const submitStatus = isSuperAdmin ? 'PUBLISHED' : 'PENDING_APPROVAL';
+
+      const id = await saveTournament(submitStatus);
       if (!id) return; // error toast already shown
       [1,2,3].forEach(i => document.getElementById(`aeStep${i}`).style.display = 'none');
       document.getElementById('aeSuccess').style.display = '';
       document.getElementById('aeTournamentId').textContent = id;
+      // Update the success screen status text to match
+      const statusEl = document.querySelector('#aeSuccess strong');
+      if (statusEl) {
+        statusEl.textContent = submitStatus;
+        statusEl.style.color = isSuperAdmin ? 'var(--success)' : 'var(--warning)';
+      }
       window.scrollTo({ top:0, behavior:'smooth' });
-      showToast('Event submitted — Status: PENDING_APPROVAL', 'success');
+      showToast(isSuperAdmin ? 'Event published live (auto-approved).' : 'Event submitted — Status: PENDING_APPROVAL',
+                'success');
     };
 
     // Gateway option style

@@ -250,7 +250,7 @@
                     </div>
                     <h2 style="font-size:1.5rem;font-weight:800;color:var(--dark);margin-bottom:8px;">Meet Submitted!</h2>
                     <p style="color:var(--success);font-weight:700;margin-bottom:4px;">Payment: PAID_SUCCESSFULLY</p>
-                    <p style="color:var(--warning);font-weight:700;margin-bottom:16px;">Status: PENDING_SUPER_ADMIN_APPROVAL</p>
+                    <p id="ocStatusLine" style="color:var(--warning);font-weight:700;margin-bottom:16px;">Status: PENDING_SUPER_ADMIN_APPROVAL</p>
                     <div style="background:var(--light);border:1px solid var(--gray-light);border-radius:var(--radius-sm);padding:16px 24px;max-width:400px;margin:0 auto 28px;text-align:left;">
                         <div style="font-size:0.78rem;display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray-light);">
                             <span style="color:var(--gray);">Tournament ID</span>
@@ -442,7 +442,12 @@
     };
 
     async function submitOC(paid){
-      const id = await saveMeet('PENDING_APPROVAL');
+      // Super Admin creations are auto-approved (they are the approver).
+      const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
+      const isSuperAdmin = session && session.role === 'super_admin';
+      const submitStatus = isSuperAdmin ? 'PUBLISHED' : 'PENDING_APPROVAL';
+
+      const id = await saveMeet(submitStatus);
       document.getElementById('ocPayment').style.display='none';
       if(!id){
         // Save failed — return to the form so the user can retry
@@ -452,8 +457,16 @@
       document.getElementById('ocSuccess').style.display='';
       document.getElementById('ocTrnId').textContent = id;
       document.getElementById('ocPayId').textContent = paid ? 'pay_'+Math.random().toString(36).substr(2,12) : 'N/A (Option A)';
+      // Update the success status line to reflect auto-approval for super admin
+      const stEl = document.getElementById('ocStatusLine');
+      if (stEl) {
+        stEl.textContent = isSuperAdmin ? 'Status: PUBLISHED (Auto-Approved)' : 'Status: PENDING_SUPER_ADMIN_APPROVAL';
+        stEl.style.color = isSuperAdmin ? 'var(--success)' : 'var(--warning)';
+      }
       window.scrollTo({top:0,behavior:'smooth'});
-      showToast(paid?'Payment confirmed. Meet submitted for Super Admin approval.':'Meet submitted for Super Admin approval.','success');
+      showToast(isSuperAdmin ? 'Meet published live (auto-approved).'
+                             : (paid ? 'Payment confirmed. Meet submitted for Super Admin approval.' : 'Meet submitted for Super Admin approval.'),
+                'success');
     }
 
     function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
