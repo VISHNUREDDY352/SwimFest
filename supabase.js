@@ -6,8 +6,8 @@
 'use strict';
 
 // ── Project credentials (anon public key — safe for frontend) ──
-const SUPABASE_URL      = 'https://nexnriixtrvjycjzqypq.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5leG5yaWl4dHJ2anljanpxeXBxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0MjE2ODIsImV4cCI6MjEwMzk5NzY4Mn0.5vu_Xeo2sKwOf5rjeFIFrjYba4mKosJrOnnsMRp_CEQ';
+const SUPABASE_URL      = 'https://zzfudduljxkfwdydksce.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp6ZnVkZHVsanhrZndkeWRrc2NlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NTQxNDksImV4cCI6MjA5ODAzMDE0OX0.n74k64gD5ERWFrT86xehTwXjTKIsSiXryPmCgLJLe4s';
 
 // ── Initialize client ──────────────────────────────────────────
 // Requires the Supabase SDK loaded first:
