@@ -203,13 +203,13 @@ const SwimAuth = {
     // Each role's profile page (organizer has its own; EM/super_admin use dashboards)
     const profilePage = {
       swimmer:'profile.html', organizer:'orgprofile.html',
-      event_manager:'emdashboard.html', super_admin:'superadmin.html',
+      event_manager:'emdashboard.html', super_admin:'saprofile.html',
     };
 
     document.querySelectorAll('.btn-profile').forEach(btn => {
       if (session) {
         btn.setAttribute('href', profilePage[session.role] || 'profile.html');
-        const label = (session.role === 'swimmer' || session.role === 'organizer') ? 'Profile' : 'Dashboard';
+        const label = (session.role === 'event_manager') ? 'Dashboard' : 'Profile';
         btn.innerHTML = `<i class="fas fa-user"></i> ${label}`;
       } else {
         btn.setAttribute('href', 'profile.html');

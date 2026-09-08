@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Profile — SwimFest</title>
+    <script src="guard.js" data-roles="super_admin"></script>
+    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="orgprofile.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <header class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="superadmin.html" class="logo"><i class="fas fa-swimmer"></i> SwimFest <span style="font-size:0.7rem;font-weight:600;color:var(--gray);">Super Admin</span></a>
+            <nav class="nav-links">
+                <a href="superadmin.html" class="nav-link">Console</a>
+                <a href="saoverride.html" class="nav-link">Override Engine</a>
+                <a href="admin.html" class="nav-link">Master List</a>
+                <a href="apiref.html" class="nav-link">API Docs</a>
+            </nav>
+            <a href="saprofile.html" class="btn-profile"><i class="fas fa-user"></i> Profile</a>
+            <a href="#" class="btn-register-login dash-logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </header>
+
+    <main class="op-page">
+        <!-- Header card -->
+        <div class="op-hero" style="background:linear-gradient(135deg,var(--dark),var(--dark-secondary),var(--primary-dark));">
+            <div class="op-hero-inner">
+                <div class="op-avatar" id="saAvatar" style="color:var(--accent-light);">SA</div>
+                <div class="op-hero-info">
+                    <h1 class="op-name" id="saName">Loading…</h1>
+                    <p class="op-role"><i class="fas fa-user-shield"></i> Super Administrator</p>
+                    <p class="op-sub" id="saEmail">—</p>
+                </div>
+                <button class="op-edit-btn" id="saEditBtn"><i class="fas fa-pen"></i> Edit Profile</button>
+            </div>
+        </div>
+
+        <div class="op-container">
+            <!-- Platform-wide stats -->
+            <div class="op-stats" id="saStats"></div>
+
+            <!-- Account details -->
+            <div class="op-card">
+                <h2 class="op-card-title"><i class="fas fa-id-card"></i> Account Details</h2>
+                <div class="op-detail-grid" id="saDetails"></div>
+            </div>
+
+            <!-- Governance quick actions -->
+            <div class="op-card">
+                <h2 class="op-card-title"><i class="fas fa-shield-halved"></i> Governance</h2>
+                <div class="op-actions">
+                    <a href="superadmin.html" class="op-action"><i class="fas fa-gauge"></i> Super Admin Console</a>
+                    <a href="saoverride.html" class="op-action"><i class="fas fa-unlock-alt"></i> Universal Override</a>
+                    <a href="admin.html" class="op-action"><i class="fas fa-list-check"></i> Master Player List</a>
+                    <a href="apiref.html" class="op-action"><i class="fas fa-code"></i> API Reference</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Edit modal -->
+    <div class="op-modal-overlay" id="saEditModal">
+        <div class="op-modal">
+            <div class="op-modal-header">
+                <h3><i class="fas fa-pen"></i> Edit Profile</h3>
+                <button class="op-modal-close" id="saModalClose"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="op-modal-body">
+                <div class="op-field"><label>Full Name</label><input id="saEditName" class="op-input"></div>
+                <div class="op-field"><label>Phone</label><input id="saEditPhone" class="op-input"></div>
+            </div>
+            <div class="op-modal-footer">
+                <button class="op-btn-ghost" id="saCancelBtn">Cancel</button>
+                <button class="op-btn-primary" id="saSaveBtn"><i class="fas fa-save"></i> Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
+    <script src="saprofile.js"></script>
+</body>
+</html>
