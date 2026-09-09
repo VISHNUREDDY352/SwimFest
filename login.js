@@ -271,6 +271,18 @@ window.handleSignup = async function(e) {
       showError('signupEmail', 'Could not upgrade this account. Try logging in instead.');
       return;
     }
+  } else if (!res.ok && alreadyExists && !isOrg) {
+    // Existing account (e.g. an organizer) wants to ALSO be a swimmer.
+    // Verify with their password by signing in, then add the swimmer profile.
+    const si = await window.SwimAuth.signIn({ email, password: pass, remember: true });
+    if (si.ok) {
+      res = si; // continue the swimmer flow below with this session
+      showToast('Existing account found — adding swimmer profile.', 'info');
+    } else {
+      btn.innerHTML = orig; btn.disabled = false;
+      showError('signupPassword', 'This email is already registered. Enter its password to add a swimmer profile, or use a different email.');
+      return;
+    }
   } else if (!res.ok) {
     btn.innerHTML = orig; btn.disabled = false;
     if (alreadyExists) {
@@ -299,17 +311,22 @@ window.handleSignup = async function(e) {
   } else if (window.sb && res.session && res.session.userId) {
     // Swimmer: create the swimmer record with gender + DOB + derived category
     try {
-      await window.sb.from('swimmers').insert({
-        owner_id     : res.session.userId,
-        full_name    : name,
-        gender       : selectedGender,
-        date_of_birth: dob,
-        category     : cat ? cat.label : null,
-        parent_name  : name,
-        parent_phone : phone,
-        parent_email : email,
-      });
-      console.log('[SwimFest] swimmer record created for new account.');
+      // Don't create a duplicate swimmer row if this account already has one
+      const { data: existingSw } = await window.sb.from('swimmers')
+        .select('swimmer_id').eq('owner_id', res.session.userId).limit(1).maybeSingle();
+      if (!existingSw) {
+        await window.sb.from('swimmers').insert({
+          owner_id     : res.session.userId,
+          full_name    : name,
+          gender       : selectedGender,
+          date_of_birth: dob,
+          category     : cat ? cat.label : null,
+          parent_name  : name,
+          parent_phone : phone,
+          parent_email : email,
+        });
+        console.log('[SwimFest] swimmer record created for account.');
+      }
     } catch (err) { console.warn('[SwimFest] swimmer insert:', err.message); }
   }
 
@@ -322,7 +339,21 @@ window.handleSignup = async function(e) {
   }
 
   const returnTo = getReturnTo();
-  const dest = returnTo || (isOrg ? 'orgdashboard.html' : 'index.html');
+  if (returnTo) {
+    showToast('Account created! Redirecting…', 'success');
+    setTimeout(() => { window.location.href = returnTo; }, 1000);
+    return;
+  }
+
+  // If this account now has BOTH swimmer and organizer, send them to the
+  // chooser; otherwise go to the space they just created.
+  let dest = isOrg ? 'orgdashboard.html' : 'index.html';
+  try {
+    if (res.session && res.session.userId) {
+      const caps = await window.SwimAuth.detectCapabilities(res.session.userId);
+      if (caps.swimmer && caps.organizer) dest = 'chooserole.html';
+    }
+  } catch (_) {}
   showToast('Account created! Redirecting…', 'success');
   setTimeout(() => { window.location.href = dest; }, 1000);
 };
