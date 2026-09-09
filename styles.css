@@ -55,20 +55,23 @@ body {
 /* Home page: navbar overlays the hero image (transparent), then turns
    solid white after the user scrolls past the hero. */
 .navbar-hero {
-    background: transparent;
-    border-bottom-color: transparent;
-    box-shadow: none;
+    background: transparent !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
 }
 .navbar-hero .logo,
 .navbar-hero .nav-link,
 .navbar-hero .btn-profile,
+.navbar-hero a.btn-profile,
 .navbar-hero .mobile-menu-btn,
-.navbar-hero .state-selector { color: #fff; }
+.navbar-hero .state-selector { color: #fff !important; }
 .navbar-hero .logo i,
-.navbar-hero .state-selector .fa-caret-down { color: #fff; }
+.navbar-hero .btn-profile i,
+.navbar-hero .state-selector .fa-caret-down { color: #fff !important; }
 .navbar-hero .state-selector { border-color: rgba(255,255,255,0.6); }
-.navbar-hero .nav-link:hover { background: rgba(255,255,255,0.18); color: #fff; }
-.navbar-hero .btn-profile:hover { background: rgba(255,255,255,0.18); color: #fff !important; }
+.navbar-hero .nav-link:hover { background: rgba(255,255,255,0.18); color: #fff !important; }
+.navbar-hero .btn-profile:hover,
+.navbar-hero a.btn-profile:hover { background: rgba(255,255,255,0.18); color: #fff !important; }
 
 /* Once scrolled, restore the solid white navbar */
 .navbar-hero.scrolled {
