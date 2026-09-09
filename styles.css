@@ -319,7 +319,7 @@ a.btn-profile i { font-size: 0.85rem; color: inherit; }
     /* Swimmer photo background with a blue tint on top for readability */
     background:
         linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.12) 35%, rgba(0,0,0,0.30) 100%),
-        url("https://images.unsplash.com/photo-1530549387789-4c1017266635?w=1600&auto=format&fit=crop&q=75") center/cover no-repeat;
+        url("images/hero-swimmer.jpg") center/cover no-repeat;
     /* Navbar is fixed and overlays the top of this hero image */
     padding-top: 70px;
     overflow: hidden;
