@@ -409,9 +409,57 @@ a.btn-profile i { font-size: 0.85rem; color: inherit; }
 
 /* ===== Card Grid ===== */
 .card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 24px;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 20px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 4px 4px 18px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+.card-grid > .event-card {
+    flex: 0 0 340px;          /* fixed card width, no shrink → horizontal row */
+    max-width: 340px;
+    scroll-snap-align: start;
+}
+/* Slim horizontal scrollbar */
+.card-grid::-webkit-scrollbar { height: 8px; }
+.card-grid::-webkit-scrollbar-thumb { background: var(--gray-light); border-radius: 4px; }
+.card-grid::-webkit-scrollbar-thumb:hover { background: var(--gray); }
+
+/* ── Horizontal row wrapper + full-height side arrow panels (Netflix-style) ── */
+.card-row-wrap { position: relative; }
+.row-arrow {
+    position: absolute;
+    top: 4px;
+    bottom: 18px;              /* span the card height (matches grid padding) */
+    z-index: 5;
+    width: 56px;
+    border: none;
+    cursor: pointer;
+    display: grid; place-items: center;
+    color: #fff;
+    font-size: 1.9rem;
+    background: rgba(20,20,30,0.55);
+    opacity: 0;
+    transition: opacity 0.2s ease, background 0.2s ease;
+}
+.card-row-wrap:hover .row-arrow { opacity: 1; }     /* reveal on hover */
+.row-arrow:hover { background: rgba(20,20,30,0.8); }
+.row-arrow-prev {
+    left: 0;
+    border-radius: var(--radius) 0 0 var(--radius);
+    background: linear-gradient(to right, rgba(20,20,30,0.65), rgba(20,20,30,0.15));
+}
+.row-arrow-next {
+    right: 0;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    background: linear-gradient(to left, rgba(20,20,30,0.65), rgba(20,20,30,0.15));
+}
+@media (max-width: 768px) {
+    .row-arrow { width: 44px; font-size: 1.5rem; opacity: 1; }  /* always visible on touch */
 }
 
 .event-card {
@@ -898,8 +946,9 @@ a.btn-profile i { font-size: 0.85rem; color: inherit; }
         align-items: center;
     }
 
-    .card-grid {
-        grid-template-columns: 1fr;
+    .card-grid > .event-card {
+        flex-basis: 82%;      /* on mobile, ~one card wide, peek the next */
+        max-width: 82%;
     }
 
     .section-header {

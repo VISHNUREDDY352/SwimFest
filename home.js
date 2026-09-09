@@ -75,8 +75,7 @@
             <p><i class="fas fa-gavel"></i> <strong>Rules:</strong> ${t.allow_swim_up ? 'Swim-Up Enabled' : 'Single Category Only'}</p>
           </div>
           <div class="card-actions">
-            <a href="event.html" class="btn-card btn-details">View Tournament Details</a>
-            <a href="register.html?tournament=${regParam}&from=event" class="btn-card btn-register">Register Now <i class="fas fa-arrow-right"></i></a>
+            <a href="event.html?tournament=${regParam}" class="btn-card btn-register" style="flex:1;">Register Now <i class="fas fa-arrow-right"></i></a>
           </div>
         </div>
       </div>`;
@@ -84,46 +83,59 @@
 
   const PREVIEW_COUNT = 3;
 
-  // Limit a card grid to PREVIEW_COUNT tournament cards and wire its
-  // "View All" toggle. The host CTA card (.host-card) never counts and
-  // stays visible. The link auto-hides when there are <= PREVIEW_COUNT.
+  // Horizontal scroll row with ‹ › side arrows (Netflix-style).
+  // Wraps the grid in a positioned container and injects prev/next
+  // buttons that scroll the row. Arrows show only when there's overflow.
   function applyPreview(gridId, linkId) {
     const grid = document.getElementById(gridId);
+    if (!grid) return;
+
+    // All cards visible (reachable via scroll)
+    grid.querySelectorAll('.event-card').forEach(c => c.classList.remove('is-hidden-card'));
+
+    // Hide the redundant "View All" text link — arrows handle navigation
     const link = document.getElementById(linkId);
-    if (!grid || !link) return;
+    if (link) link.style.display = 'none';
 
-    // Only real tournament cards count (exclude host CTA + empty states)
-    const cards = Array.from(grid.querySelectorAll('.event-card:not(.host-card)'));
+    // Wrap the grid once in a .card-row-wrap so arrows can sit over it
+    let wrap = grid.closest('.card-row-wrap');
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.className = 'card-row-wrap';
+      grid.parentNode.insertBefore(wrap, grid);
+      wrap.appendChild(grid);
 
-    if (cards.length <= PREVIEW_COUNT) {
-      link.style.display = 'none';
-      cards.forEach(c => c.classList.remove('is-hidden-card'));
-      return;
+      const prev = document.createElement('button');
+      prev.className = 'row-arrow row-arrow-prev';
+      prev.setAttribute('aria-label', 'Scroll left');
+      prev.innerHTML = '<i class="fas fa-chevron-left"></i>';
+
+      const next = document.createElement('button');
+      next.className = 'row-arrow row-arrow-next';
+      next.setAttribute('aria-label', 'Scroll right');
+      next.innerHTML = '<i class="fas fa-chevron-right"></i>';
+
+      wrap.appendChild(prev);
+      wrap.appendChild(next);
+
+      const step = () => Math.max(grid.clientWidth * 0.85, 320);
+      prev.addEventListener('click', () => grid.scrollBy({ left: -step(), behavior: 'smooth' }));
+      next.addEventListener('click', () => grid.scrollBy({ left:  step(), behavior: 'smooth' }));
+
+      const updateArrows = () => {
+        const overflowing = grid.scrollWidth > grid.clientWidth + 8;
+        const atStart = grid.scrollLeft <= 4;
+        const atEnd   = grid.scrollLeft + grid.clientWidth >= grid.scrollWidth - 4;
+        prev.style.display = (overflowing && !atStart) ? '' : 'none';
+        next.style.display = (overflowing && !atEnd)   ? '' : 'none';
+      };
+      grid.addEventListener('scroll', updateArrows, { passive: true });
+      window.addEventListener('resize', updateArrows);
+      wrap._updateArrows = updateArrows;
     }
 
-    link.style.display = '';
-
-    // Replace the node to clear any listeners bound on a previous run
-    const fresh = link.cloneNode(true);
-    link.parentNode.replaceChild(fresh, link);
-
-    let expanded = false;
-    const paint = () => {
-      cards.forEach((c, i) => c.classList.toggle('is-hidden-card', !expanded && i >= PREVIEW_COUNT));
-      fresh.innerHTML = expanded
-        ? 'Show Less <i class="fas fa-arrow-up"></i>'
-        : 'View All <i class="fas fa-arrow-right"></i>';
-    };
-
-    paint(); // initial: collapsed, hide cards past the 3rd
-
-    fresh.addEventListener('click', (e) => {
-      e.preventDefault();
-      expanded = !expanded;
-      paint();
-      const section = grid.closest('.section');
-      if (!expanded && section) section.scrollIntoView({ behavior: 'smooth' });
-    });
+    // Refresh arrow visibility after (re)render
+    if (wrap._updateArrows) setTimeout(wrap._updateArrows, 60);
   }
 
   // Host-a-meet CTA card (kept at end of upcoming)
