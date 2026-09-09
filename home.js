@@ -166,17 +166,19 @@
   async function loadTournaments() {
     if (!window.sb) { console.warn('[SwimFest] Supabase not loaded — keeping static cards.'); return; }
 
-    const { data, error } = await window.sb
-      .from('tournaments')
-      .select('*')
-      .order('start_date', { ascending: true });
+    // Only show events for the currently selected state (mandatory filter)
+    const selectedState = (localStorage.getItem('swimfest_state') || 'Tamil Nadu').trim();
+
+    let query = window.sb.from('tournaments').select('*').order('start_date', { ascending: true });
+    if (selectedState) query = query.eq('state', selectedState);
+    const { data, error } = await query;
 
     if (error) { console.error('[SwimFest] tournaments load error:', error.message); return; }
-    if (!data || !data.length) { console.info('[SwimFest] no tournaments in DB — keeping static cards.'); return; }
 
-    const upcoming = data.filter(t => ['PUBLISHED','CLOSED','DRAFT','PENDING_APPROVAL'].includes(t.status) && t.status !== 'COMPLETED');
-    const live     = data.filter(t => t.status === 'LOCKED');
-    const past     = data.filter(t => t.status === 'COMPLETED');
+    const rows = data || [];
+    const upcoming = rows.filter(t => ['PUBLISHED','CLOSED','DRAFT','PENDING_APPROVAL'].includes(t.status) && t.status !== 'COMPLETED');
+    const live     = rows.filter(t => t.status === 'LOCKED');
+    const past     = rows.filter(t => t.status === 'COMPLETED');
 
     // Upcoming
     const upEl = document.getElementById('upcomingCards');
@@ -213,8 +215,11 @@
       }
     }
 
-    console.info(`[SwimFest] Loaded ${data.length} tournaments from Supabase (${upcoming.length} upcoming, ${past.length} past).`);
+    console.info(`[SwimFest] Loaded ${rows.length} tournaments for "${selectedState}" (${upcoming.length} upcoming, ${past.length} past).`);
   }
+
+  // Expose so the state selector (script.js) can reload events on change
+  window.loadTournaments = loadTournaments;
 
   // Apply the 3-card preview to whatever cards are present (covers the
   // static-HTML fallback when Supabase is unreachable). loadTournaments

@@ -72,23 +72,29 @@ async function initStateGrid() {
         </div>
     `).join('');
 
+    // Ensure events match the finalized state (in case the default changed)
+    if (typeof window.loadTournaments === 'function') window.loadTournaments();
+
     // Add click handlers to state options
     stateGrid.querySelectorAll('.state-option').forEach(option => {
         option.addEventListener('click', () => {
             const selected = option.dataset.state;
             localStorage.setItem('swimfest_state', selected);
             currentStateEl.textContent = selected;
-            
+
             // Update active state
             stateGrid.querySelectorAll('.state-option').forEach(o => o.classList.remove('active'));
             option.classList.add('active');
-            
+
             // Update section title
             const stateTag = document.querySelector('.state-tag');
             if (stateTag) stateTag.textContent = `(${selected})`;
 
             // Close modal
             stateModal.classList.remove('active');
+
+            // Reload the events for the newly selected state
+            if (typeof window.loadTournaments === 'function') window.loadTournaments();
         });
     });
 }
