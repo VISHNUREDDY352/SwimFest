@@ -1908,6 +1908,8 @@
 .reg-pick-poster.t1 { background: linear-gradient(135deg, #0077b6, #00b4d8); }
 .reg-pick-poster.t2 { background: linear-gradient(135deg, #7b2ff7, #00b4d8); }
 .reg-pick-poster.t3 { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+.reg-pick-host-poster { background: linear-gradient(135deg, var(--dark, #1a1a2e), var(--primary, #0077b6)); }
+.reg-pick-host { border: 1.5px dashed var(--gray-light, #dfe6ee); }
 
 .reg-pick-body { padding: 16px 18px; flex: 1; display: flex; flex-direction: column; }
 .reg-pick-name { font-size: 1rem; font-weight: 700; color: var(--dark); line-height: 1.3; margin-bottom: 10px; }

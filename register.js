@@ -935,14 +935,27 @@ async function showTournamentPicker() {
     } catch (e) { console.warn('[SwimFest] picker load:', e.message); }
   }
 
+  // "Host an Event" CTA card — always shown at the end of the picker
+  const hostCardHtml = `
+    <div class="reg-pick-card reg-pick-host" id="pickerHostCard">
+      <div class="reg-pick-poster reg-pick-host-poster"><i class="fas fa-plus-circle"></i></div>
+      <div class="reg-pick-body">
+        <span class="reg-pick-status" style="background:#fff4e5;color:#b45309;">Organiser</span>
+        <div class="reg-pick-name">Host Your Own Event</div>
+        <div class="reg-pick-meta">
+          <p><i class="fas fa-building"></i> Create &amp; manage your own swimming meet</p>
+          <p><i class="fas fa-info-circle"></i> Sign in as an organizer to get started</p>
+        </div>
+        <button class="reg-pick-btn" style="background:var(--secondary,#063e91);">Host an Event <i class="fas fa-arrow-right"></i></button>
+      </div>
+    </div>`;
+
   if (!list.length) {
     grid.innerHTML = `<div class="reg-picker-empty">
       <i class="fas fa-calendar-times"></i>
-      No open tournaments right now. Check back soon!</div>`;
-    return;
-  }
-
-  grid.innerHTML = list.map((t, i) => `
+      No open tournaments right now. Check back soon!</div>` + hostCardHtml;
+  } else {
+    grid.innerHTML = list.map((t, i) => `
     <div class="reg-pick-card" data-title="${escHtml(t.title)}"
          data-venue="${escHtml(t.venue_name)}, ${escHtml(t.city)}"
          data-dates="${fmtPickDate(t.start_date)} – ${fmtPickDate(t.end_date)}">
@@ -957,13 +970,21 @@ async function showTournamentPicker() {
         </div>
         <button class="reg-pick-btn">Register for this <i class="fas fa-arrow-right"></i></button>
       </div>
-    </div>`).join('');
+    </div>`).join('') + hostCardHtml;
+  }
 
-  // Card click → choose tournament and start wizard
-  grid.querySelectorAll('.reg-pick-card').forEach(card => {
+  // Tournament card click → choose tournament and start wizard
+  grid.querySelectorAll('.reg-pick-card[data-title]').forEach(card => {
     card.addEventListener('click', () => {
       chooseTournament(card.dataset.title, card.dataset.venue, card.dataset.dates);
     });
+  });
+
+  // Host card click → create-event flow (login-gated)
+  const host = document.getElementById('pickerHostCard');
+  if (host) host.addEventListener('click', () => {
+    const loggedIn = window.SwimAuth && window.SwimAuth.isLoggedIn();
+    window.location.href = loggedIn ? 'orgcreate.html' : 'login.html?returnTo=orgcreate.html&reason=login_required';
   });
 }
 
