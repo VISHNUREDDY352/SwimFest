@@ -11,7 +11,6 @@
 .pf-header-card {
     background: var(--white);
     border-radius: var(--radius);
-    overflow: hidden;
     box-shadow: var(--shadow);
     margin-bottom: 20px;
     border: 1px solid var(--gray-light);
@@ -21,6 +20,8 @@
     height: 110px;
     background: linear-gradient(135deg, #0057FF 0%, #0077b6 50%, #00b4d8 100%);
     position: relative;
+    border-radius: var(--radius) var(--radius) 0 0;
+    overflow: hidden;
 }
 .pf-header-cover::after {
     content: '';
