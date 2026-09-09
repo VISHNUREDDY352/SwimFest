@@ -250,4 +250,33 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     SwimAuth.logoutAndRedirect();
   });
+
+  // ── Universal mobile menu (compact top-right dropdown) ──────
+  // Works on every page that has #mobileMenu. Per-page scripts may
+  // toggle the .active class themselves; we simply keep a backdrop
+  // in sync so tapping outside always closes it. Order-independent.
+  (function initMobileMenu() {
+    const menu = document.getElementById('mobileMenu');
+    if (!menu) return;
+
+    // Transparent overlay to catch outside taps
+    let overlay = document.querySelector('.mobile-menu-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'mobile-menu-overlay';
+      document.body.appendChild(overlay);
+    }
+
+    const closeMenu = () => menu.classList.remove('active');
+
+    // Keep the overlay's visibility mirrored to the menu's state,
+    // no matter which script toggled the .active class.
+    const sync = () => overlay.classList.toggle('active', menu.classList.contains('active'));
+    new MutationObserver(sync).observe(menu, { attributes: true, attributeFilter: ['class'] });
+    sync();
+
+    overlay.addEventListener('click', closeMenu);
+    menu.querySelectorAll('a').forEach(a => a.addEventListener('click', closeMenu));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+  })();
 });

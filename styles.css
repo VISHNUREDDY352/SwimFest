@@ -177,17 +177,63 @@ a.btn-profile i { font-size: 0.85rem; color: inherit; }
     cursor: pointer;
 }
 
+/* ===== Mobile Menu — compact top-right dropdown panel ===== */
+/* Transparent backdrop so tapping outside closes the menu */
+.mobile-menu-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9997;
+    background: transparent;
+    display: none;
+}
+.mobile-menu-overlay.active { display: block; }
+
 .mobile-menu {
     display: none;
     flex-direction: column;
-    padding: 16px 24px;
+    padding: 8px;
     background: var(--white);
-    border-bottom: 1px solid var(--gray-light);
-    gap: 8px;
+    gap: 2px;
+    /* Floating dropdown anchored under the hamburger, top-right */
+    position: fixed;
+    top: 64px;
+    right: 12px;
+    z-index: 9998;
+    width: 220px;
+    max-width: calc(100vw - 24px);
+    border: 1px solid var(--gray-light);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
+    transform-origin: top right;
+    animation: mobileMenuIn 0.16s ease-out;
 }
 
-.mobile-menu.active {
+@keyframes mobileMenuIn {
+    from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.mobile-menu.active { display: flex; }
+
+/* Never show the dropdown / overlay on desktop widths */
+@media (min-width: 769px) {
+    .mobile-menu, .mobile-menu-overlay { display: none !important; }
+}
+
+/* Menu items styled as tidy tap rows inside the dropdown */
+.mobile-menu .nav-link {
+    padding: 11px 12px;
+    border-radius: 8px;
+    font-size: 0.92rem;
     display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.mobile-menu .nav-link i { width: 18px; text-align: center; color: var(--primary); }
+.mobile-menu .nav-link:hover,
+.mobile-menu .nav-link:active {
+    background: var(--accent-light);
+    color: var(--primary);
 }
 
 /* ===== Hero Banner ===== */
