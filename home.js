@@ -274,29 +274,9 @@
     });
   }
 
-  // Populate the hero stat highlights with live counts from the DB
-  async function loadHeroStats() {
-    if (!window.sb) return;
-    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-    try {
-      const [ev, ac, sw] = await Promise.all([
-        window.sb.from('tournaments').select('tournament_id', { count: 'exact', head: true }).in('status', ['PUBLISHED', 'LOCKED', 'CLOSED', 'COMPLETED']),
-        window.sb.from('academies').select('academy_id', { count: 'exact', head: true }),
-        window.sb.from('swimmer_directory').select('swimmer_id', { count: 'exact', head: true }),
-      ]);
-      set('heroStatEvents', ev.count ?? 0);
-      set('heroStatAcademies', ac.count ?? 0);
-      set('heroStatSwimmers', (sw.count ?? 0).toLocaleString('en-IN'));
-    } catch (e) {
-      // On any failure, show zeros rather than dashes
-      set('heroStatEvents', 0); set('heroStatAcademies', 0); set('heroStatSwimmers', 0);
-    }
-  }
-
   document.addEventListener('DOMContentLoaded', () => {
     initPreviews();
     wireCreateEvent();
     loadTournaments();
-    loadHeroStats();
   });
 })();
