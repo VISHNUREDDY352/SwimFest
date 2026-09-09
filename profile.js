@@ -96,6 +96,8 @@ function renderHeader() {
   $('pfCategory').textContent  = PROFILE.category;
   $('pfSwimmerId').textContent = PROFILE.swimmerId;
   $('pfAcademy').textContent   = PROFILE.academy || 'Unattached';
+  const locEl = $('pfLocation');
+  if (locEl) locEl.textContent = `${PROFILE.city || 'Tamil Nadu'}, ${PROFILE.state || 'Tamil Nadu'}`;
   $('statEvents').textContent      = PROFILE.stats.events;
   $('statMedals').textContent      = PROFILE.stats.medals;
   $('statPB').textContent          = PROFILE.stats.pb;
