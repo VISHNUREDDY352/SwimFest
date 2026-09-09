@@ -62,11 +62,20 @@ document.addEventListener('keydown', (e) => {
   };
 
   async function loadEvent() {
-    if (!window.sb) return; // keep static content if DB unavailable
     const params = new URLSearchParams(location.search);
     const title = params.get('tournament');
     const id    = params.get('id');
     if (!title && !id) return; // no param — leave the default demo content
+
+    // Immediately blank the hardcoded default so the wrong event
+    // (e.g. "Golden Non-Medalist") never flashes before the real one loads.
+    const prettyTitle = title ? decodeURIComponent(title) : 'Loading…';
+    setText('evTitle', prettyTitle);
+    setText('evBannerTitle', prettyTitle);
+    ['evHostedBy','evVenue','evSpecs','evDates','evDeadline','evBaseFee','evFeeLine','evMobileFee','evSwimUpLine']
+      .forEach(id2 => { const el = document.getElementById(id2); if (el) el.textContent = '…'; });
+
+    if (!window.sb) return; // keep placeholder if DB unavailable
 
     let q = window.sb.from('tournaments').select('*');
     q = id ? q.eq('tournament_id', id) : q.eq('title', decodeURIComponent(title));
