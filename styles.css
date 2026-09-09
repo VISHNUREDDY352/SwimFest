@@ -43,10 +43,7 @@ body {
 
 /* ===== Navbar ===== */
 .navbar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
+    position: static;          /* scrolls away with the page, does not follow */
     z-index: 9999;
     background: var(--white);
     border-bottom: 1px solid var(--gray-light);
@@ -54,17 +51,15 @@ body {
     transition: background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
-/* Navbar is fixed (out of flow). Offset page content so nothing hides
-   under it — but only on pages that actually use .navbar, and not the
-   home page (its hero handles its own top spacing). Admin/staff pages
-   use .admin-topbar (in-flow) and are unaffected. */
-body:has(> .navbar):not(.has-hero-nav) { padding-top: 70px; }
-@media (max-width: 768px) {
-    body:has(> .navbar):not(.has-hero-nav) { padding-top: 60px; }
+/* Home page: navbar overlays the hero image (transparent) while at the
+   top, then turns solid white after scrolling. It still scrolls away
+   with the page (not fixed). */
+.has-hero-nav .navbar-hero {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
 }
-
-/* Home page: navbar overlays the hero image (transparent), then turns
-   solid white after the user scrolls past the hero. */
 .navbar-hero {
     background: transparent !important;
     border-bottom: none !important;
