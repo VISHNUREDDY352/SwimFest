@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create New Meet — SwimFest Organizer Portal</title>
+    <title>Create New Event — SwimFest Organizer Portal</title>
     <script src="guard.js" data-roles="organizer,super_admin"></script>
     <link rel="stylesheet" href="styles.css?v=6">
     <link rel="stylesheet" href="admin.css">
@@ -30,7 +30,7 @@
     <!-- Step indicator -->
     <div style="background:var(--white);border-bottom:1px solid var(--gray-light);padding:0 32px;display:flex;align-items:center;gap:0;overflow-x:auto;">
         <div style="font-size:0.68rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.8px;padding:14px 16px 14px 0;white-space:nowrap;">CREATION STEP:</div>
-        <div class="mc-step-item active" id="ocStep1Ind"><div class="mc-step-circle">1</div><span class="mc-step-label">Meet Specs</span></div>
+        <div class="mc-step-item active" id="ocStep1Ind"><div class="mc-step-circle">1</div><span class="mc-step-label">Event Specs</span></div>
         <div class="mc-step-divider"></div>
         <div class="mc-step-item" id="ocStep2Ind"><div class="mc-step-circle">2</div><span class="mc-step-label">Payment Model &amp; Fee</span></div>
         <div class="mc-step-divider"></div>
@@ -40,15 +40,15 @@
     <main>
         <div class="dash-container" style="max-width:860px;">
 
-            <!-- Step 1: General Meet Specs & Pool Infrastructure -->
+            <!-- Step 1: General Event Specs & Pool Infrastructure -->
             <div id="ocStep1">
                 <div class="mc-form-card">
-                    <div class="mc-form-title">Step 1: General Meet Specs &amp; Pool Infrastructure</div>
+                    <div class="mc-form-title">Step 1: General Event Specs &amp; Pool Infrastructure</div>
                     <div class="mc-form-sub">Define the competition identity, venue standards, and key dates.</div>
                     <div class="mc-grid">
                         <div class="mc-field mc-full">
-                            <label class="mc-label">Meet Title *</label>
-                            <input class="mc-input" id="ocTitle" placeholder="Meet title">
+                            <label class="mc-label">Event Title *</label>
+                            <input class="mc-input" id="ocTitle" placeholder="Event title">
                         </div>
                         <div class="mc-field mc-full">
                             <label class="mc-label">Host Club Name *</label>
@@ -80,7 +80,7 @@
                             </div>
                         </div>
                         <div class="mc-field">
-                            <label class="mc-label">Meet Dates *</label>
+                            <label class="mc-label">Event Dates *</label>
                             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                                 <div>
                                     <div style="font-size:0.68rem;color:var(--gray);margin-bottom:3px;">Start</div>
@@ -108,7 +108,7 @@
             <div id="ocStep2" style="display:none;">
                 <div class="mc-form-card">
                     <div class="mc-form-title">Step 2: Payment Gateway Model Selection &amp; Upfront Software Utility Fee</div>
-                    <div class="mc-form-sub">Select how participant entry fees will be collected for this meet.</div>
+                    <div class="mc-form-sub">Select how participant entry fees will be collected for this event.</div>
 
                     <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:24px;" id="ocGatewayGroup">
                         <label class="ae-gateway-opt" id="ocOptA">
@@ -141,7 +141,7 @@
                     <div class="oc-upfront-block" id="ocUpfrontBlock">
                         <div class="oc-upfront-header">
                             <i class="fas fa-exclamation-triangle"></i>
-                            Mandatory Upfront Software Utility Tariff (For Option B Meets)
+                            Mandatory Upfront Software Utility Tariff (For Option B Events)
                         </div>
                         <div class="oc-upfront-body">
                             <div class="oc-upfront-fee-row">
@@ -150,7 +150,7 @@
                             </div>
                             <p class="oc-upfront-note">
                                 <i class="fas fa-info-circle"></i>
-                                This fee is processed securely via Razorpay. Your meet will be submitted to Super Admin approval queue only after successful payment confirmation.
+                                This fee is processed securely via Razorpay. Your event will be submitted to Super Admin approval queue only after successful payment confirmation.
                             </p>
                         </div>
                     </div>
@@ -248,7 +248,7 @@
                     <div style="font-size:3.5rem;color:var(--success);margin-bottom:20px;animation:popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;">
                         <i class="fas fa-check-circle"></i>
                     </div>
-                    <h2 style="font-size:1.5rem;font-weight:800;color:var(--dark);margin-bottom:8px;">Meet Submitted!</h2>
+                    <h2 style="font-size:1.5rem;font-weight:800;color:var(--dark);margin-bottom:8px;">Event Submitted!</h2>
                     <p style="color:var(--success);font-weight:700;margin-bottom:4px;">Payment: PAID_SUCCESSFULLY</p>
                     <p id="ocStatusLine" style="color:var(--warning);font-weight:700;margin-bottom:16px;">Status: PENDING_SUPER_ADMIN_APPROVAL</p>
                     <div style="background:var(--light);border:1px solid var(--gray-light);border-radius:var(--radius-sm);padding:16px 24px;max-width:400px;margin:0 auto 28px;text-align:left;">
@@ -267,7 +267,7 @@
                     </div>
                     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
                         <a href="orgdashboard.html" class="mc-btn mc-btn-ghost"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
-                        <a href="orgdashboard.html#myMeets" class="mc-btn mc-btn-primary"><i class="fas fa-calendar-check"></i> View My Hosted Meets</a>
+                        <a href="orgdashboard.html#myMeets" class="mc-btn mc-btn-primary"><i class="fas fa-calendar-check"></i> View My Hosted Events</a>
                     </div>
                 </div>
             </div>
@@ -391,7 +391,7 @@
 
     function validateOC(row){
       const miss=[];
-      if(!row.title)      miss.push('Meet Title');
+      if(!row.title)      miss.push('Event Title');
       if(!row.city)       miss.push('City');
       if(!row.venue_name) miss.push('Venue Name');
       if(!row.start_date) miss.push('Start Date');
@@ -415,7 +415,7 @@
 
     window.saveDraftOC = async function(){
       const id = await saveMeet('DRAFT');
-      if(id) showToast('Meet saved as draft. Status: DRAFT','info');
+      if(id) showToast('Event saved as draft. Status: DRAFT','info');
     };
 
     window.showPaymentModal=function(){
@@ -464,8 +464,8 @@
         stEl.style.color = isSuperAdmin ? 'var(--success)' : 'var(--warning)';
       }
       window.scrollTo({top:0,behavior:'smooth'});
-      showToast(isSuperAdmin ? 'Meet published live (auto-approved).'
-                             : (paid ? 'Payment confirmed. Meet submitted for Super Admin approval.' : 'Meet submitted for Super Admin approval.'),
+      showToast(isSuperAdmin ? 'Event published live (auto-approved).'
+                             : (paid ? 'Payment confirmed. Event submitted for Super Admin approval.' : 'Event submitted for Super Admin approval.'),
                 'success');
     }
 
