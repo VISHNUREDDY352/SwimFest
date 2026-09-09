@@ -1150,3 +1150,35 @@ a.btn-profile i { font-size: 0.85rem; color: inherit; }
 .host-prompt-cancel:hover { background: var(--gray-light); }
 .host-prompt-ok { background: var(--primary); color: var(--white); }
 .host-prompt-ok:hover { background: var(--primary-dark); }
+
+/* ===== Universal floating Back button (injected by auth.js) ===== */
+.global-back-btn {
+    position: fixed;
+    top: 82px;
+    left: 16px;
+    z-index: 9990;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 14px;
+    background: var(--white);
+    color: var(--dark);
+    border: 1px solid var(--gray-light);
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+    transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+.global-back-btn:hover {
+    background: var(--primary);
+    color: var(--white);
+    transform: translateX(-2px);
+}
+.global-back-btn i { font-size: 0.8rem; }
+
+@media (max-width: 768px) {
+    .global-back-btn { top: 70px; left: 10px; padding: 7px 12px; font-size: 0.78rem; }
+}

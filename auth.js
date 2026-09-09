@@ -279,6 +279,49 @@ document.addEventListener('DOMContentLoaded', () => {
     SwimAuth.logoutAndRedirect();
   });
 
+  // ── Universal floating "Back" button ────────────────────────
+  // Adds a top-left Back button to any page that doesn't already
+  // have back navigation. Skips the home page and role landing
+  // dashboards (where "back" has no meaning). History-aware.
+  (function initBackButton() {
+    const page = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
+
+    // Pages that should NOT get an injected back button:
+    //  - the home page itself
+    //  - role landing pages / dashboards (their own nav returns elsewhere)
+    const SKIP_PAGES = [
+      '', 'index.html',
+      'superadmin.html', 'emdashboard.html', 'orgdashboard.html',
+    ];
+    if (SKIP_PAGES.includes(page)) return;
+
+    // If the page already has a visible back control, don't add another.
+    // Detect by: "back" in the text, a "back" class, or a left-arrow icon
+    // inside a link/button (covers "Master Player List", "EM Dashboard", etc.).
+    const hasBack = Array.from(document.querySelectorAll('a, button')).some(el => {
+      const t = (el.textContent || '').trim().toLowerCase();
+      if (/(^|\s)back(\s|$)/.test(t)) return true;
+      if (el.className.toLowerCase().includes('back')) return true;
+      if (el.querySelector && el.querySelector('.fa-arrow-left')) return true;
+      return false;
+    });
+    if (hasBack) return;
+
+    // Opt-out via <body data-no-back> if ever needed
+    if (document.body.hasAttribute('data-no-back')) return;
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'globalBackBtn';
+    btn.className = 'global-back-btn';
+    btn.innerHTML = '<i class="fas fa-arrow-left"></i> Back';
+    btn.addEventListener('click', () => {
+      if (window.history.length > 1) window.history.back();
+      else window.location.href = 'index.html';
+    });
+    document.body.appendChild(btn);
+  })();
+
   // ── Universal mobile menu (compact top-right dropdown) ──────
   // Works on every page that has #mobileMenu. Per-page scripts may
   // toggle the .active class themselves; we simply keep a backdrop
