@@ -168,14 +168,32 @@ window.handleLogin = async function(e) {
     return;
   }
 
-  // Route purely on the account's role (resolved from the profile).
   const role = res.session.role || 'swimmer';
   const returnTo = getReturnTo();
-  const landing = (ROLE_CONFIG[role] && ROLE_CONFIG[role].landing) || 'profile.html';
-  const dest = returnTo || landing;
 
+  // If the user explicitly came here to reach a specific page, honor it.
+  if (returnTo) {
+    showToast('Signed in. Redirecting…', 'success');
+    setTimeout(() => { window.location.href = returnTo; }, 800);
+    return;
+  }
+
+  // Dual-role check: an account that is BOTH a swimmer and an organizer
+  // gets a "choose your space" screen instead of auto-routing. Staff
+  // roles (event_manager / super_admin) always go straight to their console.
+  if (role === 'swimmer' || role === 'organizer') {
+    const caps = await window.SwimAuth.detectCapabilities(res.session.userId);
+    if (caps.swimmer && caps.organizer) {
+      showToast('Signed in. Choose where to go…', 'success');
+      setTimeout(() => { window.location.href = 'chooserole.html'; }, 600);
+      return;
+    }
+  }
+
+  // Single-role: route on the resolved role.
+  const landing = (ROLE_CONFIG[role] && ROLE_CONFIG[role].landing) || 'profile.html';
   showToast('Signed in. Redirecting…', 'success');
-  setTimeout(() => { window.location.href = dest; }, 800);
+  setTimeout(() => { window.location.href = landing; }, 800);
 };
 
 // ── Read ?returnTo= param (only allow same-site relative pages) ──

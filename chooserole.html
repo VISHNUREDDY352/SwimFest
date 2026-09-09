@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choose Your Space — SwimFest</title>
+    <link rel="stylesheet" href="styles.css?v=21">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .cr-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #0057FF 0%, #0077b6 55%, #00b4d8 100%);
+        }
+        .cr-wrap { width: 100%; max-width: 720px; text-align: center; color: #fff; }
+        .cr-logo { font-size: 1.6rem; font-weight: 800; margin-bottom: 8px; display: inline-flex; align-items: center; gap: 10px; }
+        .cr-logo i { color: #fff; }
+        .cr-title { font-size: 1.8rem; font-weight: 800; margin: 14px 0 6px; letter-spacing: -0.5px; }
+        .cr-sub { font-size: 0.95rem; opacity: 0.9; margin-bottom: 32px; }
+        .cr-name { font-weight: 700; }
+        .cr-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        .cr-card {
+            background: #fff;
+            border-radius: 18px;
+            padding: 30px 22px;
+            text-decoration: none;
+            color: var(--dark, #1a2330);
+            box-shadow: 0 14px 40px rgba(0,0,0,0.22);
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+            border: 2px solid transparent;
+            cursor: pointer;
+            display: block;
+        }
+        .cr-card:hover { transform: translateY(-4px); box-shadow: 0 20px 50px rgba(0,0,0,0.28); border-color: var(--accent, #00b4d8); }
+        .cr-card-icon {
+            width: 62px; height: 62px; margin: 0 auto 16px;
+            border-radius: 16px;
+            display: grid; place-items: center;
+            font-size: 1.6rem; color: #fff;
+        }
+        .cr-icon-swimmer   { background: linear-gradient(135deg, #0057FF, #00b4d8); }
+        .cr-icon-organizer { background: linear-gradient(135deg, #0a7d3b, #16a34a); }
+        .cr-card-title { font-size: 1.15rem; font-weight: 800; margin-bottom: 6px; }
+        .cr-card-desc { font-size: 0.83rem; color: var(--gray, #64748b); line-height: 1.5; }
+        .cr-card-go { margin-top: 16px; display: inline-flex; align-items: center; gap: 7px; font-size: 0.85rem; font-weight: 700; color: var(--primary, #0057FF); }
+        .cr-logout { margin-top: 26px; display: inline-block; color: rgba(255,255,255,0.85); font-size: 0.85rem; text-decoration: none; font-weight: 600; }
+        .cr-logout:hover { color: #fff; text-decoration: underline; }
+        @media (max-width: 560px) {
+            .cr-cards { grid-template-columns: 1fr; }
+            .cr-title { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <main class="cr-page">
+        <div class="cr-wrap">
+            <div class="cr-logo"><i class="fas fa-swimmer"></i> SwimFest</div>
+            <h1 class="cr-title">Welcome back<span id="crName"></span></h1>
+            <p class="cr-sub">Your account has two spaces. Where would you like to go?</p>
+
+            <div class="cr-cards">
+                <a class="cr-card" id="crSwimmer">
+                    <div class="cr-card-icon cr-icon-swimmer"><i class="fas fa-person-swimming"></i></div>
+                    <div class="cr-card-title">Continue as Swimmer</div>
+                    <div class="cr-card-desc">Browse events, register to compete, and track your results.</div>
+                    <span class="cr-card-go">Enter Swimmer Space <i class="fas fa-arrow-right"></i></span>
+                </a>
+                <a class="cr-card" id="crOrganizer">
+                    <div class="cr-card-icon cr-icon-organizer"><i class="fas fa-building"></i></div>
+                    <div class="cr-card-title">Continue as Organizer</div>
+                    <div class="cr-card-desc">Create and manage your own swimming events and entries.</div>
+                    <span class="cr-card-go">Enter Organizer Space <i class="fas fa-arrow-right"></i></span>
+                </a>
+            </div>
+
+            <a href="#" class="cr-logout" id="crLogout"><i class="fas fa-sign-out-alt"></i> Not you? Log out</a>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js?v=6"></script>
+    <script>
+    (function () {
+        'use strict';
+        const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
+
+        // Must be logged in
+        if (!session) { window.location.href = 'login.html?returnTo=chooserole.html&reason=login_required'; return; }
+
+        // Personalize greeting
+        const nameEl = document.getElementById('crName');
+        if (nameEl && session.name) nameEl.textContent = ', ' + session.name.split(' ')[0];
+
+        // Verify the account really has both spaces; if not, route to its landing.
+        (async function () {
+            const caps = await window.SwimAuth.detectCapabilities(session.userId);
+            if (!(caps.swimmer && caps.organizer)) {
+                const landing = caps.organizer ? 'orgdashboard.html' : 'index.html';
+                window.location.href = landing;
+            }
+        })();
+
+        // Card actions: set the active role, then go to that space
+        document.getElementById('crSwimmer').addEventListener('click', function (e) {
+            e.preventDefault();
+            window.SwimAuth.setActiveRole('swimmer');
+            window.location.href = 'index.html';
+        });
+        document.getElementById('crOrganizer').addEventListener('click', function (e) {
+            e.preventDefault();
+            window.SwimAuth.setActiveRole('organizer');
+            window.location.href = 'orgdashboard.html';
+        });
+        document.getElementById('crLogout').addEventListener('click', function (e) {
+            e.preventDefault();
+            if (window.SwimAuth) window.SwimAuth.logoutAndRedirect();
+        });
+    })();
+    </script>
+</body>
+</html>

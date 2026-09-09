@@ -24,6 +24,38 @@ const SwimAuth = {
   isLoggedIn() { return this.getSession() !== null; },
   getRole()    { const s = this.getSession(); return s ? s.role : null; },
 
+  // ── Detect which "spaces" this account can enter ──────────
+  // profiles.role is single-value and gets overwritten to 'organizer'
+  // when a swimmer upgrades, so the durable signal is the presence of
+  // rows in swimmers / organizers (both keyed by owner_id = auth uid).
+  // Returns { swimmer, organizer } booleans.
+  async detectCapabilities(userId) {
+    const caps = { swimmer: false, organizer: false };
+    if (!this.hasSupabase() || !userId) return caps;
+    try {
+      const [sw, org] = await Promise.all([
+        window.sb.from('swimmers').select('swimmer_id').eq('owner_id', userId).limit(1),
+        window.sb.from('organizers').select('organizer_id').eq('owner_id', userId).limit(1),
+      ]);
+      caps.swimmer   = !!(sw.data && sw.data.length);
+      caps.organizer = !!(org.data && org.data.length);
+    } catch (_) { /* ignore — treat as no extra capability */ }
+    return caps;
+  },
+
+  // ── Switch the active role of the current session ─────────
+  // Used by the role chooser so a dual-capable account can move
+  // between the Swimmer and Organizer spaces without re-login.
+  setActiveRole(role) {
+    const s = this.getSession();
+    if (!s) return;
+    s.role = role;
+    s.roleLabel = role;
+    // Preserve the same storage the session already lives in
+    const inLocal = !!localStorage.getItem(SESSION_KEY);
+    this.setSession(s, inLocal);
+  },
+
   // ── Validate the local mirror against the real Supabase session ──
   // The local mirror is fast but can go stale (token expired, signed out
   // elsewhere, account removed). This confirms with Supabase and clears
