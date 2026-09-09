@@ -300,7 +300,7 @@ function timeToMs(t) {
 
 function isValidTime(t) {
   if (!t) return false;
-  return /^\d{1,2}:\d{2}\.\d{1,2,}$/.test(t.trim());
+  return /^\d{1,2}:\d{2}\.\d{1,2}$/.test(t.trim());
 }
 
 function resultKey(eventId, heatNo, lane) {

@@ -264,7 +264,9 @@ function escHtml(str) {
 }
 
 function initials(name) {
-  return name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  return parts.slice(0, 2).map(w => w[0]).join('').toUpperCase();
 }
 
 function laneLabel(l) {

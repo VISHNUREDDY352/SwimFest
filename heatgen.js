@@ -228,7 +228,7 @@ async function saveHeatsToDB() {
 const $ = id => document.getElementById(id);
 
 function escHtml(s) {
-  return String(s)
+  return String(s || '')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
