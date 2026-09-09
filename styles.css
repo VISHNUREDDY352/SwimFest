@@ -61,12 +61,13 @@ body {
 }
 .navbar-hero .logo,
 .navbar-hero .nav-link,
-.navbar-hero .btn-profile,
+.navbar-hero.navbar .nav-container a.btn-profile,
 .navbar-hero a.btn-profile,
 .navbar-hero .mobile-menu-btn,
 .navbar-hero .state-selector { color: #fff !important; }
 .navbar-hero .logo i,
-.navbar-hero .btn-profile i,
+.navbar-hero.navbar .nav-container a.btn-profile i,
+.navbar-hero a.btn-profile i,
 .navbar-hero .state-selector .fa-caret-down { color: #fff !important; }
 .navbar-hero .state-selector { border-color: rgba(255,255,255,0.6); }
 .navbar-hero .nav-link:hover { background: rgba(255,255,255,0.18); color: #fff !important; }
@@ -81,8 +82,9 @@ body {
 }
 .navbar-hero.scrolled .logo,
 .navbar-hero.scrolled .nav-link,
-.navbar-hero.scrolled .btn-profile,
-.navbar-hero.scrolled .mobile-menu-btn { color: var(--dark); }
+.navbar-hero.scrolled.navbar .nav-container a.btn-profile,
+.navbar-hero.scrolled a.btn-profile,
+.navbar-hero.scrolled .mobile-menu-btn { color: var(--dark) !important; }
 .navbar-hero.scrolled .logo,
 .navbar-hero.scrolled .logo i { color: var(--primary); }
 .navbar-hero.scrolled .state-selector { color: var(--primary); border-color: var(--accent); }
