@@ -278,18 +278,23 @@
     .pf-container { padding: 0 14px; }
 
     /* Center the header content on small screens */
-    .pf-header-cover { height: 88px; }
+    .pf-header-cover { height: 76px; }
     .pf-header-body {
         padding: 0 18px 20px;
         flex-direction: column;
         align-items: center;
         text-align: center;
         gap: 12px;
+        position: relative;
+        z-index: 2;
+        background: var(--white);
     }
     .pf-avatar {
         width: 78px; height: 78px;
-        margin-top: -40px;
+        margin-top: -38px;
         font-size: 1.7rem;
+        position: relative;
+        z-index: 3;
     }
     .pf-header-info { padding-top: 0; min-width: 0; width: 100%; }
     .pf-name-row { justify-content: center; }
