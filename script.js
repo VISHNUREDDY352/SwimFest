@@ -24,12 +24,36 @@ const searchInput = document.getElementById('searchInput');
 const categoryFilter = document.getElementById('categoryFilter');
 const statusFilter = document.getElementById('statusFilter');
 
-// ===== Initialize State Grid =====
-function initStateGrid() {
-    const savedState = localStorage.getItem('swimfest_state') || 'Tamil Nadu';
-    currentStateEl.textContent = savedState;
+// ===== Fetch the states that actually host tournaments =====
+async function getActiveStates() {
+    // Only show states that have at least one visible tournament.
+    if (!window.sb) return null;
+    try {
+        const { data, error } = await window.sb
+            .from('tournaments')
+            .select('state')
+            .in('status', ['PUBLISHED', 'CLOSED', 'LOCKED', 'COMPLETED']);
+        if (error || !data) return null;
+        const distinct = [...new Set(data.map(t => (t.state || '').trim()).filter(Boolean))].sort();
+        return distinct.length ? distinct : null;
+    } catch (_) { return null; }
+}
 
-    stateGrid.innerHTML = states.map(state => `
+// ===== Initialize State Grid (auto-populated from active states) =====
+async function initStateGrid() {
+    // Auto-populate from states that have events; fall back to full list.
+    const activeStates = await getActiveStates();
+    const list = activeStates || states;
+
+    // Default selection: saved state if it's active, else the first active state
+    let savedState = localStorage.getItem('swimfest_state');
+    if (!savedState || !list.includes(savedState)) savedState = list[0] || 'Tamil Nadu';
+    currentStateEl.textContent = savedState;
+    localStorage.setItem('swimfest_state', savedState);
+    const stateTag = document.querySelector('.state-tag');
+    if (stateTag) stateTag.textContent = `(${savedState})`;
+
+    stateGrid.innerHTML = list.map(state => `
         <div class="state-option ${state === savedState ? 'active' : ''}" data-state="${state}">
             ${state}
         </div>
