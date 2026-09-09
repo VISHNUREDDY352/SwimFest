@@ -25,19 +25,23 @@
     const theme = isPast ? PAST_THEMES[idx % PAST_THEMES.length] : POSTER_THEMES[idx % 2];
     const shortName = t.title.length > 24 ? t.title.slice(0, 22) + '…' : t.title;
     const statusMap = {
-      PUBLISHED: { cls:'status-open', label:'Entries Open' },
-      CLOSED:    { cls:'status-closing-soon', label:'Closing Soon' },
-      LOCKED:    { cls:'status-live', label:'Live Now' },
-      COMPLETED: { cls:'status-completed', label:'Completed' },
+      PUBLISHED: { cls:'status-open', label:'Entries Open', filter:'entries-open' },
+      CLOSED:    { cls:'status-closing-soon', label:'Closing Soon', filter:'closing-soon' },
+      LOCKED:    { cls:'status-live', label:'Live Now', filter:'live-now' },
+      COMPLETED: { cls:'status-completed', label:'Completed', filter:'completed' },
     };
     const st = statusMap[t.status] || statusMap.PUBLISHED;
     const regParam = encodeURIComponent(t.title);
+
+    // Data attributes used by the home-page search/category/status filter
+    const dataCats = 'U-10,U-12,U-14,U-16';
+    const dataStatus = st.filter;
 
     const catBadges = ['U10','U12','U14','U16'].map(c => `<span class="cat-badge">${c}</span>`).join('');
 
     if (isPast) {
       return `
-      <div class="event-card past-card" data-name="${esc(t.title)}" data-venue="${esc(t.venue_name)}">
+      <div class="event-card past-card" data-name="${esc(t.title)}" data-venue="${esc(t.venue_name)}" data-categories="${dataCats}" data-status="${dataStatus}">
         <div class="completed-badge">Completed</div>
         <div class="card-image">
           <div class="card-poster ${theme}"><i class="fas fa-medal"></i><span>${esc(shortName)}</span></div>
@@ -59,7 +63,7 @@
     }
 
     return `
-      <div class="event-card" data-name="${esc(t.title)}" data-venue="${esc(t.venue_name)}">
+      <div class="event-card" data-name="${esc(t.title)}" data-venue="${esc(t.venue_name)}" data-categories="${dataCats}" data-status="${dataStatus}">
         <div class="card-image">
           <div class="card-poster ${theme}"><i class="fas fa-trophy"></i><span>${esc(shortName)}</span></div>
           <div class="card-categories">${catBadges}</div>
