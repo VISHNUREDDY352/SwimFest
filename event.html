@@ -52,7 +52,7 @@
         <div class="event-banner-inner">
             <div class="event-banner-content">
                 <i class="fas fa-trophy"></i>
-                <span>Golden Non-Medalist Swimming Championship 2026</span>
+                <span id="evBannerTitle">Golden Non-Medalist Swimming Championship 2026</span>
             </div>
         </div>
     </section>
@@ -168,9 +168,9 @@
                 <div class="event-detail-card">
                     <h2 class="detail-card-title"><i class="fas fa-rupee-sign"></i> Registration & Fee Structure</h2>
                     <ul class="fee-list">
-                        <li><strong>Individual Fee:</strong> ₹800 for 3 events (Max 3 Individual Events)</li>
+                        <li><strong>Individual Fee:</strong> <span id="evFeeLine">₹800</span> for 3 events (Max 3 Individual Events)</li>
                         <li><strong>Relay Add-On:</strong> ₹300 per team entry (Billed separately)</li>
-                        <li><strong>Swim-Up Policy:</strong> SINGLE CATEGORY ONLY (Swim-Up Disabled for this meet)</li>
+                        <li><strong>Swim-Up Policy:</strong> <span id="evSwimUpLine">SINGLE CATEGORY ONLY (Swim-Up Disabled for this meet)</span></li>
                     </ul>
                 </div>
 
@@ -270,7 +270,7 @@
                     </table>
                 </div>
                 <div class="sidebar-fee-info">
-                    <p><strong>Base Fee:</strong> ₹800 (Up to 3 Events)</p>
+                    <p><strong>Base Fee:</strong> <span id="evBaseFee">₹800</span> (Up to 3 Events)</p>
                     <p><strong>Relay Add-On:</strong> ₹300 per team</p>
                 </div>
                 <a href="register.html?tournament=Golden%20Non-Medalist%20Championship%202026&from=event" class="btn-register-tournament" id="evRegisterBtn">
@@ -325,7 +325,7 @@
     <!-- Mobile Sticky Registration Bar -->
     <div class="mobile-register-bar">
         <div class="mobile-register-info">
-            <span>₹800 (3 Events)</span>
+            <span id="evMobileFee">₹800 (3 Events)</span>
         </div>
         <a href="register.html?tournament=Golden%20Non-Medalist%20Championship%202026&from=event" class="mobile-register-btn" id="evRegisterBtnMobile"><i class="fas fa-pen-fancy"></i> Register Now</a>
     </div>
@@ -333,6 +333,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=2"></script>
     <script src="auth.js?v=2"></script>
-    <script src="event.js?v=2"></script>
+    <script src="event.js?v=3"></script>
 </body>
 </html>

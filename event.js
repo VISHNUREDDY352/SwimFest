@@ -75,12 +75,22 @@ document.addEventListener('keydown', (e) => {
 
     const t = data;
     setText('evTitle', t.title);
+    setText('evBannerTitle', t.title);
     if (t.host_organization) setText('evHostedBy', 'Hosted by: ' + t.host_organization);
     setText('evStatusBadge', STATUS_LABEL[t.status] || t.status);
     setText('evVenue', `${t.venue_name || ''}${t.city ? ', ' + t.city : ''}`);
     setText('evSpecs', `${t.pool_length || ''} | ${t.lane_count || 8} Lanes | Electronic Touch-Pad Ready`);
     setText('evDates', `${fmtDate(t.start_date)} – ${fmtDate(t.end_date)}`);
     if (t.registration_deadline) setText('evDeadline', fmtDate(t.registration_deadline));
+
+    // Fees + rules
+    const fee = money(t.reg_fee_amount);
+    setText('evBaseFee', fee);
+    setText('evFeeLine', fee);
+    setText('evMobileFee', `${fee} (${t.max_individual_events || 3} Events)`);
+    setText('evSwimUpLine', t.allow_swim_up
+      ? 'SWIM-UP ENABLED (compete in next age group allowed)'
+      : 'SINGLE CATEGORY ONLY (Swim-Up disabled for this meet)');
 
     // Point the register buttons at this tournament
     const regUrl = `register.html?tournament=${encodeURIComponent(t.title)}&from=event`;
