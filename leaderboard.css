@@ -7,7 +7,7 @@
 /* Hero */
 .lb-hero {
     background: linear-gradient(135deg, #0057FF 0%, #0077b6 50%, #00b4d8 100%);
-    color: #fff; padding: 96px 24px 40px;
+    color: #fff; padding: 44px 24px 40px;
 }
 .lb-hero-inner { max-width: 1100px; margin: 0 auto; }
 .lb-back {

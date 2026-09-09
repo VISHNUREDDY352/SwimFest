@@ -8,7 +8,7 @@
 .sp-hero {
     background: linear-gradient(135deg, var(--primary, #0a5bd3) 0%, var(--secondary, #063e91) 100%);
     color: #fff;
-    padding: 96px 24px 40px;
+    padding: 44px 24px 40px;
 }
 .sp-hero-inner { max-width: 1100px; margin: 0 auto; }
 .sp-eyebrow {
