@@ -2,7 +2,7 @@
 
 /* ===== Event Banner ===== */
 .event-banner {
-    background: linear-gradient(135deg, #f39c12, #e67e22, #d35400);
+    background: linear-gradient(135deg, var(--primary, #0077b6), var(--primary-dark, #005f8a), var(--dark-secondary, #16213e));
     padding: 40px 24px;
     text-align: center;
 }
