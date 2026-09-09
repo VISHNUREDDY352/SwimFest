@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SwimFest - Swimming Competition Management Platform</title>
-    <link rel="stylesheet" href="styles.css?v=21">
+    <link rel="stylesheet" href="styles.css?v=22">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -50,10 +50,19 @@
     <section class="hero-banner">
         <div class="hero-overlay"></div>
         <div class="hero-content">
-            <h1 class="hero-title">Dive Into Victory & Make Your Mark in the Pool</h1>
-            <p class="hero-subtitle">Discover and register for swimming competitions across Tamil Nadu.</p>
+            <span class="hero-eyebrow"><i class="fas fa-water"></i> Tamil Nadu's Swimming Competition Platform</span>
+            <h1 class="hero-title">Dive Into Victory &amp; Make Your <span class="hero-accent">Mark in the Pool</span></h1>
+            <p class="hero-subtitle">Discover, register, and compete in swimming events across Tamil Nadu — all in one place.</p>
             <div class="hero-buttons">
-                <a href="register.html" class="btn btn-primary">Register for Events</a>
+                <a href="register.html" class="btn btn-primary"><i class="fas fa-pen-fancy"></i> Register for Events</a>
+                <a href="#upcoming-tournaments" class="btn btn-secondary"><i class="fas fa-calendar-alt"></i> Browse Events</a>
+            </div>
+            <div class="hero-stats" id="heroStats">
+                <div class="hero-stat"><span class="hero-stat-num" id="heroStatEvents">—</span><span class="hero-stat-label">Events</span></div>
+                <div class="hero-stat-divider"></div>
+                <div class="hero-stat"><span class="hero-stat-num" id="heroStatAcademies">—</span><span class="hero-stat-label">Academies</span></div>
+                <div class="hero-stat-divider"></div>
+                <div class="hero-stat"><span class="hero-stat-num" id="heroStatSwimmers">—</span><span class="hero-stat-label">Swimmers</span></div>
             </div>
         </div>
     </section>
@@ -204,7 +213,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js"></script>
     <script src="auth.js?v=5"></script>
-    <script src="home.js?v=5"></script>
+    <script src="home.js?v=6"></script>
     <script src="script.js?v=4"></script>
 </body>
 </html>
