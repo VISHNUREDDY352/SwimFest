@@ -351,8 +351,9 @@ function showReasonBanner() {
   const reason = params.get('reason');
   if (!reason) return;
   const msgs = {
-    login_required: 'Please sign in to register for a tournament.',
-    wrong_role:     'Your account role does not have access to that page.',
+    login_required:     'Please sign in to register for a tournament.',
+    wrong_role:         'Your account role does not have access to that page.',
+    organizer_required: 'Log in or sign up as an Organizer to host your own event.',
   };
   const msg = msgs[reason];
   if (!msg) return;
@@ -367,8 +368,26 @@ function showReasonBanner() {
   if (wrap && tabs) wrap.insertBefore(banner, tabs);
 }
 
+// If arriving via "Host an Event" (?as=organizer), open the Sign Up tab
+// with the Organizer account type pre-selected.
+function applyPreselectFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('as') !== 'organizer') return;
+  // Switch to the signup tab
+  if (typeof switchTab === 'function') switchTab('signup');
+  // Select the Organizer account-type toggle
+  const orgBtn = document.querySelector('#signupTypeToggle .signup-gender-btn[data-acctype="organizer"]');
+  if (orgBtn) {
+    document.querySelectorAll('#signupTypeToggle .signup-gender-btn').forEach(b => b.classList.remove('active'));
+    orgBtn.classList.add('active');
+    accountType = 'organizer';
+    if (typeof applyAccountType === 'function') applyAccountType();
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initSignupExtras();
   showReasonBanner();
+  applyPreselectFromUrl();
   checkExistingSession();
 });

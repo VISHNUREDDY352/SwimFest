@@ -141,13 +141,13 @@
   // Host-a-meet CTA card (kept at end of upcoming)
   function hostCard() {
     return `
-      <div class="event-card host-card" data-name="Host a Meet in TN" data-venue="Tamil Nadu">
+      <div class="event-card host-card" data-name="Host an Event in TN" data-venue="Tamil Nadu">
         <div class="card-image">
-          <div class="card-poster host-poster"><i class="fas fa-plus-circle"></i><span>Host a Meet in TN</span></div>
+          <div class="card-poster host-poster"><i class="fas fa-plus-circle"></i><span>Host an Event in TN</span></div>
           <div class="card-categories"><span class="cat-badge host-badge">Organiser</span></div>
         </div>
         <div class="card-body">
-          <h3 class="card-event-title">Host Your Own Swimming Meet</h3>
+          <h3 class="card-event-title">Host Your Own Swimming Event</h3>
           <div class="card-info-list">
             <p><i class="fas fa-map-marker-alt"></i> <strong>Location:</strong> Tamil Nadu (Statewide)</p>
             <p><i class="fas fa-info-circle"></i> Create and manage your own competition with full tools.</p>
@@ -228,12 +228,45 @@
       const link = e.target.closest('.host-card .btn-register, .host-card .btn-card');
       if (!link) return;
       e.preventDefault();
-      const loggedIn = window.SwimAuth && window.SwimAuth.isLoggedIn();
-      if (loggedIn) {
-        window.location.href = 'orgcreate.html';
-      } else {
-        window.location.href = 'login.html?returnTo=orgcreate.html&reason=login_required';
-      }
+      showHostPrompt();
+    });
+  }
+
+  // Confirmation popup: to host an event you must log in / sign up as an
+  // organizer. OK → login page (with organizer signup pre-selected).
+  function showHostPrompt() {
+    // Remove any existing prompt first
+    const old = document.getElementById('hostPromptOverlay');
+    if (old) old.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'hostPromptOverlay';
+    overlay.className = 'host-prompt-overlay';
+    overlay.innerHTML = `
+      <div class="host-prompt" role="dialog" aria-modal="true" aria-labelledby="hostPromptTitle">
+        <div class="host-prompt-icon"><i class="fas fa-user-plus"></i></div>
+        <h3 class="host-prompt-title" id="hostPromptTitle">Host an Event</h3>
+        <p class="host-prompt-msg">To create and manage your own swimming event, please
+          <strong>log in or sign up as an Organizer</strong>. Click OK to continue to the login page.</p>
+        <div class="host-prompt-actions">
+          <button class="host-prompt-btn host-prompt-cancel" type="button">Cancel</button>
+          <button class="host-prompt-btn host-prompt-ok" type="button">OK</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+
+    const close = () => { overlay.remove(); document.body.style.overflow = ''; };
+    const proceed = () => {
+      // Organizer signup pre-selected on the login page; return to create flow after auth.
+      window.location.href = 'login.html?returnTo=orgcreate.html&reason=organizer_required&as=organizer';
+    };
+
+    overlay.querySelector('.host-prompt-cancel').addEventListener('click', close);
+    overlay.querySelector('.host-prompt-ok').addEventListener('click', proceed);
+    overlay.addEventListener('click', (ev) => { if (ev.target === overlay) close(); });
+    document.addEventListener('keydown', function esc(ev) {
+      if (ev.key === 'Escape') { close(); document.removeEventListener('keydown', esc); }
     });
   }
 
