@@ -236,6 +236,32 @@ a.btn-profile i { font-size: 0.85rem; color: inherit; }
     color: var(--primary);
 }
 
+/* Login / Logout row inside the mobile dropdown — clear full-width action */
+.mobile-menu .btn-register-login,
+.mobile-menu .btn-profile {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 6px;
+    padding: 11px 12px;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    text-align: center;
+    white-space: nowrap;
+}
+/* Divider above the auth action so it reads as a separate section */
+.mobile-menu .btn-register-login {
+    background: var(--primary);
+    color: var(--white) !important;
+    border-top: 1px solid var(--gray-light);
+    margin-top: 8px;
+    padding-top: 12px;
+}
+.mobile-menu .btn-register-login:hover { background: var(--primary-dark); }
+
 /* ===== Hero Banner ===== */
 .hero-banner {
     position: relative;

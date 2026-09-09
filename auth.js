@@ -218,6 +218,9 @@ const SwimAuth = {
     });
 
     document.querySelectorAll('.btn-register-login').forEach(btn => {
+      // Skip the "My Profile"-styled link on profile pages (it navigates,
+      // it is not the login/logout control).
+      if (btn.classList.contains('active-profile')) return;
       if (session) {
         btn.setAttribute('href', '#');
         btn.innerHTML = `<i class="fas fa-sign-out-alt"></i> Logout`;
@@ -226,6 +229,31 @@ const SwimAuth = {
         btn.setAttribute('href', 'login.html');
         btn.textContent = 'Register / Login';
         btn.onclick = null;
+      }
+    });
+
+    // Ensure EVERY mobile dropdown has a Login/Logout row at the bottom,
+    // kept in sync with the session. Reuse an existing auth link if the
+    // page already has one; otherwise inject a single one.
+    document.querySelectorAll('.mobile-menu').forEach(menu => {
+      // Prefer an existing login/logout link already in the markup
+      // (but never a navigation "My Profile" link).
+      let auth = menu.querySelector('.mobile-auth-link')
+        || Array.from(menu.querySelectorAll('.btn-register-login'))
+             .find(a => !a.classList.contains('active-profile'));
+      if (!auth) {
+        auth = document.createElement('a');
+        auth.className = 'mobile-auth-link btn-register-login';
+        menu.appendChild(auth);
+      }
+      if (session) {
+        auth.setAttribute('href', '#');
+        auth.innerHTML = `<i class="fas fa-sign-out-alt"></i> Logout`;
+        auth.onclick = async (e) => { e.preventDefault(); await SwimAuth.logoutAndRedirect(); };
+      } else {
+        auth.setAttribute('href', 'login.html');
+        auth.innerHTML = `<i class="fas fa-sign-in-alt"></i> Register / Login`;
+        auth.onclick = null;
       }
     });
   },
