@@ -115,5 +115,13 @@
       </table>`;
   }
 
-  document.addEventListener('DOMContentLoaded', load);
+  document.addEventListener('DOMContentLoaded', () => {
+    load();
+    // Back button: return to the previous page if any, else Home
+    const back = document.getElementById('lbBack');
+    if (back) back.addEventListener('click', (e) => {
+      if (window.history.length > 1) { e.preventDefault(); window.history.back(); }
+      // otherwise the href="index.html" fallback applies
+    });
+  });
 })();
