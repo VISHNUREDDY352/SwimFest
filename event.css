@@ -1,9 +1,13 @@
 /* ===== Event Page Specific Styles ===== */
 
+/* Prevent any horizontal scroll on the event page */
+html, body { overflow-x: hidden; max-width: 100%; }
+* { box-sizing: border-box; }
+
 /* ===== Event Banner ===== */
 .event-banner {
     background: linear-gradient(135deg, var(--primary, #0077b6), var(--primary-dark, #005f8a), var(--dark-secondary, #16213e));
-    padding: 40px 24px;
+    padding: 28px 24px;
     text-align: center;
 }
 
