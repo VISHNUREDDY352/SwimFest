@@ -166,7 +166,27 @@ function renderLifecycle() {
 
 // ── Modal helpers ─────────────────────────────────────────────
 window.openAddAcademyModal = () => openModal('addAcademyModal');
-window.openAddCoachModal   = () => openModal('addCoachModal');
+window.openAddCoachModal   = () => { loadAcademyOptions(); openModal('addCoachModal'); };
+
+// Populate the "Affiliated Academy" dropdown from the DB
+async function loadAcademyOptions() {
+  const sel = $('coAcademy');
+  if (!sel || !window.sb) return;
+  const { data, error } = await window.sb
+    .from('academies')
+    .select('academy_id, academy_name')
+    .order('academy_name', { ascending: true });
+  // Keep the first "None / Self" option, drop any previously loaded ones
+  sel.querySelectorAll('option[data-db]').forEach(o => o.remove());
+  if (error || !data) return;
+  data.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a.academy_id;
+    opt.textContent = a.academy_name;
+    opt.setAttribute('data-db', '1');
+    sel.appendChild(opt);
+  });
+}
 
 function openModal(id)  { const m=$(id); m.classList.add('active'); m.style.display='flex'; }
 window.closeModal = function(id) { const m=$(id); m.classList.remove('active'); m.style.display='none'; }

@@ -930,7 +930,17 @@ a.btn-profile i { font-size: 0.85rem; color: inherit; }
     }
 
     .nav-container {
-        gap: 12px;
+        gap: 10px;
+        padding: 0 14px;
+        height: 60px;
+    }
+
+    .logo { font-size: 1.25rem; }
+
+    /* Keep the state selector compact so the logo + hamburger fit cleanly */
+    .state-selector {
+        padding: 6px 10px;
+        font-size: 0.78rem;
     }
 
     .hero-title {

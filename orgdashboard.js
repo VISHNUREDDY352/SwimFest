@@ -233,4 +233,7 @@ window.showToast = showToast;
 document.addEventListener('DOMContentLoaded', ()=>{
   renderLifecycle();
   loadOrgPipeline();
+  const badge = $('orgIdBadge');
+  const sess = window.SwimAuth ? window.SwimAuth.getSession() : null;
+  if (badge && sess && sess.userId) badge.textContent = 'ID: ' + String(sess.userId).slice(0, 8).toUpperCase();
 });

@@ -15,33 +15,16 @@ const CATEGORIES = [
   { label:'U-16', minAge:14, maxAge:15 },
 ];
 
-// Seed roster — multi-event bookings expanded into individual event-entry rows
+// Roster starts empty; filled from Supabase for the selected tournament.
 // Each row = one swimmer × one event (Rule 7.1)
-let ROSTER = [
-  { id:'001', swimId:'SWM-2026-08492', name:'Arun Kumar',     gender:'Boy',  dob:'2015-05-14', age:11, category:'U-12', genderCat:'Boys',  academy:'Chennai Swim Club',  coach:'K. Ramesh',  event:'50m Freestyle',    seedTime:'00:39.20', flags:[], manual:false },
-  { id:'002', swimId:'SWM-2026-08492', name:'Arun Kumar',     gender:'Boy',  dob:'2015-05-14', age:11, category:'U-12', genderCat:'Boys',  academy:'Chennai Swim Club',  coach:'K. Ramesh',  event:'100m Freestyle',   seedTime:'01:25.10', flags:[], manual:false },
-  { id:'003', swimId:'SWM-2026-08492', name:'Arun Kumar',     gender:'Boy',  dob:'2015-05-14', age:11, category:'U-12', genderCat:'Boys',  academy:'Chennai Swim Club',  coach:'K. Ramesh',  event:'50m Backstroke',   seedTime:'NT',       flags:[], manual:false },
-  { id:'004', swimId:'SWM-2026-09001', name:'Vikram Nair',    gender:'Boy',  dob:'2014-03-20', age:12, category:'U-12', genderCat:'Boys',  academy:'SRM Aquatics Academy',coach:'V. Anand',  event:'50m Freestyle',    seedTime:'NT',       flags:[{type:'dob_conflict', msg:'DOB Conflict → Auto-Assigned to U-14'}], manual:false },
-  { id:'005', swimId:'SWM-2026-09201', name:'Karthik Raja',   gender:'Boy',  dob:'2017-01-10', age:9,  category:'U-10', genderCat:'Boys',  academy:'Aqua Stars Coimbatore',coach:'M. Vijay', event:'25m Freestyle',    seedTime:'00:21.50', flags:[], manual:false },
-  { id:'006', swimId:'SWM-2026-09202', name:'Divya Mohan',    gender:'Girl', dob:'2014-07-22', age:11, category:'U-12', genderCat:'Girls', academy:'Aqua Stars Coimbatore',coach:'R. Kavitha',event:'50m Freestyle',   seedTime:'00:42.10', flags:[], manual:false },
-  { id:'007', swimId:'SWM-2026-09202', name:'Divya Mohan',    gender:'Girl', dob:'2014-07-22', age:11, category:'U-12', genderCat:'Girls', academy:'Aqua Stars Coimbatore',coach:'R. Kavitha',event:'50m Breaststroke', seedTime:'00:51.30', flags:[], manual:false },
-  { id:'008', swimId:'SWM-2026-09401', name:'Meera Shankar',  gender:'Girl', dob:'2010-11-05', age:15, category:'U-16', genderCat:'Girls', academy:'SDAT Academy Chennai', coach:'A. Selvakumar',event:'100m Freestyle', seedTime:'01:08.40', flags:[], manual:false },
-  { id:'009', swimId:'SWM-2026-09401', name:'Meera Shankar',  gender:'Girl', dob:'2010-11-05', age:15, category:'U-16', genderCat:'Girls', academy:'SDAT Academy Chennai', coach:'A. Selvakumar',event:'200m Freestyle', seedTime:'NT',       flags:[], manual:false },
-  { id:'010', swimId:'SWM-2026-09402', name:'Surya Prakash',  gender:'Boy',  dob:'2010-09-14', age:15, category:'U-16', genderCat:'Boys',  academy:'SDAT Academy Chennai', coach:'A. Selvakumar',event:'50m Butterfly',  seedTime:'00:31.80', flags:[], manual:false },
-  { id:'011', swimId:'SWM-2026-09501', name:'Raj Pandian',    gender:'Boy',  dob:'2013-06-30', age:12, category:'U-14', genderCat:'Boys',  academy:'Madurai Aquatics',    coach:'S. Murugan',  event:'100m Backstroke',  seedTime:'01:18.60', flags:[], manual:false },
-  { id:'012', swimId:'SWM-2026-08493', name:'Priya Suresh',   gender:'Girl', dob:'2012-02-18', age:13, category:'U-14', genderCat:'Girls', academy:'Chennai Swim Club',   coach:'S. Priya',    event:'50m Backstroke',   seedTime:'00:44.20', flags:[], manual:false },
-  { id:'013', swimId:'SWM-2026-09203', name:'Arjun Selvam',   gender:'Boy',  dob:'2016-08-03', age:9,  category:'U-10', genderCat:'Boys',  academy:'Aqua Stars Coimbatore',coach:'M. Vijay', event:'25m Breaststroke',  seedTime:'00:28.90', flags:[], manual:false },
-  { id:'014', swimId:'SWM-2026-09403', name:'Lakshmi Rao',    gender:'Girl', dob:'2012-12-09', age:13, category:'U-14', genderCat:'Girls', academy:'SDAT Academy Chennai', coach:'P. Dhanalakshmi',event:'100m Freestyle',seedTime:'01:12.30',flags:[], manual:false },
-  { id:'015', swimId:'SWM-2026-08494', name:'Rahul Menon',    gender:'Boy',  dob:'2010-04-25', age:15, category:'U-16', genderCat:'Boys',  academy:'Chennai Swim Club',   coach:'K. Ramesh',   event:'200m Freestyle',   seedTime:'02:14.50', flags:[], manual:false },
-];
+let ROSTER = [];
 
-// ROSTER starts empty; filled from Supabase for the selected tournament
-ROSTER = [];
 
 let isLocked        = false;
 let pendingDeleteId = null;
 let nextManualId    = 16;
 let currentTournamentId = null;
+let currentTournamentTitle = '';
 
 // ─── Utilities ────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -75,6 +58,11 @@ function msToSeed(ms) {
 // ── Supabase: load event_entries for a tournament into ROSTER ─
 async function loadRoster(tournamentId, silent = false) {
   currentTournamentId = tournamentId || null;
+  // Capture the selected tournament's title (strip the trailing " — STATUS")
+  const selEl = $('adminTournamentSelect');
+  if (selEl && selEl.selectedOptions && selEl.selectedOptions[0]) {
+    currentTournamentTitle = selEl.selectedOptions[0].textContent.replace(/\s+—\s+\w+$/, '').trim();
+  }
   if (!window.sb || !tournamentId) { ROSTER = []; renderGrid(); return; }
 
   const { data, error } = await window.sb
@@ -612,7 +600,7 @@ function triggerFinalLock() {
 
   $('lockConfirmBody').innerHTML = `
     <p style="margin-bottom:12px;">You are about to <span class="warn-text">permanently lock</span> the player list for:</p>
-    <p style="font-weight:700;font-size:0.95rem;margin-bottom:16px;">Golden Non-Medalist Championship 2026</p>
+    <p style="font-weight:700;font-size:0.95rem;margin-bottom:16px;">${escHtml(currentTournamentTitle || 'this tournament')}</p>
     <ul>
       <li><strong>${uniqueSwimmers}</strong> unique swimmers</li>
       <li><strong>${ROSTER.length}</strong> event-entry rows</li>

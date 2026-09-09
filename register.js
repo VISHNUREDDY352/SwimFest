@@ -12,10 +12,10 @@ const RELAY_FEE         = 300;
 const PLATFORM_FEE      = 50;
 const MAX_INDIV_EVENTS  = 3;
 
-const TOURNAMENT_NAME   = 'Golden Non-Medalist Swimming Championship 2026';
-const TOURNAMENT_VENUE  = 'SRM University Pool, Kattankulathur';
-const TOURNAMENT_DATES  = 'Oct 15–16, 2026';
-const REG_CLOSE_DATE    = '30 Aug 2026';
+const TOURNAMENT_NAME   = 'Select a Tournament';
+const TOURNAMENT_VENUE  = '—';
+const TOURNAMENT_DATES  = '—';
+const REG_CLOSE_DATE    = '—';
 
 // Age category map
 const CATEGORIES = [
@@ -83,6 +83,9 @@ const state = {
   currentStep    : 1,
   swimmerId      : generateSwimmerId(),
   tournamentName : TOURNAMENT_NAME,
+  tournamentVenue: TOURNAMENT_VENUE,
+  tournamentDates: TOURNAMENT_DATES,
+  regCloseDate   : REG_CLOSE_DATE,
 
   swimmerData : {
     fullName       : '',
@@ -452,7 +455,8 @@ function renderCheckout() {
   /* ── A. Booking Summary ── */
   const tourName = state.tournamentName || TOURNAMENT_NAME;
   $('bsTournament').textContent  = tourName;
-  $('bsRegClose').textContent    = `Registration closes ${REG_CLOSE_DATE}`;
+  const regClose = state.regCloseDate && state.regCloseDate !== '—' ? state.regCloseDate : null;
+  $('bsRegClose').textContent    = regClose ? `Registration closes ${regClose}` : '';
   $('bsSwimmerName').textContent = d.fullName || '—';
   $('bsSwimmerMeta').innerHTML   =
     `${genderLabel(d.gender)} ${d.category} &nbsp;·&nbsp; ID: ${state.swimmerId}`;
@@ -786,9 +790,9 @@ function renderSuccessReceipt() {
   // Tournament details
   const tourFields = [
     { label: 'Tournament', value: state.tournamentName || TOURNAMENT_NAME },
-    { label: 'Venue',      value: TOURNAMENT_VENUE },
-    { label: 'Dates',      value: TOURNAMENT_DATES },
-    { label: 'Reg Closed', value: REG_CLOSE_DATE },
+    { label: 'Venue',      value: state.tournamentVenue || TOURNAMENT_VENUE },
+    { label: 'Dates',      value: state.tournamentDates || TOURNAMENT_DATES },
+    { label: 'Reg Closed', value: state.regCloseDate || REG_CLOSE_DATE },
   ];
   $('receiptTournamentDetails').innerHTML = tourFields.map(f => `
     <div class="receipt-field">
@@ -958,7 +962,8 @@ async function showTournamentPicker() {
     grid.innerHTML = list.map((t, i) => `
     <div class="reg-pick-card" data-title="${escHtml(t.title)}"
          data-venue="${escHtml(t.venue_name)}, ${escHtml(t.city)}"
-         data-dates="${fmtPickDate(t.start_date)} – ${fmtPickDate(t.end_date)}">
+         data-dates="${fmtPickDate(t.start_date)} – ${fmtPickDate(t.end_date)}"
+         data-regclose="${t.registration_deadline ? fmtPickDate(t.registration_deadline) : ''}">
       <div class="reg-pick-poster t${i % 4}"><i class="fas fa-trophy"></i></div>
       <div class="reg-pick-body">
         <span class="reg-pick-status">Entries Open</span>
@@ -976,7 +981,7 @@ async function showTournamentPicker() {
   // Tournament card click → choose tournament and start wizard
   grid.querySelectorAll('.reg-pick-card[data-title]').forEach(card => {
     card.addEventListener('click', () => {
-      chooseTournament(card.dataset.title, card.dataset.venue, card.dataset.dates);
+      chooseTournament(card.dataset.title, card.dataset.venue, card.dataset.dates, card.dataset.regclose);
     });
   });
 
@@ -988,8 +993,11 @@ async function showTournamentPicker() {
   });
 }
 
-function chooseTournament(title, venue, dates) {
-  state.tournamentName = title;
+function chooseTournament(title, venue, dates, regClose) {
+  state.tournamentName  = title;
+  state.tournamentVenue = venue || '—';
+  state.tournamentDates = dates || '—';
+  if (regClose) state.regCloseDate = regClose;
   $('tournamentName').textContent = title;
   // Update the context banner meta
   const metaEl = document.querySelector('.reg-tour-meta');

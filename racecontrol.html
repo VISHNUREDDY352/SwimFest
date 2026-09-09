@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Race Control — SwimFest EM Portal</title>
     <script src="guard.js" data-roles="event_manager,super_admin"></script>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=6">
     <link rel="stylesheet" href="admin.css">
     <link rel="stylesheet" href="dashboard.css">
     <link rel="stylesheet" href="emdashboard.css">
@@ -19,7 +19,7 @@
         <div class="admin-topbar-inner">
             <div class="admin-topbar-left">
                 <a href="index.html" class="admin-logo"><i class="fas fa-swimmer"></i> SwimFest</a>
-                <span class="admin-role-tag"><i class="fas fa-broadcast-tower"></i> Event Manager Race Control | Tournament: District Schools Meet '26</span>
+                <span class="admin-role-tag"><i class="fas fa-broadcast-tower"></i> Event Manager Race Control</span>
             </div>
             <div class="admin-topbar-right">
                 <span style="font-size:0.78rem;color:rgba(255,255,255,0.5);padding:0 8px;border:1px solid rgba(255,255,255,0.15);border-radius:var(--radius-sm);">
@@ -53,9 +53,9 @@
                         <i class="fas fa-users" style="color:var(--primary);font-size:1.1rem;"></i>
                         <div>
                             <strong style="font-size:0.88rem;">Current Uploaded Roster Count:</strong>
-                            <span style="color:var(--primary);font-weight:700;"> 184 Swimmers</span>
+                            <span style="color:var(--primary);font-weight:700;"> 0 Swimmers</span>
                             <span style="color:var(--gray);"> | </span>
-                            <span style="color:var(--success);font-weight:700;">462 Event Entries</span>
+                            <span style="color:var(--success);font-weight:700;">0 Event Entries</span>
                         </div>
                     </div>
                     <div style="display:flex;gap:12px;flex-wrap:wrap;">
@@ -173,24 +173,17 @@
     const DQ_CODES_RC = {'':'— No DQ —','FS':'FS — False Start','IT':'IT — Illegal Turn','IS':'IS — Illegal Stroke','IK':'IK — Illegal Kick','OT':'OT — One-Hand Touch','LV':'LV — Lane Violation','ET':'ET — Relay Early Takeoff'};
 
     const RC_LANES = [
-      { lane:1, name:null,         academy:null,        seedTime:null },
-      { lane:2, name:null,         academy:null,        seedTime:null },
-      { lane:3, name:'A. Sanjay',  academy:'YMCA Pool', seedTime:'00:33.00' },
-      { lane:4, name:'P. Vijay',   academy:'SDAT Club', seedTime:'00:31.10' },
-      { lane:5, name:'R. Dinesh',  academy:'Chennai SC',seedTime:'00:32.40' },
-      { lane:6, name:'K. Arjun',   academy:'SDAT Club', seedTime:'00:34.80' },
-      { lane:7, name:'V. Prakash', academy:'SRM Aquat.',seedTime:'00:35.40' },
-      { lane:8, name:'J. Naveen',  academy:'Chennai SC',seedTime:'00:00.00' },
+      { lane:1, name:null, academy:null, seedTime:null },
+      { lane:2, name:null, academy:null, seedTime:null },
+      { lane:3, name:null, academy:null, seedTime:null },
+      { lane:4, name:null, academy:null, seedTime:null },
+      { lane:5, name:null, academy:null, seedTime:null },
+      { lane:6, name:null, academy:null, seedTime:null },
+      { lane:7, name:null, academy:null, seedTime:null },
+      { lane:8, name:null, academy:null, seedTime:null },
     ];
 
-    const rcResults = {
-      3: { finishTime:'00:33.00', status:'OK', dqCode:'' },
-      4: { finishTime:'00:31.10', status:'OK', dqCode:'' },
-      5: { finishTime:'00:32.40', status:'OK', dqCode:'' },
-      6: { finishTime:'00:00.00', status:'DQ',  dqCode:'FS' },
-      7: { finishTime:'00:35.40', status:'OK', dqCode:'' },
-      8: { finishTime:'00:00.00', status:'DNS', dqCode:'' },
-    };
+    const rcResults = {};
 
     function buildM3Grid() {
       const tbody = document.getElementById('m3GridBody');
@@ -248,7 +241,7 @@
       st.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Parsing roster file…';
       setTimeout(()=>{
         st.className='res-upload-status success';
-        st.innerHTML=`<i class="fas fa-check-circle"></i> Roster imported: ${input.files[0].name} — 184 swimmers, 462 entries created.`;
+        st.innerHTML=`<i class="fas fa-check-circle"></i> Roster imported: ${input.files[0].name}`;
         showToast('Bulk roster imported successfully.','success');
       },1400);
     };

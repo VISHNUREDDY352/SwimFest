@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Super Admin Console — SwimFest</title>
     <script src="guard.js" data-roles="super_admin"></script>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=6">
     <link rel="stylesheet" href="admin.css">
     <link rel="stylesheet" href="dashboard.css">
     <link rel="stylesheet" href="emdashboard.css">
@@ -417,9 +417,9 @@
                     <span class="gateway-online"><span class="gateway-dot"></span> ONLINE — Razorpay Active</span>
                 </div>
                 <div class="sa-fin-row"><span>Platform Technology Fee</span><span>₹50.00 / booking (Incl. GST)</span></div>
-                <div class="sa-fin-row"><span>Total Transactions (FY 2026)</span><span>7,692</span></div>
-                <div class="sa-fin-row"><span>Gross Revenue YTD</span><span style="color:var(--success);font-weight:800;">₹38,46,000</span></div>
-                <div class="sa-fin-row"><span>Pending Organizer Payouts</span><span style="color:var(--warning);font-weight:700;">3 meets · ₹2,14,200</span></div>
+                <div class="sa-fin-row"><span>Total Transactions (FY 2026)</span><span id="saTotalTxns">0</span></div>
+                <div class="sa-fin-row"><span>Gross Revenue YTD</span><span id="saGrossRevenue" style="color:var(--success);font-weight:800;">₹0</span></div>
+                <div class="sa-fin-row"><span>Pending Organizer Payouts</span><span id="saPendingPayouts" style="color:var(--warning);font-weight:700;">0 meets · ₹0</span></div>
                 <div class="sa-actions-bar">
                     <button class="sa-action-btn sa-btn-settings" onclick="showToast('Global Platform Settings — loading…','info')">
                         <i class="fas fa-cog"></i> Global Platform Settings
@@ -470,11 +470,11 @@
                 <div style="display:flex;flex-direction:column;gap:12px;">
                     <div>
                         <label style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--gray);display:block;margin-bottom:5px;">Notice Title *</label>
-                        <input class="mc-input" id="noticeTitle" placeholder="e.g. Weather Alert: SDAT Velachery Pool" value="Weather Alert: SDAT Velachery Pool">
+                        <input class="mc-input" id="noticeTitle" placeholder="e.g. Weather Alert: SDAT Velachery Pool">
                     </div>
                     <div>
                         <label style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--gray);display:block;margin-bottom:5px;">Message *</label>
-                        <textarea class="mc-input" id="noticeMsg" rows="3" style="resize:vertical;">Morning sessions delayed by 45 minutes due to heavy rain.</textarea>
+                        <textarea class="mc-input" id="noticeMsg" rows="3" style="resize:vertical;" placeholder="Enter notice message…"></textarea>
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                         <div>

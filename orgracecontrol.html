@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Organizer Race Control — SwimFest</title>
     <script src="guard.js" data-roles="organizer,super_admin"></script>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=6">
     <link rel="stylesheet" href="admin.css">
     <link rel="stylesheet" href="dashboard.css">
     <link rel="stylesheet" href="emdashboard.css">
@@ -20,7 +20,7 @@
         <div class="admin-topbar-inner">
             <div class="admin-topbar-left">
                 <a href="index.html" class="admin-logo"><i class="fas fa-swimmer"></i> SwimFest</a>
-                <span class="admin-role-tag"><i class="fas fa-broadcast-tower"></i> Organizer Race Control | Meet: Coimbatore District Championship 2026</span>
+                <span class="admin-role-tag"><i class="fas fa-broadcast-tower"></i> Organizer Race Control</span>
             </div>
             <div class="admin-topbar-right">
                 <span style="font-size:0.75rem;padding:5px 12px;border-radius:20px;background:#d4edda;color:#155724;font-weight:700;">
@@ -66,12 +66,12 @@
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
                         <div style="padding:16px;background:var(--light);border-radius:var(--radius-sm);border:1px solid var(--gray-light);">
                             <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--gray);margin-bottom:8px;">Total Athletes Uploaded</div>
-                            <div style="font-size:1.8rem;font-weight:800;color:var(--primary);">142</div>
+                            <div style="font-size:1.8rem;font-weight:800;color:var(--primary);">0</div>
                             <div style="font-size:0.75rem;color:var(--gray);">Confirmed entries</div>
                         </div>
                         <div style="padding:16px;background:var(--light);border-radius:var(--radius-sm);border:1px solid var(--gray-light);">
                             <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--gray);margin-bottom:8px;">Total Event Entries</div>
-                            <div style="font-size:1.8rem;font-weight:800;color:var(--success);">398</div>
+                            <div style="font-size:1.8rem;font-weight:800;color:var(--success);">0</div>
                             <div style="font-size:0.75rem;color:var(--gray);">Individual event rows</div>
                         </div>
                     </div>
@@ -191,10 +191,10 @@
             </div>
             <div class="modal-body" style="padding:20px 24px;">
                 <p style="font-size:0.9rem;line-height:1.65;color:var(--dark);">You are requesting final closure for:</p>
-                <p style="font-size:0.95rem;font-weight:700;color:var(--primary);margin:8px 0;">Coimbatore District Championship 2026</p>
+                <p style="font-size:0.95rem;font-weight:700;color:var(--primary);margin:8px 0;" id="closureMeetName">—</p>
                 <div style="background:var(--light);border-radius:var(--radius-sm);padding:14px 16px;margin:12px 0;font-size:0.82rem;">
-                    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--gray-light);"><span style="color:var(--gray);">Total Athletes</span><strong>142</strong></div>
-                    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--gray-light);"><span style="color:var(--gray);">Event Entries</span><strong>398</strong></div>
+                    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--gray-light);"><span style="color:var(--gray);">Total Athletes</span><strong>0</strong></div>
+                    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--gray-light);"><span style="color:var(--gray);">Event Entries</span><strong>0</strong></div>
                     <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="color:var(--gray);">Results Published</span><strong style="color:var(--success);">Yes</strong></div>
                 </div>
                 <p style="font-size:0.82rem;color:var(--gray);line-height:1.55;">
@@ -217,20 +217,16 @@
     <script>
     'use strict';
     const ORG_LANES = [
-      { lane:1, name:null,          academy:null,         seedTime:null },
-      { lane:2, name:null,          academy:null,         seedTime:null },
-      { lane:3, name:'A. Sanjay',   academy:'YMCA Kovai', seedTime:'00:33.00' },
-      { lane:4, name:'P. Vijay',    academy:'SDAT Kovai', seedTime:'00:31.10' },
-      { lane:5, name:'R. Dinesh',   academy:'Bluefins',   seedTime:'00:32.40' },
-      { lane:6, name:'K. Arjun',    academy:'SDAT Kovai', seedTime:null },
-      { lane:7, name:'V. Prakash',  academy:'Kovai SC',   seedTime:null },
-      { lane:8, name:'S. Thomas',   academy:'Bluefins',   seedTime:null },
+      { lane:1, name:null, academy:null, seedTime:null },
+      { lane:2, name:null, academy:null, seedTime:null },
+      { lane:3, name:null, academy:null, seedTime:null },
+      { lane:4, name:null, academy:null, seedTime:null },
+      { lane:5, name:null, academy:null, seedTime:null },
+      { lane:6, name:null, academy:null, seedTime:null },
+      { lane:7, name:null, academy:null, seedTime:null },
+      { lane:8, name:null, academy:null, seedTime:null },
     ];
-    const orgResults = {
-      3:{ finishTime:'00:33.00', status:'OK', dqCode:'' },
-      4:{ finishTime:'00:31.10', status:'OK', dqCode:'' },
-      5:{ finishTime:'00:32.40', status:'OK', dqCode:'' },
-    };
+    const orgResults = {};
     const DQ_CODES = {'':'— No DQ —','FS':'FS — False Start','IT':'IT — Illegal Turn','IS':'IS — Illegal Stroke','IK':'IK — Illegal Kick','OT':'OT — One-Hand Touch','LV':'LV — Lane Violation','ET':'ET — Relay Early Takeoff'};
 
     function buildGrid(){
@@ -275,7 +271,7 @@
       const st=document.getElementById('orgRosterStatus');
       st.style.display='';st.className='res-upload-status loading';
       st.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Parsing roster…';
-      setTimeout(()=>{st.className='res-upload-status success';st.innerHTML=`<i class="fas fa-check-circle"></i> Imported: ${input.files[0].name} — 142 swimmers, 398 entries.`;showToast('Bulk roster imported successfully.','success');},1400);
+      setTimeout(()=>{st.className='res-upload-status success';st.innerHTML=`<i class="fas fa-check-circle"></i> Imported: ${input.files[0].name}`;showToast('Bulk roster imported successfully.','success');},1400);
     };
     window.handleCTSUpload=function(input){
       if(!input.files[0])return;

@@ -87,7 +87,26 @@
 .op-btn-primary { border: none; background: var(--primary, #0a5bd3); color: #fff; padding: 9px 20px; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
 
 @media (max-width: 640px) {
-    .op-stats { grid-template-columns: repeat(2, 1fr); }
+    .op-hero { padding: 78px 16px 34px; }
+    .op-hero-inner {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 14px;
+    }
+    .op-hero-info { min-width: 0; width: 100%; }
+    .op-edit-btn { width: 100%; }
+    .op-avatar { width: 74px; height: 74px; font-size: 1.7rem; }
+
+    .op-container { padding: 0 14px; }
+    .op-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .op-stat { padding: 14px; }
+    .op-stat-num { font-size: 1.45rem; }
+
+    .op-card { padding: 18px; border-radius: 14px; }
     .op-detail-grid, .op-actions { grid-template-columns: 1fr; }
     .op-name { font-size: 1.4rem; }
+}
+@media (max-width: 400px) {
+    .op-stats { grid-template-columns: 1fr; }
 }

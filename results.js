@@ -24,125 +24,8 @@ const MAX_SCORERS_PER_ACADEMY = 2; // Individual cap (Rule 9.4)
 // ─── Event Master — sample seed heats (fallback/demo) ─────────
 // Replaced at runtime by heat_rows loaded from Supabase for the
 // selected tournament (see loadResultsForTournament).
-let EVENTS = [
-  {
-    id:'E01', num:1, category:'U-10', gender:'Boy',  name:'25m Freestyle',
-    pool:'Competition Pool A', poolLanes:8, totalHeats:1,
-    heats: [{
-      heatNo:1, isFinal:true, startTime:'08:30 AM',
-      lanes:[
-        { lane:1, swimId:'SWM-047', name:'Karthik Raja',  academy:'Aqua Stars',  seedTime:'00:21.50' },
-        { lane:2, swimId:'SWM-049', name:'Pranav Kumar',  academy:'Madurai AC',   seedTime:'00:23.40' },
-        { lane:3, swimId:'SWM-050', name:'Anirudh Raja',  academy:'Chennai SC',   seedTime:'00:25.60' },
-        { lane:4, swimId:null,      name:null,            academy:null,           seedTime:null },
-        { lane:5, swimId:null,      name:null,            academy:null,           seedTime:null },
-        { lane:6, swimId:null,      name:null,            academy:null,           seedTime:null },
-        { lane:7, swimId:null,      name:null,            academy:null,           seedTime:null },
-        { lane:8, swimId:null,      name:null,            academy:null,           seedTime:null },
-      ]
-    }]
-  },
-  {
-    id:'E02', num:2, category:'U-12', gender:'Boy',  name:'50m Freestyle',
-    pool:'Competition Pool A', poolLanes:8, totalHeats:2,
-    heats:[
-      {
-        heatNo:1, isFinal:false, startTime:'08:32 AM',
-        lanes:[
-          { lane:1, swimId:null,      name:null,           academy:null,           seedTime:null },
-          { lane:2, swimId:null,      name:null,           academy:null,           seedTime:null },
-          { lane:3, swimId:'SWM-006', name:'S. Karthik',   academy:'SRM Aquatics', seedTime:'NT' },
-          { lane:4, swimId:'SWM-008', name:'V. Arun',      academy:'Chennai SC',   seedTime:'NT' },
-          { lane:5, swimId:'SWM-007', name:'M. Rajesh',    academy:'Unattached',   seedTime:'NT' },
-          { lane:6, swimId:null,      name:null,           academy:null,           seedTime:null },
-          { lane:7, swimId:null,      name:null,           academy:null,           seedTime:null },
-          { lane:8, swimId:null,      name:null,           academy:null,           seedTime:null },
-        ]
-      },
-      {
-        heatNo:2, isFinal:true, startTime:'08:34 AM',
-        lanes:[
-          { lane:1, swimId:null,      name:null,           academy:null,           seedTime:null },
-          { lane:2, swimId:'SWM-010', name:'Dev Prasad',   academy:'Madurai AC',   seedTime:'00:40.10' },
-          { lane:3, swimId:'SWM-009', name:'Kiran Kumar',  academy:'Aqua Stars',   seedTime:'00:38.70' },
-          { lane:4, swimId:'SWM-003', name:'P. Vijay',     academy:'SDAT Club',    seedTime:'00:31.10' },
-          { lane:5, swimId:'SWM-004', name:'R. Dinesh',    academy:'Chennai SC',   seedTime:'00:32.40' },
-          { lane:6, swimId:'SWM-005', name:'A. Sanjay',    academy:'YMCA Pool',    seedTime:'00:33.00' },
-          { lane:7, swimId:'SWM-002', name:'Vikram Nair',  academy:'SRM Aquatics', seedTime:'00:41.50' },
-          { lane:8, swimId:'SWM-001', name:'Arun Kumar',   academy:'Chennai SC',   seedTime:'00:39.20' },
-        ]
-      }
-    ]
-  },
-  {
-    id:'E03', num:3, category:'U-12', gender:'Boy',  name:'100m Freestyle',
-    pool:'Competition Pool A', poolLanes:8, totalHeats:1,
-    heats:[{
-      heatNo:1, isFinal:true, startTime:'08:40 AM',
-      lanes:[
-        { lane:1, swimId:null,      name:null,            academy:null,           seedTime:null },
-        { lane:2, swimId:null,      name:null,            academy:null,           seedTime:null },
-        { lane:3, swimId:'SWM-013', name:'Muthu Kumar',   academy:'Aqua Stars',   seedTime:'01:32.00' },
-        { lane:4, swimId:'SWM-011', name:'Ravi Shankar',  academy:'Chennai SC',   seedTime:'01:25.10' },
-        { lane:5, swimId:'SWM-012', name:'Suresh Babu',   academy:'SRM Aquatics', seedTime:'01:28.40' },
-        { lane:6, swimId:null,      name:null,            academy:null,           seedTime:null },
-        { lane:7, swimId:null,      name:null,            academy:null,           seedTime:null },
-        { lane:8, swimId:null,      name:null,            academy:null,           seedTime:null },
-      ]
-    }]
-  },
-  {
-    id:'E04', num:4, category:'U-12', gender:'Girl', name:'50m Freestyle',
-    pool:'Competition Pool A', poolLanes:8, totalHeats:1,
-    heats:[{
-      heatNo:1, isFinal:true, startTime:'08:44 AM',
-      lanes:[
-        { lane:1, swimId:null,      name:null,            academy:null,           seedTime:null },
-        { lane:2, swimId:'SWM-020', name:'Sneha Ravi',    academy:'Unattached',   seedTime:'NT' },
-        { lane:3, swimId:'SWM-019', name:'Preethi Kumar', academy:'SRM Aquatics', seedTime:'00:45.00' },
-        { lane:4, swimId:'SWM-017', name:'Divya Mohan',   academy:'Aqua Stars',   seedTime:'00:42.10' },
-        { lane:5, swimId:'SWM-018', name:'Kavya Suresh',  academy:'Chennai SC',   seedTime:'00:43.90' },
-        { lane:6, swimId:null,      name:null,            academy:null,           seedTime:null },
-        { lane:7, swimId:null,      name:null,            academy:null,           seedTime:null },
-        { lane:8, swimId:null,      name:null,            academy:null,           seedTime:null },
-      ]
-    }]
-  },
-  {
-    id:'E05', num:5, category:'U-14', gender:'Boy',  name:'50m Freestyle',
-    pool:'Competition Pool A', poolLanes:8, totalHeats:1,
-    heats:[{
-      heatNo:1, isFinal:true, startTime:'08:48 AM',
-      lanes:[
-        { lane:1, swimId:null,      name:null,           academy:null,           seedTime:null },
-        { lane:2, swimId:null,      name:null,           academy:null,           seedTime:null },
-        { lane:3, swimId:'SWM-029', name:'Vijay Anand',  academy:'Aqua Stars',   seedTime:'00:31.20' },
-        { lane:4, swimId:'SWM-027', name:'Naveen Raj',   academy:'SDAT Club',    seedTime:'00:29.80' },
-        { lane:5, swimId:'SWM-028', name:'Hari Prasad',  academy:'Chennai SC',   seedTime:'00:30.50' },
-        { lane:6, swimId:null,      name:null,           academy:null,           seedTime:null },
-        { lane:7, swimId:null,      name:null,           academy:null,           seedTime:null },
-        { lane:8, swimId:null,      name:null,           academy:null,           seedTime:null },
-      ]
-    }]
-  },
-  {
-    id:'E06', num:6, category:'U-16', gender:'Boy',  name:'50m Freestyle',
-    pool:'Competition Pool A', poolLanes:8, totalHeats:1,
-    heats:[{
-      heatNo:1, isFinal:true, startTime:'08:52 AM',
-      lanes:[
-        { lane:1, swimId:null,      name:null,             academy:null,           seedTime:null },
-        { lane:2, swimId:null,      name:null,             academy:null,           seedTime:null },
-        { lane:3, swimId:'SWM-038', name:'Dinesh Kumar',   academy:'SRM Aquatics', seedTime:'00:27.10' },
-        { lane:4, swimId:'SWM-037', name:'Abishek Nair',   academy:'Chennai SC',   seedTime:'00:26.40' },
-        { lane:5, swimId:null,      name:null,             academy:null,           seedTime:null },
-        { lane:6, swimId:null,      name:null,             academy:null,           seedTime:null },
-        { lane:7, swimId:null,      name:null,             academy:null,           seedTime:null },
-        { lane:8, swimId:null,      name:null,             academy:null,           seedTime:null },
-      ]
-    }]
-  },
-];
+// Empty until a tournament's real heat_rows load (loadResultsForTournament).
+let EVENTS = [];
 
 // ─── App State ────────────────────────────────────────────────
 const state = {
@@ -330,6 +213,7 @@ function populateSelectors() {
 function populateHeatSelector() {
   const ev      = EVENTS[state.currentEventIdx];
   const heatSel = $('heatSelector');
+  if (!ev || !ev.heats) { heatSel.innerHTML = ''; return; }
   heatSel.innerHTML = ev.heats.map((h, i) =>
     `<option value="${i}" ${i === state.currentHeatIdx ? 'selected' : ''}>
        Heat ${h.heatNo} of ${ev.totalHeats}${h.isFinal ? ' (Main)' : ''}

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Golden Non-Medalist Swimming Championship 2026 | SwimFest</title>
-    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=6">
     <link rel="stylesheet" href="event.css?v=3">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -169,7 +169,7 @@
                     <h2 class="detail-card-title"><i class="fas fa-rupee-sign"></i> Registration & Fee Structure</h2>
                     <ul class="fee-list">
                         <li><strong>Individual Fee:</strong> <span id="evFeeLine">₹800</span> for 3 events (Max 3 Individual Events)</li>
-                        <li><strong>Relay Add-On:</strong> ₹300 per team entry (Billed separately)</li>
+                        <li id="evRelayLine"><strong>Relay Add-On:</strong> <span id="evRelayFee">—</span> per team entry (Billed separately)</li>
                         <li><strong>Swim-Up Policy:</strong> <span id="evSwimUpLine">SINGLE CATEGORY ONLY (Swim-Up Disabled for this meet)</span></li>
                     </ul>
                 </div>
@@ -259,21 +259,16 @@
                                 <th>Distance</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr><td>1</td><td>Butterfly</td><td>50 m</td></tr>
-                            <tr><td>2</td><td>Butterfly</td><td>100 m</td></tr>
-                            <tr><td>3</td><td>Breaststroke</td><td>50 m</td></tr>
-                            <tr><td>4</td><td>Backstroke</td><td>50 m</td></tr>
-                            <tr><td>5</td><td>Freestyle</td><td>50 m</td></tr>
-                            <tr><td>6</td><td>Individual Medley</td><td>200 m</td></tr>
+                        <tbody id="evEventsTableBody">
+                            <tr><td colspan="3" style="text-align:center;color:var(--gray);font-style:italic;">Event list will be published by the organizer.</td></tr>
                         </tbody>
                     </table>
                 </div>
                 <div class="sidebar-fee-info">
                     <p><strong>Base Fee:</strong> <span id="evBaseFee">₹800</span> (Up to 3 Events)</p>
-                    <p><strong>Relay Add-On:</strong> ₹300 per team</p>
+                    <p><strong>Relay Add-On:</strong> <span id="evRelayFeeSidebar">—</span> per team</p>
                 </div>
-                <a href="register.html?tournament=Golden%20Non-Medalist%20Championship%202026&from=event" class="btn-register-tournament" id="evRegisterBtn">
+                <a href="register.html?from=event" class="btn-register-tournament" id="evRegisterBtn">
                     <i class="fas fa-pen-fancy"></i> Register for Tournament
                 </a>
             </div>

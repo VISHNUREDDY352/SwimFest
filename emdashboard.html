@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EM Dashboard — SwimFest Event Manager Portal</title>
     <script src="guard.js" data-roles="event_manager,super_admin"></script>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=6">
     <link rel="stylesheet" href="admin.css">
     <link rel="stylesheet" href="dashboard.css">
     <link rel="stylesheet" href="emdashboard.css">
@@ -183,11 +183,8 @@
                     <div class="mc-field"><label class="mc-label">License Number *</label><input class="mc-input" id="coLicense" placeholder="ASCA-XXXX-2026"></div>
                     <div class="mc-field"><label class="mc-label">Contact Phone</label><input class="mc-input" id="coPhone" placeholder="+91 98765 43210"></div>
                     <div class="mc-field"><label class="mc-label">Affiliated Academy</label>
-                        <select class="mc-select">
+                        <select class="mc-select" id="coAcademy">
                             <option value="">None / Self</option>
-                            <option>Chennai Swim Club</option>
-                            <option>SDAT Academy Chennai</option>
-                            <option>SRM Aquatics Academy</option>
                         </select>
                     </div>
                     <div class="mc-field mc-full">

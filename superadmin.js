@@ -86,10 +86,13 @@ async function loadMeetQueues() {
     id: t.tournament_id, createdBy: t.host_organization || '—', title: t.title,
     dates: fmtDateRange(t.start_date, t.end_date), venue: `${t.venue_name || ''}${t.city ? ', ' + t.city : ''}`,
   }));
-  S1B_QUEUE = rows.filter(t => t.gateway_option !== 'OPTION_A_PLATFORM_GATEWAY').map(t => ({
-    id: t.tournament_id, organizer: t.host_organization || '—', title: t.title,
-    payType: 'B', feePaid: true, feeAmt: '₹5,000',
-  }));
+  S1B_QUEUE = rows.filter(t => t.gateway_option !== 'OPTION_A_PLATFORM_GATEWAY').map(t => {
+    const amt = t.platform_fee ?? t.registration_fee ?? null;
+    return {
+      id: t.tournament_id, organizer: t.host_organization || '—', title: t.title,
+      payType: 'B', feePaid: !!t.fee_paid, feeAmt: amt != null ? `₹${amt}` : '—',
+    };
+  });
 
   renderS1A();
   renderS1B();

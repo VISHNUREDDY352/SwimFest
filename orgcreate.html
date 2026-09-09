@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create New Meet — SwimFest Organizer Portal</title>
     <script src="guard.js" data-roles="organizer,super_admin"></script>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=6">
     <link rel="stylesheet" href="admin.css">
     <link rel="stylesheet" href="dashboard.css">
     <link rel="stylesheet" href="emdashboard.css">
@@ -48,11 +48,11 @@
                     <div class="mc-grid">
                         <div class="mc-field mc-full">
                             <label class="mc-label">Meet Title *</label>
-                            <input class="mc-input" id="ocTitle" value="Coimbatore District Swimming Championship 2026" placeholder="Meet title">
+                            <input class="mc-input" id="ocTitle" placeholder="Meet title">
                         </div>
                         <div class="mc-field mc-full">
                             <label class="mc-label">Host Club Name *</label>
-                            <input class="mc-input" id="ocHostClub" value="Kovai Amateur Aquatic Club" placeholder="Host club name">
+                            <input class="mc-input" id="ocHostClub" placeholder="Host club name">
                         </div>
                         <div class="mc-field">
                             <label class="mc-label">State *</label>
@@ -62,11 +62,11 @@
                         </div>
                         <div class="mc-field">
                             <label class="mc-label">City *</label>
-                            <input class="mc-input" id="ocCity" value="Coimbatore" placeholder="City">
+                            <input class="mc-input" id="ocCity" placeholder="City">
                         </div>
                         <div class="mc-field mc-full">
                             <label class="mc-label">Venue Name *</label>
-                            <input class="mc-input" id="ocVenue" value="SDAT Aquatic Complex, Kovai" placeholder="Venue name">
+                            <input class="mc-input" id="ocVenue" placeholder="Venue name">
                         </div>
                         <div class="mc-field">
                             <label class="mc-label">Pool Configuration *</label>
@@ -84,15 +84,15 @@
                             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                                 <div>
                                     <div style="font-size:0.68rem;color:var(--gray);margin-bottom:3px;">Start</div>
-                                    <input type="date" class="mc-input" id="ocStart" value="2026-11-12" style="width:140px;">
+                                    <input type="date" class="mc-input" id="ocStart" style="width:140px;">
                                 </div>
                                 <div>
                                     <div style="font-size:0.68rem;color:var(--gray);margin-bottom:3px;">End</div>
-                                    <input type="date" class="mc-input" id="ocEnd" value="2026-11-13" style="width:140px;">
+                                    <input type="date" class="mc-input" id="ocEnd" style="width:140px;">
                                 </div>
                                 <div>
                                     <div style="font-size:0.68rem;color:var(--gray);margin-bottom:3px;">Deadline</div>
-                                    <input type="date" class="mc-input" id="ocDeadline" value="2026-10-31" style="width:140px;">
+                                    <input type="date" class="mc-input" id="ocDeadline" style="width:140px;">
                                 </div>
                             </div>
                         </div>
@@ -171,12 +171,12 @@
                     <div class="mc-grid" style="margin-bottom:20px;">
                         <div class="mc-field">
                             <label class="mc-label">Base Entry Package Fee (₹)</label>
-                            <input type="number" class="mc-input" id="ocBaseFee" value="800">
+                            <input type="number" class="mc-input" id="ocBaseFee" placeholder="e.g. 800">
                             <span style="font-size:0.72rem;color:var(--gray);">Covers up to 3 individual events</span>
                         </div>
                         <div class="mc-field">
                             <label class="mc-label">Relay Add-On Fee (₹)</label>
-                            <input type="number" class="mc-input" id="ocRelayFee" value="300">
+                            <input type="number" class="mc-input" id="ocRelayFee" placeholder="e.g. 300">
                             <span style="font-size:0.72rem;color:var(--gray);">Per team entry</span>
                         </div>
                     </div>
@@ -210,7 +210,7 @@
                         <label class="mc-label">Upload Event Poster</label>
                         <div class="mc-upload-zone" onclick="this.querySelector('input').click()">
                             <i class="fas fa-image"></i>
-                            <span id="ocPosterLabel">Choose File — kovai_poster.jpg</span>
+                            <span id="ocPosterLabel">Choose File</span>
                             <input type="file" accept="image/*" style="display:none;" onchange="document.getElementById('ocPosterLabel').textContent=this.files[0]?.name||'Choose File'">
                         </div>
                     </div>
@@ -254,7 +254,7 @@
                     <div style="background:var(--light);border:1px solid var(--gray-light);border-radius:var(--radius-sm);padding:16px 24px;max-width:400px;margin:0 auto 28px;text-align:left;">
                         <div style="font-size:0.78rem;display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray-light);">
                             <span style="color:var(--gray);">Tournament ID</span>
-                            <span id="ocTrnId" style="font-family:monospace;font-weight:700;">TRN-TN-2026-089</span>
+                            <span id="ocTrnId" style="font-family:monospace;font-weight:700;">—</span>
                         </div>
                         <div style="font-size:0.78rem;display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray-light);">
                             <span style="color:var(--gray);">Razorpay Payment ID</span>
@@ -297,7 +297,7 @@
                 </div>
                 <div style="display:flex;flex-direction:column;gap:10px;">
                     <label class="mc-label">UPI ID</label>
-                    <input class="mc-input" id="ocUpiId" placeholder="yourname@upi" value="kovaiaqua@hdfc">
+                    <input class="mc-input" id="ocUpiId" placeholder="yourname@upi">
                     <p style="font-size:0.75rem;color:var(--gray);"><i class="fas fa-info-circle" style="color:var(--primary);"></i> Payment request will be sent to your UPI app. You can also pay by Card or Net Banking.</p>
                 </div>
             </div>

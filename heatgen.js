@@ -12,80 +12,12 @@ const SPEARHEAD_6 = { 1:3, 2:4, 3:2, 4:5, 5:1, 6:6 };
 
 // ─── Master Roster ───────────────────────────────────────────
 // Populated live from Supabase event_entries for the selected
-// tournament (see loadRosterForTournament). Falls back to the
-// SAMPLE_ROSTER below when no DB entries are available so the
-// engine can still be demoed.
+// tournament (see loadRosterForTournament). Empty until then.
 let MASTER_ROSTER = [];
 let currentTournamentId = null;
 
-const SAMPLE_ROSTER = [
-  // ── U-12 Boys ──
-  { swimId:'SWM-001', name:'Arun Kumar',      gender:'Boy', category:'U-12', event:'50m Freestyle',    seedTime:'00:39.20', academy:'Chennai SC' },
-  { swimId:'SWM-002', name:'Vikram Nair',      gender:'Boy', category:'U-12', event:'50m Freestyle',    seedTime:'00:41.50', academy:'SRM Aquatics' },
-  { swimId:'SWM-003', name:'P. Vijay',         gender:'Boy', category:'U-12', event:'50m Freestyle',    seedTime:'00:31.10', academy:'SDAT Club' },
-  { swimId:'SWM-004', name:'R. Dinesh',        gender:'Boy', category:'U-12', event:'50m Freestyle',    seedTime:'00:32.40', academy:'Chennai SC' },
-  { swimId:'SWM-005', name:'A. Sanjay',        gender:'Boy', category:'U-12', event:'50m Freestyle',    seedTime:'00:33.00', academy:'YMCA Pool' },
-  { swimId:'SWM-006', name:'S. Karthik',       gender:'Boy', category:'U-12', event:'50m Freestyle',    seedTime:'NT',       academy:'SRM Aquatics' },
-  { swimId:'SWM-007', name:'M. Rajesh',        gender:'Boy', category:'U-12', event:'50m Freestyle',    seedTime:'NT',       academy:'Unattached' },
-  { swimId:'SWM-008', name:'V. Arun',          gender:'Boy', category:'U-12', event:'50m Freestyle',    seedTime:'NT',       academy:'Chennai SC' },
-  { swimId:'SWM-009', name:'Kiran Kumar',      gender:'Boy', category:'U-12', event:'50m Freestyle',    seedTime:'00:38.70', academy:'Aqua Stars' },
-  { swimId:'SWM-010', name:'Dev Prasad',       gender:'Boy', category:'U-12', event:'50m Freestyle',    seedTime:'00:40.10', academy:'Madurai AC' },
-  { swimId:'SWM-011', name:'Ravi Shankar',     gender:'Boy', category:'U-12', event:'100m Freestyle',   seedTime:'01:25.10', academy:'Chennai SC' },
-  { swimId:'SWM-012', name:'Suresh Babu',      gender:'Boy', category:'U-12', event:'100m Freestyle',   seedTime:'01:28.40', academy:'SRM Aquatics' },
-  { swimId:'SWM-013', name:'Muthu Kumar',      gender:'Boy', category:'U-12', event:'100m Freestyle',   seedTime:'01:32.00', academy:'Aqua Stars' },
-  { swimId:'SWM-014', name:'Ajay Prakash',     gender:'Boy', category:'U-12', event:'50m Backstroke',   seedTime:'00:44.20', academy:'Chennai SC' },
-  { swimId:'SWM-015', name:'Balaji R.',        gender:'Boy', category:'U-12', event:'50m Backstroke',   seedTime:'00:46.80', academy:'SDAT Club' },
-  { swimId:'SWM-016', name:'Gopal Krishna',    gender:'Boy', category:'U-12', event:'50m Backstroke',   seedTime:'NT',       academy:'Unattached' },
-
-  // ── U-12 Girls ──
-  { swimId:'SWM-017', name:'Divya Mohan',      gender:'Girl', category:'U-12', event:'50m Freestyle',   seedTime:'00:42.10', academy:'Aqua Stars' },
-  { swimId:'SWM-018', name:'Kavya Suresh',     gender:'Girl', category:'U-12', event:'50m Freestyle',   seedTime:'00:43.90', academy:'Chennai SC' },
-  { swimId:'SWM-019', name:'Preethi Kumar',    gender:'Girl', category:'U-12', event:'50m Freestyle',   seedTime:'00:45.00', academy:'SRM Aquatics' },
-  { swimId:'SWM-020', name:'Sneha Ravi',       gender:'Girl', category:'U-12', event:'50m Freestyle',   seedTime:'NT',       academy:'Unattached' },
-  { swimId:'SWM-021', name:'Revathy S.',       gender:'Girl', category:'U-12', event:'50m Breaststroke',seedTime:'00:51.30', academy:'Aqua Stars' },
-  { swimId:'SWM-022', name:'Nithya Lakshmi',   gender:'Girl', category:'U-12', event:'50m Breaststroke',seedTime:'00:53.80', academy:'SDAT Club' },
-
-  // ── U-14 Boys ──
-  { swimId:'SWM-023', name:'Raj Pandian',      gender:'Boy', category:'U-14', event:'100m Backstroke',  seedTime:'01:18.60', academy:'Madurai AC' },
-  { swimId:'SWM-024', name:'Rahul Menon',      gender:'Boy', category:'U-14', event:'50m Butterfly',    seedTime:'00:34.20', academy:'Chennai SC' },
-  { swimId:'SWM-025', name:'Arjun Selvam',     gender:'Boy', category:'U-14', event:'50m Butterfly',    seedTime:'00:35.90', academy:'Aqua Stars' },
-  { swimId:'SWM-026', name:'Siva Kumar',       gender:'Boy', category:'U-14', event:'50m Butterfly',    seedTime:'00:37.50', academy:'SRM Aquatics' },
-  { swimId:'SWM-027', name:'Naveen Raj',       gender:'Boy', category:'U-14', event:'50m Freestyle',    seedTime:'00:29.80', academy:'SDAT Club' },
-  { swimId:'SWM-028', name:'Hari Prasad',      gender:'Boy', category:'U-14', event:'50m Freestyle',    seedTime:'00:30.50', academy:'Chennai SC' },
-  { swimId:'SWM-029', name:'Vijay Anand',      gender:'Boy', category:'U-14', event:'50m Freestyle',    seedTime:'00:31.20', academy:'Aqua Stars' },
-  { swimId:'SWM-030', name:'Karthik Raj',      gender:'Boy', category:'U-14', event:'200m Freestyle',   seedTime:'02:24.50', academy:'Madurai AC' },
-
-  // ── U-14 Girls ──
-  { swimId:'SWM-031', name:'Priya Suresh',     gender:'Girl', category:'U-14', event:'50m Backstroke',  seedTime:'00:44.20', academy:'Chennai SC' },
-  { swimId:'SWM-032', name:'Lakshmi Rao',      gender:'Girl', category:'U-14', event:'100m Freestyle',  seedTime:'01:12.30', academy:'SDAT Club' },
-  { swimId:'SWM-033', name:'Deepa Anand',      gender:'Girl', category:'U-14', event:'100m Freestyle',  seedTime:'01:15.00', academy:'SRM Aquatics' },
-  { swimId:'SWM-034', name:'Shalini Kumar',    gender:'Girl', category:'U-14', event:'50m Butterfly',   seedTime:'00:38.40', academy:'Chennai SC' },
-  { swimId:'SWM-035', name:'Pooja Krishnan',   gender:'Girl', category:'U-14', event:'50m Butterfly',   seedTime:'NT',       academy:'Unattached' },
-
-  // ── U-16 Boys ──
-  { swimId:'SWM-036', name:'Surya Prakash',    gender:'Boy', category:'U-16', event:'50m Butterfly',    seedTime:'00:31.80', academy:'SDAT Club' },
-  { swimId:'SWM-037', name:'Abishek Nair',     gender:'Boy', category:'U-16', event:'50m Freestyle',    seedTime:'00:26.40', academy:'Chennai SC' },
-  { swimId:'SWM-038', name:'Dinesh Kumar',     gender:'Boy', category:'U-16', event:'50m Freestyle',    seedTime:'00:27.10', academy:'SRM Aquatics' },
-  { swimId:'SWM-039', name:'Suresh Rajan',     gender:'Boy', category:'U-16', event:'100m Freestyle',   seedTime:'00:57.90', academy:'SDAT Club' },
-  { swimId:'SWM-040', name:'Muthu Raj',        gender:'Boy', category:'U-16', event:'200m Freestyle',   seedTime:'02:14.50', academy:'Chennai SC' },
-  { swimId:'SWM-041', name:'Vijay Kumar',      gender:'Boy', category:'U-16', event:'100m Breaststroke',seedTime:'01:22.30', academy:'Madurai AC' },
-
-  // ── U-16 Girls ──
-  { swimId:'SWM-042', name:'Meera Shankar',    gender:'Girl', category:'U-16', event:'100m Freestyle',  seedTime:'01:08.40', academy:'SDAT Club' },
-  { swimId:'SWM-043', name:'Ananya Pillai',    gender:'Girl', category:'U-16', event:'100m Freestyle',  seedTime:'01:11.20', academy:'SRM Aquatics' },
-  { swimId:'SWM-044', name:'Lakshmi Priya',    gender:'Girl', category:'U-16', event:'200m Freestyle',  seedTime:'02:28.60', academy:'Chennai SC' },
-  { swimId:'SWM-045', name:'Parvathy R.',      gender:'Girl', category:'U-16', event:'50m Butterfly',   seedTime:'00:35.10', academy:'SDAT Club' },
-  { swimId:'SWM-046', name:'Rohini Kumar',     gender:'Girl', category:'U-16', event:'200m Freestyle',  seedTime:'NT',       academy:'Unattached' },
-
-  // ── U-10 Boys ──
-  { swimId:'SWM-047', name:'Karthik Raja',     gender:'Boy', category:'U-10', event:'25m Freestyle',    seedTime:'00:21.50', academy:'Aqua Stars' },
-  { swimId:'SWM-048', name:'Arjun Selvam',     gender:'Boy', category:'U-10', event:'25m Breaststroke', seedTime:'00:28.90', academy:'Aqua Stars' },
-  { swimId:'SWM-049', name:'Pranav Kumar',     gender:'Boy', category:'U-10', event:'25m Freestyle',    seedTime:'00:23.40', academy:'Madurai AC' },
-  { swimId:'SWM-050', name:'Anirudh Raja',     gender:'Boy', category:'U-10', event:'25m Backstroke',   seedTime:'00:25.60', academy:'Chennai SC' },
-];
-
-// Start with the sample so the page renders before DB load.
-MASTER_ROSTER = SAMPLE_ROSTER;
+// (Sample roster removed — the engine loads real entries from Supabase.)
+// MASTER_ROSTER stays empty until a tournament's real entries load.
 
 // ─── App State ────────────────────────────────────────────────
 let generatedHeats = [];    // All heat objects after generation
@@ -126,14 +58,14 @@ function msToSeedStr(ms) {
 
 async function loadRosterForTournament(tournamentId) {
   currentTournamentId = tournamentId || null;
-  if (!window.sb || !tournamentId) { MASTER_ROSTER = SAMPLE_ROSTER; refreshRosterCounts(); return; }
+  if (!window.sb || !tournamentId) { MASTER_ROSTER = []; refreshRosterCounts(); return; }
 
   const { data, error } = await window.sb
     .from('event_entries')
     .select('entry_id, event_name, category, gender, seed_time_ms, swimmer_id')
     .eq('tournament_id', tournamentId);
 
-  if (error) { console.error('[SwimFest] load entries:', error.message); MASTER_ROSTER = SAMPLE_ROSTER; refreshRosterCounts(); return; }
+  if (error) { console.error('[SwimFest] load entries:', error.message); MASTER_ROSTER = []; refreshRosterCounts(); return; }
 
   if (!data || !data.length) {
     // No real entries yet — nothing to seed for this tournament.

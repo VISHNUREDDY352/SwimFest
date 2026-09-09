@@ -72,7 +72,7 @@ document.addEventListener('keydown', (e) => {
     const prettyTitle = title ? decodeURIComponent(title) : 'Loading…';
     setText('evTitle', prettyTitle);
     setText('evBannerTitle', prettyTitle);
-    ['evHostedBy','evVenue','evSpecs','evDates','evDeadline','evBaseFee','evFeeLine','evMobileFee','evSwimUpLine']
+    ['evHostedBy','evVenue','evSpecs','evDates','evDeadline','evBaseFee','evFeeLine','evMobileFee','evSwimUpLine','evRelayFee','evRelayFeeSidebar']
       .forEach(id2 => { const el = document.getElementById(id2); if (el) el.textContent = '…'; });
 
     if (!window.sb) return; // keep placeholder if DB unavailable
@@ -97,6 +97,15 @@ document.addEventListener('keydown', (e) => {
     setText('evBaseFee', fee);
     setText('evFeeLine', fee);
     setText('evMobileFee', `${fee} (${t.max_individual_events || 3} Events)`);
+
+    // Relay add-on fee (hide the row when the meet has no relay fee)
+    const relayAmt = t.relay_fee_amount != null ? money(t.relay_fee_amount) : null;
+    setText('evRelayFee', relayAmt || '—');
+    setText('evRelayFeeSidebar', relayAmt || '—');
+    if (!relayAmt) {
+      const relayLine = document.getElementById('evRelayLine');
+      if (relayLine) relayLine.style.display = 'none';
+    }
     setText('evSwimUpLine', t.allow_swim_up
       ? 'SWIM-UP ENABLED (compete in next age group allowed)'
       : 'SINGLE CATEGORY ONLY (Swim-Up disabled for this meet)');
