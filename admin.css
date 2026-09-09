@@ -10,7 +10,7 @@
 
 /* ── Topbar ── */
 .admin-topbar {
-    background: var(--dark);
+    background: linear-gradient(135deg, #0057FF 0%, #0077b6 100%);
     height: 56px;
     position: sticky;
     top: 0;

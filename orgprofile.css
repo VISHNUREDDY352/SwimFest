@@ -6,7 +6,7 @@
 
 /* Hero */
 .op-hero {
-    background: linear-gradient(135deg, var(--primary, #0077b6) 0%, var(--primary-dark, #005f8a) 60%, var(--dark-secondary, #16213e) 100%);
+    background: linear-gradient(135deg, #0057FF 0%, #0077b6 50%, #00b4d8 100%);
     color: #fff; padding: 96px 24px 40px;
 }
 .op-hero-inner { max-width: 1000px; margin: 0 auto; display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }

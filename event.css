@@ -6,7 +6,7 @@ html, body { overflow-x: hidden; max-width: 100%; }
 
 /* ===== Event Banner ===== */
 .event-banner {
-    background: linear-gradient(135deg, var(--primary, #0077b6), var(--primary-dark, #005f8a), var(--dark-secondary, #16213e));
+    background: linear-gradient(135deg, #0057FF 0%, #0077b6 50%, #00b4d8 100%);
     padding: 28px 24px;
     text-align: center;
 }

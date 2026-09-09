@@ -10,7 +10,7 @@
 
 /* ── Hero ── */
 .acd-hero {
-    background: linear-gradient(135deg, var(--dark) 0%, var(--dark-secondary) 100%);
+    background: linear-gradient(135deg, #0057FF 0%, #0077b6 50%, #00b4d8 100%);
     padding: 52px 24px 48px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
 }
