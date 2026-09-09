@@ -270,18 +270,32 @@ create policy "auth insert coaches" on coaches for insert to authenticated with 
 -- ============================================================
 -- Auto-create a profile row when a new auth user signs up
 -- ============================================================
+-- Robust: never throws, so a bad/missing role in metadata can't block signup
 create or replace function public.handle_new_user()
-returns trigger language plpgsql security definer as $$
+returns trigger language plpgsql security definer
+set search_path = public as $$
+declare
+  v_role app_role_enum := 'swimmer';
 begin
+  begin
+    if (new.raw_user_meta_data ? 'role') then
+      v_role := (new.raw_user_meta_data->>'role')::app_role_enum;
+    end if;
+  exception when others then
+    v_role := 'swimmer';
+  end;
+
   insert into public.profiles (id, full_name, role, phone)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'full_name', ''),
-    coalesce((new.raw_user_meta_data->>'role')::app_role_enum, 'swimmer'),
+    v_role,
     coalesce(new.raw_user_meta_data->>'phone', '')
   )
   on conflict (id) do nothing;
   return new;
+exception when others then
+  return new;   -- never block auth signup, even if the profile insert fails
 end $$;
 
 drop trigger if exists on_auth_user_created on auth.users;
