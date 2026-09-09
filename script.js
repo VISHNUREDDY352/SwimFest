@@ -20,6 +20,19 @@ const currentStateEl = document.getElementById('currentState');
 const mobileMenuBtn = document.getElementById('mobileMenuBtn');
 const mobileMenu = document.getElementById('mobileMenu');
 const logo = document.getElementById('logo');
+
+// ===== Hero navbar: transparent over the image, solid on scroll =====
+const heroNavbar = document.getElementById('navbar');
+if (heroNavbar && heroNavbar.classList.contains('navbar-hero')) {
+    const toggleNav = () => {
+        // Turn solid once scrolled past most of the hero
+        const threshold = Math.max(120, window.innerHeight * 0.6);
+        heroNavbar.classList.toggle('scrolled', window.scrollY > threshold);
+    };
+    toggleNav();
+    window.addEventListener('scroll', toggleNav, { passive: true });
+    window.addEventListener('resize', toggleNav);
+}
 const searchInput = document.getElementById('searchInput');
 const categoryFilter = document.getElementById('categoryFilter');
 const statusFilter = document.getElementById('statusFilter');

@@ -49,7 +49,42 @@ body {
     background: var(--white);
     border-bottom: 1px solid var(--gray-light);
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    transition: background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
+
+/* Home page: navbar overlays the hero image (transparent), then turns
+   solid white after the user scrolls past the hero. */
+.navbar-hero {
+    background: transparent;
+    border-bottom-color: transparent;
+    box-shadow: none;
+}
+.navbar-hero .logo,
+.navbar-hero .nav-link,
+.navbar-hero .btn-profile,
+.navbar-hero .mobile-menu-btn,
+.navbar-hero .state-selector { color: #fff; }
+.navbar-hero .logo i,
+.navbar-hero .state-selector .fa-caret-down { color: #fff; }
+.navbar-hero .state-selector { border-color: rgba(255,255,255,0.6); }
+.navbar-hero .nav-link:hover { background: rgba(255,255,255,0.18); color: #fff; }
+.navbar-hero .btn-profile:hover { background: rgba(255,255,255,0.18); color: #fff !important; }
+
+/* Once scrolled, restore the solid white navbar */
+.navbar-hero.scrolled {
+    background: var(--white);
+    border-bottom-color: var(--gray-light);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+.navbar-hero.scrolled .logo,
+.navbar-hero.scrolled .nav-link,
+.navbar-hero.scrolled .btn-profile,
+.navbar-hero.scrolled .mobile-menu-btn { color: var(--dark); }
+.navbar-hero.scrolled .logo,
+.navbar-hero.scrolled .logo i { color: var(--primary); }
+.navbar-hero.scrolled .state-selector { color: var(--primary); border-color: var(--accent); }
+.navbar-hero.scrolled .state-selector .fa-caret-down { color: var(--primary); }
+.navbar-hero.scrolled .nav-link:hover { background: var(--accent-light); color: var(--primary); }
 
 .nav-container {
     max-width: 1280px;
@@ -265,25 +300,32 @@ a.btn-profile i { font-size: 0.85rem; color: inherit; }
 /* ===== Hero Banner ===== */
 .hero-banner {
     position: relative;
-    min-height: 500px;
+    min-height: 75vh;                 /* takes ~3/4 of the screen */
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #0077b6 0%, #00b4d8 50%, #90e0ef 100%);
+    /* Swimmer photo background with a blue tint on top for readability */
+    background:
+        linear-gradient(135deg, rgba(0,87,255,0.72) 0%, rgba(0,119,182,0.68) 55%, rgba(0,180,216,0.55) 100%),
+        url("https://images.unsplash.com/photo-1623720784901-2e066dfaa9ea?w=1600&auto=format&fit=crop&q=70") center/cover no-repeat;
+    /* Pull the hero up under the fixed navbar so the navbar sits on the image */
+    margin-top: -70px;
+    padding-top: 70px;
     overflow: hidden;
-}
-
-.hero-banner::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
 
 .hero-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 768px) {
+    .hero-banner {
+        min-height: 72vh;
+        margin-top: -60px;   /* mobile navbar is 60px tall */
+        padding-top: 60px;
+    }
 }
 
 .hero-content {
