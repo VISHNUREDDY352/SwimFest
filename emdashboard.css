@@ -5,7 +5,7 @@
 /* ── Sticky EM Control Bar ── */
 .em-control-bar {
     position: sticky;
-    top: 70px;
+    top: 0;
     z-index: 900;
     background: var(--dark-secondary);
     border-bottom: 1px solid rgba(255,255,255,0.08);
