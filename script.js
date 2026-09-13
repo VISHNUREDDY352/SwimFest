@@ -56,11 +56,15 @@ async function getActiveStates() {
 async function initStateGrid() {
     // Auto-populate from states that have events; fall back to full list.
     const activeStates = await getActiveStates();
-    const list = activeStates || states;
+    // Always show ALL states — never restrict the picker to only states with
+    // active events (the list would be tiny when the DB is sparse).
+    const list = states;
 
-    // Default selection: saved state if it's active, else the first active state
+    // Smart default: pick the first state that has events, then the saved
+    // state, then Tamil Nadu.
     let savedState = localStorage.getItem('swimfest_state');
-    if (!savedState || !list.includes(savedState)) savedState = list[0] || 'Tamil Nadu';
+    const preferredDefault = (activeStates && activeStates[0]) || savedState || 'Tamil Nadu';
+    if (!savedState || !list.includes(savedState)) savedState = preferredDefault;
     currentStateEl.textContent = savedState;
     localStorage.setItem('swimfest_state', savedState);
     const stateTag = document.querySelector('.state-tag');
