@@ -406,6 +406,7 @@
       if(miss.length){ showToast('Please fill: '+miss.join(', '),'warn'); ocGoStep(1); return null; }
       const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
       if(session && session.userId) row.created_by = session.userId;
+      if(session && session.email)  row.created_by_email = session.email;
 
       const { data, error } = await window.sb
         .from('tournaments').insert(row).select('tournament_id').single();

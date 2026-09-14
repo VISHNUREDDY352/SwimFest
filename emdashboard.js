@@ -208,6 +208,9 @@ window.submitAcademy = async function() {
   if (!name || !city) { showToast('Academy name and city are required.', 'warn'); return; }
   if (!window.sb) { showToast('Database not connected.', 'warn'); return; }
 
+  const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
+  const userEmail = session ? session.email : null;
+
   const file = $('acDoc')?.files?.[0] || null;
   const docUrl = await uploadVerificationDoc(file, 'academies');
 
@@ -220,6 +223,7 @@ window.submitAcademy = async function() {
     phone_number: $('acPhone')?.value.trim() || null,
     document_url: docUrl,
     status: 'PENDING_VERIFICATION',
+    created_by_email: userEmail,
   });
   if (error) { console.error('[SwimFest] academy submit:', error.message); showToast('Submit failed: ' + error.message, 'warn'); return; }
   closeModal('addAcademyModal');
@@ -232,6 +236,9 @@ window.submitCoach = async function() {
   if (!name || !license) { showToast('Coach name and license number are required.', 'warn'); return; }
   if (!window.sb) { showToast('Database not connected.', 'warn'); return; }
 
+  const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
+  const userEmail = session ? session.email : null;
+
   const file = $('coDoc')?.files?.[0] || null;
   const docUrl = await uploadVerificationDoc(file, 'coaches');
 
@@ -242,6 +249,7 @@ window.submitCoach = async function() {
     certifications: [`${certBody} · ${license}`],
     document_url: docUrl,
     status: 'PENDING_VERIFICATION',
+    created_by_email: userEmail,
   });
   if (error) { console.error('[SwimFest] coach submit:', error.message); showToast('Submit failed: ' + error.message, 'warn'); return; }
   closeModal('addCoachModal');

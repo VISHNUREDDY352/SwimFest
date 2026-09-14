@@ -67,7 +67,7 @@ async function loadMeetQueues() {
   }
   const { data, error } = await window.sb
     .from('tournaments')
-    .select('tournament_id, title, host_organization, city, venue_name, start_date, end_date, gateway_option, status')
+    .select('tournament_id, title, host_organization, city, venue_name, start_date, end_date, gateway_option, status, created_by, created_by_email')
     .eq('status', 'PENDING_APPROVAL')
     .order('created_at', { ascending: true });
 
@@ -84,12 +84,14 @@ async function loadMeetQueues() {
   // Split: Option A gateway → internal (1A); Option B → third-party (1B)
   S1A_QUEUE = rows.filter(t => t.gateway_option === 'OPTION_A_PLATFORM_GATEWAY').map(t => ({
     id: t.tournament_id, createdBy: t.host_organization || '—', title: t.title,
+    createdByEmail: t.created_by_email || null,
     dates: fmtDateRange(t.start_date, t.end_date), venue: `${t.venue_name || ''}${t.city ? ', ' + t.city : ''}`,
   }));
   S1B_QUEUE = rows.filter(t => t.gateway_option !== 'OPTION_A_PLATFORM_GATEWAY').map(t => {
     const amt = t.platform_fee ?? t.registration_fee ?? null;
     return {
       id: t.tournament_id, organizer: t.host_organization || '—', title: t.title,
+      createdByEmail: t.created_by_email || null,
       payType: 'B', feePaid: !!t.fee_paid, feeAmt: amt != null ? `₹${amt}` : '—',
     };
   });
@@ -102,26 +104,26 @@ async function loadMeetQueues() {
 async function loadVerificationQueue() {
   if (!window.sb) return;
   const [ac, co, org] = await Promise.all([
-    window.sb.from('academies').select('academy_id, academy_name, city, registration_no, document_url, status').eq('status', 'PENDING_VERIFICATION'),
-    window.sb.from('coaches').select('coach_id, full_name, designation, certifications, document_url, status').eq('status', 'PENDING_VERIFICATION'),
-    window.sb.from('organizer_directory').select('organizer_id, org_name, city, contact_person, registration_no, document_url, status').eq('status', 'PENDING_VERIFICATION'),
+    window.sb.from('academies').select('academy_id, academy_name, city, registration_no, document_url, status, created_by_email, contact_person').eq('status', 'PENDING_VERIFICATION'),
+    window.sb.from('coaches').select('coach_id, full_name, designation, certifications, document_url, status, created_by_email').eq('status', 'PENDING_VERIFICATION'),
+    window.sb.from('organizer_directory').select('organizer_id, org_name, city, contact_person, registration_no, document_url, status, email').eq('status', 'PENDING_VERIFICATION'),
   ]);
 
   S2_QUEUE = [];
   (org.data || []).forEach(o => S2_QUEUE.push({
     id: o.organizer_id, table: 'organizers', idCol: 'organizer_id',
     entityType: 'ORGANIZER', name: o.org_name, detail: `Contact: ${o.contact_person || '—'} · ${o.city || ''}`,
-    credentialId: o.registration_no || '—', documentUrl: o.document_url || null,
+    email: o.email || null, credentialId: o.registration_no || '—', documentUrl: o.document_url || null,
   }));
   (ac.data || []).forEach(a => S2_QUEUE.push({
     id: a.academy_id, table: 'academies', idCol: 'academy_id',
     entityType: 'ACADEMY', name: a.academy_name, detail: `Location: ${a.city || '—'}`,
-    credentialId: a.registration_no || '—', documentUrl: a.document_url || null,
+    email: a.created_by_email || null, credentialId: a.registration_no || '—', documentUrl: a.document_url || null,
   }));
   (co.data || []).forEach(c => S2_QUEUE.push({
     id: c.coach_id, table: 'coaches', idCol: 'coach_id',
     entityType: 'COACH', name: c.full_name, detail: c.designation || 'Coach',
-    credentialId: Array.isArray(c.certifications) ? c.certifications.join(', ') : '—', documentUrl: c.document_url || null,
+    email: c.created_by_email || null, credentialId: Array.isArray(c.certifications) ? c.certifications.join(', ') : '—', documentUrl: c.document_url || null,
   }));
 
   renderS2();
@@ -234,8 +236,14 @@ function renderS1A() {
     return;
   }
   $('s1aBody').innerHTML = S1A_QUEUE.map((item, i) => {
+    const emailTag = item.createdByEmail
+      ? `<div style="font-size:0.72rem;color:var(--primary);margin-top:2px;"><i class="fas fa-envelope" style="font-size:0.65rem;"></i> ${escHtml(item.createdByEmail)}</div>`
+      : '';
     return `<tr id="s1a-row-${i}">
-      <td>${escHtml(item.createdBy)}</td>
+      <td>
+        <div style="font-weight:700;">${escHtml(item.createdBy)}</div>
+        ${emailTag}
+      </td>
       <td><div class="sa-meet-title">${escHtml(item.title)}</div></td>
       <td>${escHtml(item.dates)}</td>
       <td>${escHtml(item.venue)}</td>
@@ -269,8 +277,14 @@ function renderS1B() {
         : `<span class="sa-fee-chip fee-pending"><i class="fas fa-times-circle"></i> Unpaid</span>`;
     // Block approve if Option B and fee not paid
     const canApprove = item.feePaid !== false;
+    const emailTag = item.createdByEmail
+      ? `<div style="font-size:0.72rem;color:var(--primary);margin-top:2px;"><i class="fas fa-envelope" style="font-size:0.65rem;"></i> ${escHtml(item.createdByEmail)}</div>`
+      : '';
     return `<tr id="s1b-row-${i}">
-      <td>${escHtml(item.organizer)}</td>
+      <td>
+        <div style="font-weight:700;">${escHtml(item.organizer)}</div>
+        ${emailTag}
+      </td>
       <td><div class="sa-meet-title">${escHtml(item.title)}</div></td>
       <td>${payChip}</td>
       <td>${feeChip}</td>
@@ -301,8 +315,14 @@ function renderS2() {
         : `<span class="entity-badge entity-coach"><i class="fas fa-chalkboard-teacher"></i> Coach</span>`;
     const submissionLabel = item.entityType === 'ACADEMY' ? 'Academy submission'
       : item.entityType === 'ORGANIZER' ? 'Organizer signup' : 'Coach submission';
+    const emailTag = item.email
+      ? `<div style="font-size:0.72rem;color:var(--primary);margin-top:2px;"><i class="fas fa-envelope" style="font-size:0.65rem;"></i> ${escHtml(item.email)}</div>`
+      : '';
     return `<tr id="s2-row-${i}">
-      <td>${escHtml(submissionLabel)}</td>
+      <td>
+        ${escHtml(submissionLabel)}
+        ${emailTag}
+      </td>
       <td>${entityBadge}</td>
       <td>
         <div class="sa-meet-title">${escHtml(item.name)}</div>
@@ -605,6 +625,7 @@ function renderAllMeets() {
         </td>
         <td>
           <div style="font-weight:700;font-size:0.83rem;">${escHtml(t.host_organization || '—')}</div>
+          ${t.created_by_email ? `<div style="font-size:0.72rem;color:var(--primary);margin-top:1px;"><i class="fas fa-envelope" style="font-size:0.65rem;"></i> ${escHtml(t.created_by_email)}</div>` : ''}
           <div style="font-size:0.72rem;color:var(--gray);margin-top:2px;">
             <i class="fas fa-map-marker-alt" style="color:var(--danger);font-size:0.65rem;"></i>
             ${escHtml(t.venue_name || '')}${t.city ? ', ' + escHtml(t.city) : ''}

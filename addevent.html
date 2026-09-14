@@ -314,6 +314,7 @@
       // Attach the logged-in creator
       const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
       if (session && session.userId) row.created_by = session.userId;
+      if (session && session.email)  row.created_by_email = session.email;
 
       const { data, error } = await window.sb
         .from('tournaments')
