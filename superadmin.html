@@ -246,6 +246,34 @@
             .sa-container { padding:16px 12px 60px; }
             .sa-metrics-grid { grid-template-columns:1fr; }
         }
+
+        /* ── Tab panel toggling ── */
+        .sa-tab-panel { display: none; }
+        .sa-tab-panel.active { display: block; animation: fadeInTab 0.2s ease; }
+        @keyframes fadeInTab { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ── All Meets toolbar & filters ── */
+        .sa-meets-toolbar {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 12px; padding: 14px 20px; background: #fafbfc;
+            border-bottom: 1px solid var(--gray-light); flex-wrap: wrap;
+        }
+        .sa-search-wrap {
+            display: flex; align-items: center; gap: 8px; background: var(--white);
+            border: 1px solid var(--gray-light); border-radius: var(--radius-sm);
+            padding: 7px 14px; flex: 1; min-width: 240px; max-width: 380px;
+        }
+        .sa-search-wrap input {
+            border: none; outline: none; font-size: 0.82rem; font-family: inherit; width: 100%; color: var(--dark);
+        }
+        .sa-status-filters { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+        .sa-filter-btn {
+            border: 1px solid var(--gray-light); background: var(--white); color: var(--gray);
+            font-size: 0.72rem; font-weight: 700; padding: 5px 12px; border-radius: 20px;
+            cursor: pointer; transition: var(--transition); font-family: inherit;
+        }
+        .sa-filter-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .sa-filter-btn.active { background: var(--primary); color: var(--white); border-color: var(--primary); }
     </style>
 </head>
 <body class="sa-body">
@@ -279,179 +307,248 @@
     <main>
         <div class="sa-container">
 
-            <!-- System Overview Metrics -->
-            <div class="sa-metrics-grid">
-                <div class="sa-metric-card">
-                    <i class="fas fa-trophy sa-metric-icon"></i>
-                    <div class="sa-metric-label">Active Meets</div>
-                    <div class="sa-metric-value">12</div>
-                    <div class="sa-metric-sub">Statewide, in progress</div>
+            <!-- TAB 1: DASHBOARD -->
+            <div class="sa-tab-panel active" id="panel-dashboard" data-tab-panel="dashboard">
+                <!-- System Overview Metrics -->
+                <div class="sa-metrics-grid">
+                    <div class="sa-metric-card">
+                        <i class="fas fa-trophy sa-metric-icon"></i>
+                        <div class="sa-metric-label">Active Meets</div>
+                        <div class="sa-metric-value">12</div>
+                        <div class="sa-metric-sub">Statewide, in progress</div>
+                    </div>
+                    <div class="sa-metric-card green">
+                        <i class="fas fa-users sa-metric-icon"></i>
+                        <div class="sa-metric-label">Total Athletes</div>
+                        <div class="sa-metric-value">4,820</div>
+                        <div class="sa-metric-sub">Registered profiles</div>
+                    </div>
+                    <div class="sa-metric-card orange">
+                        <i class="fas fa-building sa-metric-icon"></i>
+                        <div class="sa-metric-label">Academies</div>
+                        <div class="sa-metric-value">84</div>
+                        <div class="sa-metric-sub">Verified clubs</div>
+                    </div>
+                    <div class="sa-metric-card">
+                        <i class="fas fa-rupee-sign sa-metric-icon"></i>
+                        <div class="sa-metric-label">Gross Revenue</div>
+                        <div class="sa-metric-value" style="font-size:1.6rem;">₹38.4L</div>
+                        <div class="sa-metric-sub">FY 2026 to-date</div>
+                    </div>
                 </div>
-                <div class="sa-metric-card green">
-                    <i class="fas fa-users sa-metric-icon"></i>
-                    <div class="sa-metric-label">Total Athletes</div>
-                    <div class="sa-metric-value">4,820</div>
-                    <div class="sa-metric-sub">Registered profiles</div>
+
+                <!-- Approval State Machine (overview) -->
+                <div class="sa-section">
+                    <div class="sa-section-header">
+                        <span class="sa-section-title"><i class="fas fa-project-diagram"></i> Approval Workflow Overview</span>
+                    </div>
+                    <div class="sa-state-machine">
+                        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--gray);margin-bottom:12px;">System Architecture &amp; Approval State Machine</div>
+                        <div class="sa-sm-grid" id="saSmGrid"></div>
+                        <div class="sa-sm-outcome-row" id="saSmOutcomes"></div>
+                    </div>
                 </div>
-                <div class="sa-metric-card orange">
-                    <i class="fas fa-building sa-metric-icon"></i>
-                    <div class="sa-metric-label">Academies</div>
-                    <div class="sa-metric-value">84</div>
-                    <div class="sa-metric-sub">Verified clubs</div>
-                </div>
-                <div class="sa-metric-card">
-                    <i class="fas fa-rupee-sign sa-metric-icon"></i>
-                    <div class="sa-metric-label">Gross Revenue</div>
-                    <div class="sa-metric-value" style="font-size:1.6rem;">₹38.4L</div>
-                    <div class="sa-metric-sub">FY 2026 to-date</div>
+
+                <!-- Quick Nav -->
+                <div class="sa-section">
+                    <div class="sa-section-header">
+                        <span class="sa-section-title"><i class="fas fa-rocket"></i> Quick Navigation</span>
+                    </div>
+                    <div class="dash-section-body" style="padding:16px 20px;">
+                        <div class="dash-launchpad-grid">
+                            <a href="admin.html"          class="dash-launch-btn"><i class="fas fa-shield-alt"></i> Master Player List</a>
+                            <a href="heatgen.html"         class="dash-launch-btn"><i class="fas fa-bolt"></i> Heat Generation</a>
+                            <a href="results.html"         class="dash-launch-btn"><i class="fas fa-broadcast-tower"></i> Live Results</a>
+                            <a href="academy.html"         class="dash-launch-btn"><i class="fas fa-building"></i> Academy Directory</a>
+                            <a href="emdashboard.html"     class="dash-launch-btn"><i class="fas fa-cogs"></i> EM Dashboard</a>
+                            <a href="orgdashboard.html"    class="dash-launch-btn"><i class="fas fa-building"></i> Organizer Dashboard</a>
+                            <a href="saoverride.html"      class="dash-launch-btn" style="color:var(--warning);border-color:var(--warning);"><i class="fas fa-unlock-alt"></i> Universal Override</a>
+                            <a href="apiref.html"          class="dash-launch-btn"><i class="fas fa-code"></i> API Reference</a>
+                            <a href="orgcreate.html"       class="dash-launch-btn"><i class="fas fa-plus-circle"></i> Create Event</a>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Approval State Machine (overview) -->
-            <div class="sa-section">
-                <div class="sa-section-header">
-                    <span class="sa-section-title"><i class="fas fa-project-diagram"></i> Approval Workflow Overview</span>
+            <!-- TAB 2: ALL MEETS -->
+            <div class="sa-tab-panel" id="panel-meets" data-tab-panel="meets">
+                <!-- Section: All Tournaments & Meets Management -->
+                <div class="sa-section" id="allMeetsSection">
+                    <div class="sa-section-header">
+                        <span class="sa-section-title"><i class="fas fa-trophy"></i> All Meets &amp; Tournaments Directory</span>
+                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                            <span class="sa-badge green" id="allMeetsCountBadge">0 Meets</span>
+                            <a href="addevent.html" class="em-ctrl-btn em-ctrl-primary" style="padding:5px 12px;font-size:0.75rem;">
+                                <i class="fas fa-plus"></i> Create Meet
+                            </a>
+                        </div>
+                    </div>
+                    <!-- Controls Toolbar -->
+                    <div class="sa-meets-toolbar">
+                        <div class="sa-search-wrap">
+                            <i class="fas fa-search" style="color:var(--gray);font-size:0.8rem;"></i>
+                            <input type="text" id="allMeetsSearch" placeholder="Search by title, host, city, venue…" oninput="handleMeetsSearch(this.value)">
+                        </div>
+                        <div class="sa-status-filters" id="meetsStatusFilters">
+                            <button class="sa-filter-btn active" onclick="filterMeetsByStatus('ALL', this)">All</button>
+                            <button class="sa-filter-btn" onclick="filterMeetsByStatus('PUBLISHED', this)">Published (Live)</button>
+                            <button class="sa-filter-btn" onclick="filterMeetsByStatus('LOCKED', this)">Locked</button>
+                            <button class="sa-filter-btn" onclick="filterMeetsByStatus('PENDING_APPROVAL', this)">Pending Approval</button>
+                            <button class="sa-filter-btn" onclick="filterMeetsByStatus('COMPLETED', this)">Completed</button>
+                            <button class="sa-filter-btn" onclick="filterMeetsByStatus('DRAFT', this)">Draft / Rejected</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="sa-queue-table" id="allMeetsTable">
+                            <thead>
+                                <tr>
+                                    <th>Tournament / Meet</th>
+                                    <th>Host &amp; Venue</th>
+                                    <th>Dates</th>
+                                    <th>Status</th>
+                                    <th style="min-width:320px;">Open Sites &amp; Operations</th>
+                                </tr>
+                            </thead>
+                            <tbody id="allMeetsBody">
+                                <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--gray);">Loading tournaments…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <div class="sa-state-machine">
-                    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--gray);margin-bottom:12px;">System Architecture &amp; Approval State Machine</div>
-                    <div class="sa-sm-grid" id="saSmGrid"></div>
-                    <div class="sa-sm-outcome-row" id="saSmOutcomes"></div>
+
+                <!-- Section 1A: Internal Meets Approval Queue -->
+                <div class="sa-section">
+                    <div class="sa-section-header">
+                        <span class="sa-section-title"><i class="fas fa-clipboard-check"></i> Section 1A — Internal Meets Approval Queue <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Event Managers)</span></span>
+                        <span class="sa-badge" id="s1aBadge">Loading…</span>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="sa-queue-table">
+                            <thead>
+                                <tr>
+                                    <th>Created By</th>
+                                    <th>Tournament Title</th>
+                                    <th>Dates</th>
+                                    <th>Venue / City</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="s1aBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Section 1B: Third-Party Meets Approval Queue -->
+                <div class="sa-section">
+                    <div class="sa-section-header">
+                        <span class="sa-section-title"><i class="fas fa-user-tie"></i> Section 1B — Third-Party Meets Approval Queue <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Organizers)</span></span>
+                        <span class="sa-badge" id="s1bBadge">Loading…</span>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="sa-queue-table">
+                            <thead>
+                                <tr>
+                                    <th>Organizer</th>
+                                    <th>Tournament Title</th>
+                                    <th>Payment Type</th>
+                                    <th>Upfront Fee Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="s1bBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Section 2B: Meet Reopen Requests (from Organizers) -->
+                <div class="sa-section">
+                    <div class="sa-section-header">
+                        <span class="sa-section-title"><i class="fas fa-unlock-alt"></i> Meet Reopen Requests <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Organizers)</span></span>
+                        <span class="sa-badge" id="reopenBadge">Loading…</span>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="sa-queue-table">
+                            <thead>
+                                <tr>
+                                    <th>Organizer</th>
+                                    <th>Tournament</th>
+                                    <th>Reason</th>
+                                    <th>Requested</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reopenBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
-            <!-- Section 1A: Internal Meets Approval Queue -->
-            <div class="sa-section">
-                <div class="sa-section-header">
-                    <span class="sa-section-title"><i class="fas fa-clipboard-check"></i> Section 1A — Internal Meets Approval Queue <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Event Managers)</span></span>
-                    <span class="sa-badge" id="s1aBadge">Loading…</span>
+            <!-- TAB 3: ACADEMIES & COACHES -->
+            <div class="sa-tab-panel" id="panel-academies" data-tab-panel="academies">
+                <!-- Section 2: Academy & Coach Verification Queue -->
+                <div class="sa-section">
+                    <div class="sa-section-header">
+                        <span class="sa-section-title"><i class="fas fa-id-badge"></i> Section 2 — Academy &amp; Coach Verification Queue <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Event Managers)</span></span>
+                        <span class="sa-badge" id="s2Badge">Loading…</span>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="sa-queue-table">
+                            <thead>
+                                <tr>
+                                    <th>Submitted By</th>
+                                    <th>Entity Type</th>
+                                    <th>Name / Club Title</th>
+                                    <th>Credential / Tax ID</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="s2Body"></tbody>
+                        </table>
+                    </div>
                 </div>
-                <div style="overflow-x:auto;">
-                    <table class="sa-queue-table">
-                        <thead>
-                            <tr>
-                                <th>Created By</th>
-                                <th>Tournament Title</th>
-                                <th>Dates</th>
-                                <th>Venue / City</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="s1aBody"></tbody>
-                    </table>
+
+                <!-- Verified Directory Card -->
+                <div class="sa-section">
+                    <div class="sa-section-header">
+                        <span class="sa-section-title"><i class="fas fa-building"></i> Verified Academy &amp; Coach Directory</span>
+                        <a href="academy.html" target="_blank" class="sa-btn-approve" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+                            <i class="fas fa-external-link-alt"></i> Open Public Directory
+                        </a>
+                    </div>
+                    <div style="padding:20px;color:var(--gray);font-size:0.85rem;line-height:1.6;">
+                        Approved academies and coaches are automatically indexed in the public directory and made available for swimmer affiliation during registration.
+                    </div>
                 </div>
             </div>
 
-            <!-- Section 1B: Third-Party Meets Approval Queue -->
-            <div class="sa-section">
-                <div class="sa-section-header">
-                    <span class="sa-section-title"><i class="fas fa-user-tie"></i> Section 1B — Third-Party Meets Approval Queue <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Organizers)</span></span>
-                    <span class="sa-badge" id="s1bBadge">Loading…</span>
-                </div>
-                <div style="overflow-x:auto;">
-                    <table class="sa-queue-table">
-                        <thead>
-                            <tr>
-                                <th>Organizer</th>
-                                <th>Tournament Title</th>
-                                <th>Payment Type</th>
-                                <th>Upfront Fee Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="s1bBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Section 2: Academy & Coach Verification Queue -->
-            <div class="sa-section">
-                <div class="sa-section-header">
-                    <span class="sa-section-title"><i class="fas fa-id-badge"></i> Section 2 — Academy &amp; Coach Verification Queue <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Event Managers)</span></span>
-                    <span class="sa-badge" id="s2Badge">Loading…</span>
-                </div>
-                <div style="overflow-x:auto;">
-                    <table class="sa-queue-table">
-                        <thead>
-                            <tr>
-                                <th>Submitted By</th>
-                                <th>Entity Type</th>
-                                <th>Name / Club Title</th>
-                                <th>Credential / Tax ID</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="s2Body"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Section 2B: Meet Reopen Requests (from Organizers) -->
-            <div class="sa-section">
-                <div class="sa-section-header">
-                    <span class="sa-section-title"><i class="fas fa-unlock-alt"></i> Meet Reopen Requests <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Organizers)</span></span>
-                    <span class="sa-badge" id="reopenBadge">Loading…</span>
-                </div>
-                <div style="overflow-x:auto;">
-                    <table class="sa-queue-table">
-                        <thead>
-                            <tr>
-                                <th>Organizer</th>
-                                <th>Tournament</th>
-                                <th>Reason</th>
-                                <th>Requested</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="reopenBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Section 3: Financials, Gateway & Emergency -->
-            <div class="sa-section">
-                <div class="sa-section-header">
-                    <span class="sa-section-title"><i class="fas fa-credit-card"></i> Section 3 — System Financials &amp; Emergency Overrides</span>
-                </div>
-                <div class="sa-fin-row">
-                    <span>Gateway Status</span>
-                    <span class="gateway-online"><span class="gateway-dot"></span> ONLINE — Razorpay Active</span>
-                </div>
-                <div class="sa-fin-row"><span>Platform Technology Fee</span><span>₹50.00 / booking (Incl. GST)</span></div>
-                <div class="sa-fin-row"><span>Total Transactions (FY 2026)</span><span id="saTotalTxns">0</span></div>
-                <div class="sa-fin-row"><span>Gross Revenue YTD</span><span id="saGrossRevenue" style="color:var(--success);font-weight:800;">₹0</span></div>
-                <div class="sa-fin-row"><span>Pending Organizer Payouts</span><span id="saPendingPayouts" style="color:var(--warning);font-weight:700;">0 meets · ₹0</span></div>
-                <div class="sa-actions-bar">
-                    <button class="sa-action-btn sa-btn-settings" onclick="showToast('Global Platform Settings — loading…','info')">
-                        <i class="fas fa-cog"></i> Global Platform Settings
-                    </button>
-                    <button class="sa-action-btn sa-btn-export" onclick="exportAuditLog()">
-                        <i class="fas fa-file-export"></i> Export Audit Logs
-                    </button>
-                    <button class="sa-action-btn sa-btn-notice" onclick="openNoticeModal()">
-                        <i class="fas fa-bell"></i> Publish Emergency Notice
-                    </button>
-                    <a href="saoverride.html" class="sa-action-btn sa-btn-override">
-                        <i class="fas fa-unlock-alt"></i> Universal Override Engine
-                    </a>
-                </div>
-            </div>
-
-            <!-- Quick Nav -->
-            <div class="sa-section">
-                <div class="sa-section-header">
-                    <span class="sa-section-title"><i class="fas fa-rocket"></i> Quick Navigation</span>
-                </div>
-                <div class="dash-section-body" style="padding:16px 20px;">
-                    <div class="dash-launchpad-grid">
-                        <a href="admin.html"          class="dash-launch-btn"><i class="fas fa-shield-alt"></i> Master Player List</a>
-                        <a href="heatgen.html"         class="dash-launch-btn"><i class="fas fa-bolt"></i> Heat Generation</a>
-                        <a href="results.html"         class="dash-launch-btn"><i class="fas fa-broadcast-tower"></i> Live Results</a>
-                        <a href="academy.html"         class="dash-launch-btn"><i class="fas fa-building"></i> Academy Directory</a>
-                        <a href="emdashboard.html"     class="dash-launch-btn"><i class="fas fa-cogs"></i> EM Dashboard</a>
-                        <a href="orgdashboard.html"    class="dash-launch-btn"><i class="fas fa-building"></i> Organizer Dashboard</a>
-                        <a href="saoverride.html"      class="dash-launch-btn" style="color:var(--warning);border-color:var(--warning);"><i class="fas fa-unlock-alt"></i> Universal Override</a>
-                        <a href="apiref.html"          class="dash-launch-btn"><i class="fas fa-code"></i> API Reference</a>
-                        <a href="orgcreate.html"       class="dash-launch-btn"><i class="fas fa-plus-circle"></i> Create Event</a>
+            <!-- TAB 4: FINANCIALS -->
+            <div class="sa-tab-panel" id="panel-financials" data-tab-panel="financials">
+                <!-- Section 3: Financials, Gateway & Emergency -->
+                <div class="sa-section">
+                    <div class="sa-section-header">
+                        <span class="sa-section-title"><i class="fas fa-credit-card"></i> Section 3 — System Financials &amp; Emergency Overrides</span>
+                    </div>
+                    <div class="sa-fin-row">
+                        <span>Gateway Status</span>
+                        <span class="gateway-online"><span class="gateway-dot"></span> ONLINE — Razorpay Active</span>
+                    </div>
+                    <div class="sa-fin-row"><span>Platform Technology Fee</span><span>₹50.00 / booking (Incl. GST)</span></div>
+                    <div class="sa-fin-row"><span>Total Transactions (FY 2026)</span><span id="saTotalTxns">0</span></div>
+                    <div class="sa-fin-row"><span>Gross Revenue YTD</span><span id="saGrossRevenue" style="color:var(--success);font-weight:800;">₹0</span></div>
+                    <div class="sa-fin-row"><span>Pending Organizer Payouts</span><span id="saPendingPayouts" style="color:var(--warning);font-weight:700;">0 meets · ₹0</span></div>
+                    <div class="sa-actions-bar">
+                        <button class="sa-action-btn sa-btn-settings" onclick="showToast('Global Platform Settings — loading…','info')">
+                            <i class="fas fa-cog"></i> Global Platform Settings
+                        </button>
+                        <button class="sa-action-btn sa-btn-export" onclick="exportAuditLog()">
+                            <i class="fas fa-file-export"></i> Export Audit Logs
+                        </button>
+                        <button class="sa-action-btn sa-btn-notice" onclick="openNoticeModal()">
+                            <i class="fas fa-bell"></i> Publish Emergency Notice
+                        </button>
+                        <a href="saoverride.html" class="sa-action-btn sa-btn-override">
+                            <i class="fas fa-unlock-alt"></i> Universal Override Engine
+                        </a>
                     </div>
                 </div>
             </div>
@@ -507,6 +604,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js"></script>
     <script src="auth.js?v=6"></script>
-    <script src="superadmin.js"></script>
+    <script src="superadmin.js?v=2"></script>
 </body>
 </html>

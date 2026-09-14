@@ -483,15 +483,213 @@ function showEmergencyBanner(title, msg) {
   document.body.appendChild(banner);
 }
 
+// ── All Tournaments / Meets Directory ─────────────────────────
+let ALL_MEETS = [];
+let ALL_MEETS_FILTER = 'ALL';
+let ALL_MEETS_SEARCH = '';
+
+async function loadAllMeets() {
+  if (!window.sb) return;
+  try {
+    const { data, error } = await window.sb
+      .from('tournaments')
+      .select('*')
+      .order('start_date', { ascending: false });
+
+    if (error) {
+      console.error('[SwimFest] loadAllMeets:', error.message);
+      return;
+    }
+    ALL_MEETS = data || [];
+    renderAllMeets();
+  } catch (e) {
+    console.error('[SwimFest] loadAllMeets exception:', e);
+  }
+}
+
+window.handleMeetsSearch = function(val) {
+  ALL_MEETS_SEARCH = (val || '').trim();
+  renderAllMeets();
+};
+
+window.filterMeetsByStatus = function(status, btn) {
+  ALL_MEETS_FILTER = status;
+  document.querySelectorAll('#meetsStatusFilters .sa-filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderAllMeets();
+};
+
+window.openAllMeetSites = function(title, tid) {
+  const encTitle = encodeURIComponent(title);
+  window.open(`event.html?tournament=${encTitle}`, '_blank');
+  window.open(`admin.html?t=${encTitle}`, '_blank');
+  window.open(`results.html`, '_blank');
+  window.open(`heatsheets.html?tournament=${encTitle}`, '_blank');
+  showToast(`Opening all sites/portals for: ${title}`, 'success');
+};
+
+window.approveMeetDirect = async function(tid, title) {
+  if (!window.sb) return;
+  const { error } = await window.sb.from('tournaments')
+    .update({ status: 'PUBLISHED' }).eq('tournament_id', tid);
+  if (error) {
+    showToast('Approve failed: ' + error.message, 'warn');
+    return;
+  }
+  await writeAudit('EVENT_APPROVED', 'TOURNAMENT', tid, `Approved & published from All Meets directory: ${title}`);
+  showToast(`Meet Approved & Published: ${title}`, 'success');
+  refreshLiveData();
+};
+
+function renderAllMeets() {
+  const badge = $('allMeetsCountBadge');
+  const body  = $('allMeetsBody');
+  if (badge) badge.textContent = `${ALL_MEETS.length} Total Meets`;
+  if (!body) return;
+
+  let filtered = ALL_MEETS;
+  if (ALL_MEETS_FILTER !== 'ALL') {
+    if (ALL_MEETS_FILTER === 'DRAFT') {
+      filtered = filtered.filter(t => t.status === 'DRAFT' || t.status === 'REJECTED_DRAFT');
+    } else {
+      filtered = filtered.filter(t => t.status === ALL_MEETS_FILTER);
+    }
+  }
+
+  if (ALL_MEETS_SEARCH) {
+    const q = ALL_MEETS_SEARCH.toLowerCase();
+    filtered = filtered.filter(t => 
+      (t.title || '').toLowerCase().includes(q) ||
+      (t.host_organization || '').toLowerCase().includes(q) ||
+      (t.city || '').toLowerCase().includes(q) ||
+      (t.venue_name || '').toLowerCase().includes(q)
+    );
+  }
+
+  if (!filtered.length) {
+    body.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--gray);">
+      <i class="fas fa-search" style="font-size:1.5rem;opacity:0.4;margin-bottom:8px;display:block;"></i>
+      No meets found matching filter.
+    </td></tr>`;
+    return;
+  }
+
+  body.innerHTML = filtered.map(t => {
+    const encTitle = encodeURIComponent(t.title || '');
+    const tid = encodeURIComponent(t.tournament_id || '');
+    const statusMap = {
+      PUBLISHED:        { cls: 'chip-published', label: 'Published (Live)' },
+      LOCKED:           { cls: 'chip-published', label: 'Locked (Roster Set)' },
+      COMPLETED:        { cls: 'chip-completed', label: 'Completed' },
+      PENDING_APPROVAL: { cls: 'chip-pending',   label: 'Pending Approval' },
+      REJECTED_DRAFT:   { cls: 'chip-draft',     label: 'Rejected' },
+      DRAFT:            { cls: 'chip-draft',     label: 'Draft' },
+    };
+    const sc = statusMap[t.status] || { cls: 'chip-draft', label: t.status };
+    const dateRange = fmtDateRange(t.start_date, t.end_date);
+    const regClose = t.registration_deadline ? new Date(t.registration_deadline).toLocaleDateString('en-IN', { day:'2-digit', month:'short' }) : '—';
+    const isPending = t.status === 'PENDING_APPROVAL';
+
+    return `
+      <tr>
+        <td>
+          <a href="event.html?tournament=${encTitle}" target="_blank" class="sa-meet-title" style="color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+            ${escHtml(t.title)} <i class="fas fa-external-link-alt" style="font-size:0.65rem;color:var(--gray);"></i>
+          </a>
+          <div class="sa-meet-sub">
+            <span class="sa-cat-pill" style="font-size:0.65rem;">${escHtml(t.state || 'India')}</span>
+            <span>Fee: ₹${t.reg_fee_amount || 0}</span>
+            <span>·</span>
+            <span>Pool: ${escHtml(t.pool_length || '50m')} (${t.lane_count || 8} Lanes)</span>
+          </div>
+        </td>
+        <td>
+          <div style="font-weight:700;font-size:0.83rem;">${escHtml(t.host_organization || '—')}</div>
+          <div style="font-size:0.72rem;color:var(--gray);margin-top:2px;">
+            <i class="fas fa-map-marker-alt" style="color:var(--danger);font-size:0.65rem;"></i>
+            ${escHtml(t.venue_name || '')}${t.city ? ', ' + escHtml(t.city) : ''}
+          </div>
+        </td>
+        <td>
+          <div style="font-weight:700;font-size:0.8rem;">${dateRange}</div>
+          <div style="font-size:0.7rem;color:var(--gray);margin-top:2px;">Reg closes: ${regClose}</div>
+        </td>
+        <td>
+          <span class="em-status-chip ${sc.cls}">
+            <span class="status-dot"></span> ${sc.label}
+          </span>
+        </td>
+        <td>
+          <div class="em-action-group">
+            <a href="event.html?tournament=${encTitle}" target="_blank" class="em-action-btn em-btn-view" title="Open Public Event Page">
+              <i class="fas fa-globe"></i> Public Site
+            </a>
+            <a href="admin.html?t=${encTitle}" target="_blank" class="em-action-btn em-btn-manage" title="Master Player List / Roster">
+              <i class="fas fa-users"></i> Roster
+            </a>
+            <a href="heatgen.html" target="_blank" class="em-action-btn em-btn-race" title="Heat Generation">
+              <i class="fas fa-bolt"></i> Heat Gen
+            </a>
+            <a href="results.html" target="_blank" class="em-action-btn em-btn-race" title="Live Results">
+              <i class="fas fa-broadcast-tower"></i> Results
+            </a>
+            <a href="heatsheets.html?tournament=${encTitle}" target="_blank" class="em-action-btn em-btn-view" title="Heat Sheets & Schedule">
+              <i class="fas fa-file-alt"></i> Sheets
+            </a>
+            <a href="racecontrol.html" target="_blank" class="em-action-btn em-btn-manage" title="Poolside Race Control">
+              <i class="fas fa-stopwatch"></i> Race Control
+            </a>
+            <a href="saoverride.html?id=${tid}" target="_blank" class="em-action-btn em-btn-edit" title="Universal Override">
+              <i class="fas fa-unlock-alt"></i> Override
+            </a>
+            <button onclick="openAllMeetSites('${escHtml(t.title.replace(/'/g, "\\'"))}', '${t.tournament_id}')" class="em-action-btn" style="background:#0f172a;color:#fff;" title="Open all associated pages for this meet in new tabs">
+              <i class="fas fa-external-link-square-alt"></i> Open All Sites
+            </button>
+            ${isPending ? `
+              <button class="sa-btn-approve" onclick="approveMeetDirect('${tid}', '${escHtml(t.title.replace(/'/g, "\\'"))}')" style="padding:4px 10px;font-size:0.7rem;"><i class="fas fa-check"></i> Approve</button>
+            ` : ''}
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
 // ── Sub-nav tabs ──────────────────────────────────────────────
+function switchTab(tabKey) {
+  const validTabs = ['dashboard', 'meets', 'academies', 'financials'];
+  if (!validTabs.includes(tabKey)) tabKey = 'dashboard';
+
+  document.querySelectorAll('.sa-nav-tab[data-tab]').forEach(t => {
+    t.classList.toggle('active', t.getAttribute('data-tab') === tabKey);
+  });
+
+  document.querySelectorAll('.sa-tab-panel').forEach(panel => {
+    panel.style.display = (panel.getAttribute('data-tab-panel') === tabKey) ? 'block' : 'none';
+  });
+
+  if (history.replaceState) {
+    history.replaceState(null, '', '#' + tabKey);
+  }
+}
+window.switchTab = switchTab;
+
 function initTabs() {
   document.querySelectorAll('.sa-nav-tab[data-tab]').forEach(tab => {
-    tab.addEventListener('click', function() {
-      document.querySelectorAll('.sa-nav-tab[data-tab]').forEach(t=>t.classList.remove('active'));
-      this.classList.add('active');
-      showToast(`Section: ${this.textContent.trim()} — loaded`, 'info');
+    tab.addEventListener('click', function(e) {
+      e.preventDefault();
+      const tabKey = this.getAttribute('data-tab');
+      switchTab(tabKey);
+      const label = this.textContent.trim();
+      showToast(`Section: ${label}`, 'info');
     });
   });
+
+  const hash = (location.hash || '').replace('#', '');
+  if (['dashboard', 'meets', 'academies', 'financials'].includes(hash)) {
+    switchTab(hash);
+  } else {
+    switchTab('dashboard');
+  }
 }
 
 // Live preview for notice modal
@@ -527,6 +725,7 @@ function refreshLiveData() {
   // Skip while a modal is open so an in-progress action isn't disrupted
   if (document.querySelector('.modal-overlay.active')) return;
   loadMetrics();
+  loadAllMeets();
   loadMeetQueues();
   loadVerificationQueue();
   loadReopenQueue();
