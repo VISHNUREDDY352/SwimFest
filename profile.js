@@ -31,6 +31,9 @@ const PROFILE = {
   category   : '—',
   academy    : '',
   coach      : '',
+  schoolName : '',
+  nationality: 'Indian',
+  bloodGroup : '',
   parentName : '',
   parentPhone: '',
   parentEmail: '',
@@ -82,6 +85,9 @@ async function loadAccount() {
         PROFILE.dob         = sw.date_of_birth || PROFILE.dob;
         PROFILE.category    = sw.category ? `${sw.gender==='Girl'?'Girls':'Boys'} ${sw.category}` : PROFILE.category;
         PROFILE.serialNo    = sw.sfi_serial_no || PROFILE.serialNo;
+        PROFILE.schoolName  = sw.school_name || PROFILE.schoolName;
+        PROFILE.nationality = sw.nationality || PROFILE.nationality;
+        PROFILE.bloodGroup  = sw.blood_group || PROFILE.bloodGroup;
         PROFILE.parentName  = sw.parent_name  || PROFILE.parentName;
         PROFILE.parentPhone = sw.parent_phone || PROFILE.parentPhone;
         PROFILE.parentEmail = sw.parent_email || PROFILE.parentEmail;
@@ -166,6 +172,9 @@ function renderDetails() {
     { label:'Date of Birth', value:fmtDob(PROFILE.dob), locked:true },
     { label:'Competition Age', value:age },
     { label:'Category',      value:PROFILE.category || 'Not set' },
+    { label:'School / Inst.',value:PROFILE.schoolName || '—' },
+    { label:'Nationality',   value:PROFILE.nationality || 'Indian' },
+    { label:'Blood Group',   value:PROFILE.bloodGroup || '—' },
     { label:'SFI Serial No.', value:PROFILE.serialNo || '—' },
     { label:'Parent / Guardian', value:PROFILE.parentName || '—' },
     { label:'Contact',       value:PROFILE.parentPhone || '—' },
@@ -254,6 +263,9 @@ window.saveProfile = async function(){
   PROFILE.parentPhone = $('editPhone').value.trim();
   PROFILE.parentEmail = $('editEmail').value.trim();
   PROFILE.serialNo    = $('editSerial').value.trim();
+  PROFILE.schoolName  = $('editSchool')?.value.trim() || '';
+  PROFILE.nationality = $('editNationality')?.value || 'Indian';
+  PROFILE.bloodGroup  = $('editBloodGroup')?.value || '';
   PROFILE.parentName  = PROFILE.name;
   PROFILE.academy     = $('editAcademy').value;
 
@@ -272,7 +284,8 @@ window.saveProfile = async function(){
         date_of_birth: PROFILE.dob || null, category: cat ? cat.label : null,
         sfi_serial_no: PROFILE.serialNo || null, parent_name: PROFILE.name,
         parent_phone: PROFILE.parentPhone, parent_email: PROFILE.parentEmail,
-        academy_id: academyId,
+        academy_id: academyId, school_name: PROFILE.schoolName || null,
+        nationality: PROFILE.nationality || 'Indian', blood_group: PROFILE.bloodGroup || null,
       };
       // Does a swimmer row already exist for this account?
       const { data: existing } = await window.sb.from('swimmers')
@@ -381,11 +394,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   initEditExtras();
 
   $('editProfileBtn').addEventListener('click', () => {
-    $('editName').value   = PROFILE.name;
-    $('editPhone').value  = PROFILE.parentPhone;
-    $('editEmail').value  = PROFILE.parentEmail;
-    $('editSerial').value = PROFILE.serialNo && PROFILE.serialNo !== '—' ? PROFILE.serialNo : '';
-    $('editDob').value    = PROFILE.dob || '';
+    $('editName').value        = PROFILE.name;
+    $('editPhone').value       = PROFILE.parentPhone;
+    $('editEmail').value       = PROFILE.parentEmail;
+    $('editSerial').value      = PROFILE.serialNo && PROFILE.serialNo !== '—' ? PROFILE.serialNo : '';
+    $('editSchool').value      = PROFILE.schoolName || '';
+    $('editNationality').value = PROFILE.nationality || 'Indian';
+    $('editBloodGroup').value  = PROFILE.bloodGroup || '';
+    $('editDob').value         = PROFILE.dob || '';
 
     // Set gender toggle to current gender (default Boy)
     editGender = (PROFILE.gender === 'Girl') ? 'Girl' : 'Boy';

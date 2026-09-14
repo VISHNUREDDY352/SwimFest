@@ -96,8 +96,12 @@ const state = {
     category       : null,
     serialNo       : '',
     parentContact  : '',
+    schoolName     : '',
+    nationality    : 'Indian',
     academy        : '',
     coach          : '',
+    bloodGroup     : '',
+    idRef          : '',
   },
 
   selectedEvents : {},   // { id: { name, seedTime } }
@@ -281,14 +285,27 @@ function validateStep1() {
   if (!phone) { showError($('parentContact'), 'Parent / Guardian contact is required.'); ok = false; }
   else if (!/^[\d\s\+\-]{8,15}$/.test(phone)) { showError($('parentContact'), 'Enter a valid phone number.'); ok = false; }
 
+  // School OR Academy validation: At least ONE is mandatory ("any one is pakka")
+  const school = $('schoolName')?.value.trim() || '';
+  const academy = $('affiliatedAcademy')?.value || '';
+  if (!school && !academy) {
+    showError($('schoolName'), 'Please enter a School / Institution OR select an Affiliated Academy.');
+    showError($('affiliatedAcademy'), 'Please select an Affiliated Academy OR enter a School / Institution.');
+    ok = false;
+  }
+
   if (!ok) return;
 
   Object.assign(state.swimmerData, {
     fullName: name, dob,
     serialNo: $('serialNo').value.trim(),
     parentContact: phone,
-    academy: $('affiliatedAcademy').value,
-    coach:   $('assignedCoach').value,
+    schoolName: school,
+    nationality: $('nationality')?.value || 'Indian',
+    academy: academy,
+    coach: $('assignedCoach')?.value || '',
+    bloodGroup: $('bloodGroup')?.value || '',
+    idRef: $('idRef')?.value.trim() || '',
   });
 
   // Reset downstream state
@@ -460,7 +477,7 @@ function renderCheckout() {
   $('bsSwimmerName').textContent = d.fullName || '—';
   $('bsSwimmerMeta').innerHTML   =
     `${genderLabel(d.gender)} ${d.category} &nbsp;·&nbsp; ID: ${state.swimmerId}`;
-  $('bsAcademy').textContent = d.academy || 'None / Unattached';
+  $('bsAcademy').innerHTML = `${d.academy ? escHtml(d.academy) : 'Unattached'}${d.schoolName ? '<br><span style="font-size:0.75rem;color:var(--gray);">School: ' + escHtml(d.schoolName) + '</span>' : ''}`;
   $('bsCoach').textContent   = d.coach   ? `Coach: ${d.coach}` : 'None / Self-Coached';
 
   /* ── B. Itemized Cart ── */
@@ -673,7 +690,9 @@ async function saveRegistrationToDB() {
         gender: d.gender, date_of_birth: d.dob, category: d.category,
         sfi_serial_no: d.serialNo || null, parent_name: d.fullName,
         parent_phone: d.parentContact, parent_email: session ? session.email : null,
-        academy_id: academyId,
+        academy_id: academyId, school_name: d.schoolName || null,
+        nationality: d.nationality || 'Indian', blood_group: d.bloodGroup || null,
+        id_ref: d.idRef || null,
       }).eq('swimmer_id', swimmerId);
     } else {
       const { data, error } = await window.sb.from('swimmers').insert({
@@ -682,6 +701,8 @@ async function saveRegistrationToDB() {
         category: d.category, sfi_serial_no: d.serialNo || null,
         parent_name: d.fullName, parent_phone: d.parentContact,
         parent_email: session ? session.email : null, academy_id: academyId,
+        school_name: d.schoolName || null, nationality: d.nationality || 'Indian',
+        blood_group: d.bloodGroup || null, id_ref: d.idRef || null,
       }).select('swimmer_id').single();
       if (error) throw error;
       swimmerId = data.swimmer_id;
@@ -777,9 +798,12 @@ function renderSuccessReceipt() {
     { label: 'Category',        value: catLabel(d.gender, d.category) },
     { label: 'Date of Birth',   value: formatDate(d.dob) },
     { label: 'Parent Contact',  value: d.parentContact },
-    { label: 'Serial No.',      value: d.serialNo || '—' },
-    { label: 'Academy',         value: d.academy  || 'None / Unattached' },
-    { label: 'Coach',           value: d.coach    || 'None / Self-Coached' },
+    { label: 'School',          value: d.schoolName || '—' },
+    { label: 'Academy',         value: d.academy    || 'None / Unattached' },
+    { label: 'Nationality',     value: d.nationality || 'Indian' },
+    { label: 'Blood Group',     value: d.bloodGroup || '—' },
+    { label: 'Serial / ID No.', value: d.serialNo || d.idRef || '—' },
+    { label: 'Coach',           value: d.coach      || 'None / Self-Coached' },
   ];
   $('receiptSwimmerDetails').innerHTML = swimmerFields.map(f => `
     <div class="receipt-field">

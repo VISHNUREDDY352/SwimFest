@@ -144,9 +144,25 @@
                             <input type="tel" id="parentContact" class="reg-input" placeholder="+91 98765 43210">
                         </div>
 
+                        <!-- School / Educational Institution (Required if no Academy selected) -->
+                        <div class="reg-field">
+                            <label class="reg-label">School / Educational Institution <span class="optional-note">Required if no Academy selected</span></label>
+                            <input type="text" id="schoolName" class="reg-input" placeholder="e.g. St. Bede's Higher Secondary School">
+                        </div>
+
+                        <!-- Nationality -->
+                        <div class="reg-field">
+                            <label class="reg-label req">Nationality</label>
+                            <select id="nationality" class="reg-select">
+                                <option value="Indian" selected>Indian</option>
+                                <option value="NRI / Overseas Indian">NRI / Overseas Indian</option>
+                                <option value="Foreign National">Foreign National</option>
+                            </select>
+                        </div>
+
                         <!-- Affiliated Academy -->
                         <div class="reg-field">
-                            <label class="reg-label">Affiliated Academy <span class="optional-note">Default: None / Unattached</span></label>
+                            <label class="reg-label">Affiliated Academy <span class="optional-note">Required if no School entered</span></label>
                             <select id="affiliatedAcademy" class="reg-select">
                                 <option value="">None / Unattached</option>
                                 <!-- Populated dynamically from Academy Master (Rule 6.2) -->
@@ -160,6 +176,28 @@
                                 <option value="">None / Self-Coached</option>
                                 <!-- Filtered dynamically when academy is selected -->
                             </select>
+                        </div>
+
+                        <!-- Blood Group -->
+                        <div class="reg-field">
+                            <label class="reg-label">Blood Group <span class="optional-note">Optional</span></label>
+                            <select id="bloodGroup" class="reg-select">
+                                <option value="">Select Blood Group</option>
+                                <option value="A+">A+</option>
+                                <option value="A-">A-</option>
+                                <option value="B+">B+</option>
+                                <option value="B-">B-</option>
+                                <option value="O+">O+</option>
+                                <option value="O-">O-</option>
+                                <option value="AB+">AB+</option>
+                                <option value="AB-">AB-</option>
+                            </select>
+                        </div>
+
+                        <!-- Govt ID / Aadhaar Ref -->
+                        <div class="reg-field">
+                            <label class="reg-label">Aadhaar / Govt ID Ref (Last 4 Digits) <span class="optional-note">Optional</span></label>
+                            <input type="text" id="idRef" class="reg-input" placeholder="e.g. 4321" maxlength="12">
                         </div>
                     </div>
 
