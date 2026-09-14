@@ -98,11 +98,11 @@
 .acd-filters-bar {
     background: var(--white);
     border-bottom: 1px solid var(--gray-light);
-    padding: 16px 24px;
+    padding: 14px 24px;
     position: sticky;
-    top: 70px;
-    z-index: 100;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
 }
 
 .acd-filters-inner {
@@ -112,6 +112,28 @@
     gap: 12px;
     align-items: center;
     flex-wrap: wrap;
+}
+
+.acd-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--primary);
+    color: var(--white) !important;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none !important;
+    transition: var(--transition);
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(0, 119, 182, 0.2);
+}
+
+.acd-back-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 119, 182, 0.3);
 }
 
 .acd-search-wrap {

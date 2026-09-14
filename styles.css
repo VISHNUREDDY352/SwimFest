@@ -38,7 +38,7 @@ body {
     background: var(--light);
     color: var(--dark);
     line-height: 1.6;
-    overflow-x: hidden;
+    overflow-x: clip;
 }
 
 /* ===== Navbar ===== */
@@ -408,8 +408,11 @@ a.btn-profile i { font-size: 0.85rem; color: inherit; }
 .search-filters-bar {
     background: var(--white);
     border-bottom: 1px solid var(--gray-light);
-    padding: 20px 24px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    padding: 16px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .filters-container {
