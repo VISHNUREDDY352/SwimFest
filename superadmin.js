@@ -115,8 +115,11 @@ async function loadVerificationQueue() {
         .filter(s => s && s.status === 'PENDING_VERIFICATION')
         .forEach(s => S2_QUEUE.push({
           id: s.swimmer_id, table: 'swimmers', idCol: 'swimmer_id',
-          entityType: 'SWIMMER', name: s.full_name, detail: `${s.gender || ''} ${s.category || ''} · Parent: ${s.parent_name || '—'} (${s.parent_phone || '—'}) ${s.school_name ? '· School: ' + s.school_name : ''}`,
-          email: s.parent_email || null, credentialId: s.sfi_serial_no || `SWM-${String(s.swimmer_id).slice(0,8).toUpperCase()}`, documentUrl: null,
+          entityType: 'SWIMMER', name: s.full_name,
+          detail: `${s.gender || ''} ${s.category || ''} ${s.date_of_birth ? '(DOB: ' + s.date_of_birth + ')' : ''} · Parent: ${s.parent_name || '—'} (${s.parent_phone || '—'}) ${s.school_name ? '· School: ' + s.school_name : ''} ${s.id_ref ? '· ID/Ref: ' + s.id_ref : ''}`,
+          email: s.parent_email || null,
+          credentialId: s.sfi_serial_no || `SWM-${String(s.swimmer_id).slice(0,8).toUpperCase()}`,
+          documentUrl: null,
         }));
     }
   } catch (e) { console.warn('[SwimFest] swimmers queue query:', e.message); }
