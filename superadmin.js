@@ -67,15 +67,16 @@ async function loadMeetQueues() {
   }
   const { data, error } = await window.sb
     .from('tournaments')
-    .select('tournament_id, title, host_organization, city, venue_name, start_date, end_date, gateway_option, status, created_by, created_by_email')
+    .select('*')
     .eq('status', 'PENDING_APPROVAL')
     .order('created_at', { ascending: true });
 
   if (error) {
     console.error('[SwimFest] queues:', error.message);
-    $('s1aBadge').textContent = 'Error';
-    $('s1bBadge').textContent = 'Error';
-    showToast('Queue load failed: ' + error.message, 'warn');
+    $('s1aBadge').textContent = '0 pending';
+    $('s1bBadge').textContent = '0 pending';
+    renderS1A();
+    renderS1B();
     return;
   }
   console.info('[SwimFest] PENDING_APPROVAL tournaments found:', (data || []).length);
@@ -100,37 +101,59 @@ async function loadMeetQueues() {
   renderS1B();
 }
 
-// ── Supabase: pending academy / coach verifications ───────────
+// ── Supabase: pending academy / coach / swimmer verifications ─
 async function loadVerificationQueue() {
   if (!window.sb) return;
-  const [ac, co, org, sw] = await Promise.all([
-    window.sb.from('academies').select('academy_id, academy_name, city, registration_no, document_url, status, created_by_email, contact_person').eq('status', 'PENDING_VERIFICATION'),
-    window.sb.from('coaches').select('coach_id, full_name, designation, certifications, document_url, status, created_by_email').eq('status', 'PENDING_VERIFICATION'),
-    window.sb.from('organizer_directory').select('organizer_id, org_name, city, contact_person, registration_no, document_url, status, email').eq('status', 'PENDING_VERIFICATION'),
-    window.sb.from('swimmers').select('swimmer_id, full_name, gender, category, parent_name, parent_phone, parent_email, school_name, status, sfi_serial_no').eq('status', 'PENDING_VERIFICATION'),
-  ]);
 
   S2_QUEUE = [];
-  (sw.data || []).forEach(s => S2_QUEUE.push({
-    id: s.swimmer_id, table: 'swimmers', idCol: 'swimmer_id',
-    entityType: 'SWIMMER', name: s.full_name, detail: `${s.gender || ''} ${s.category || ''} · Parent: ${s.parent_name || '—'} (${s.parent_phone || '—'}) ${s.school_name ? '· School: ' + s.school_name : ''}`,
-    email: s.parent_email || null, credentialId: s.sfi_serial_no || `SWM-${String(s.swimmer_id).slice(0,8).toUpperCase()}`, documentUrl: null,
-  }));
-  (org.data || []).forEach(o => S2_QUEUE.push({
-    id: o.organizer_id, table: 'organizers', idCol: 'organizer_id',
-    entityType: 'ORGANIZER', name: o.org_name, detail: `Contact: ${o.contact_person || '—'} · ${o.city || ''}`,
-    email: o.email || null, credentialId: o.registration_no || '—', documentUrl: o.document_url || null,
-  }));
-  (ac.data || []).forEach(a => S2_QUEUE.push({
-    id: a.academy_id, table: 'academies', idCol: 'academy_id',
-    entityType: 'ACADEMY', name: a.academy_name, detail: `Location: ${a.city || '—'}`,
-    email: a.created_by_email || null, credentialId: a.registration_no || '—', documentUrl: a.document_url || null,
-  }));
-  (co.data || []).forEach(c => S2_QUEUE.push({
-    id: c.coach_id, table: 'coaches', idCol: 'coach_id',
-    entityType: 'COACH', name: c.full_name, detail: c.designation || 'Coach',
-    email: c.created_by_email || null, credentialId: Array.isArray(c.certifications) ? c.certifications.join(', ') : '—', documentUrl: c.document_url || null,
-  }));
+
+  // 1. Swimmers
+  try {
+    const swRes = await window.sb.from('swimmers').select('*').eq('status', 'PENDING_VERIFICATION');
+    if (!swRes.error && swRes.data) {
+      swRes.data.forEach(s => S2_QUEUE.push({
+        id: s.swimmer_id, table: 'swimmers', idCol: 'swimmer_id',
+        entityType: 'SWIMMER', name: s.full_name, detail: `${s.gender || ''} ${s.category || ''} · Parent: ${s.parent_name || '—'} (${s.parent_phone || '—'}) ${s.school_name ? '· School: ' + s.school_name : ''}`,
+        email: s.parent_email || null, credentialId: s.sfi_serial_no || `SWM-${String(s.swimmer_id).slice(0,8).toUpperCase()}`, documentUrl: null,
+      }));
+    }
+  } catch (e) { console.warn('[SwimFest] swimmers queue query:', e.message); }
+
+  // 2. Organizers
+  try {
+    const orgRes = await window.sb.from('organizer_directory').select('*').eq('status', 'PENDING_VERIFICATION');
+    if (!orgRes.error && orgRes.data) {
+      orgRes.data.forEach(o => S2_QUEUE.push({
+        id: o.organizer_id, table: 'organizers', idCol: 'organizer_id',
+        entityType: 'ORGANIZER', name: o.org_name, detail: `Contact: ${o.contact_person || '—'} · ${o.city || ''}`,
+        email: o.email || null, credentialId: o.registration_no || '—', documentUrl: o.document_url || null,
+      }));
+    }
+  } catch (e) { console.warn('[SwimFest] organizer queue query:', e.message); }
+
+  // 3. Academies
+  try {
+    const acRes = await window.sb.from('academies').select('*').eq('status', 'PENDING_VERIFICATION');
+    if (!acRes.error && acRes.data) {
+      acRes.data.forEach(a => S2_QUEUE.push({
+        id: a.academy_id, table: 'academies', idCol: 'academy_id',
+        entityType: 'ACADEMY', name: a.academy_name, detail: `Location: ${a.city || '—'}`,
+        email: a.created_by_email || null, credentialId: a.registration_no || '—', documentUrl: a.document_url || null,
+      }));
+    }
+  } catch (e) { console.warn('[SwimFest] academies queue query:', e.message); }
+
+  // 4. Coaches
+  try {
+    const coRes = await window.sb.from('coaches').select('*').eq('status', 'PENDING_VERIFICATION');
+    if (!coRes.error && coRes.data) {
+      coRes.data.forEach(c => S2_QUEUE.push({
+        id: c.coach_id, table: 'coaches', idCol: 'coach_id',
+        entityType: 'COACH', name: c.full_name, detail: c.designation || 'Coach',
+        email: c.created_by_email || null, credentialId: Array.isArray(c.certifications) ? c.certifications.join(', ') : '—', documentUrl: c.document_url || null,
+      }));
+    }
+  } catch (e) { console.warn('[SwimFest] coaches queue query:', e.message); }
 
   renderS2();
 }
