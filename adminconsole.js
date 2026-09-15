@@ -304,8 +304,18 @@ function renderEvents(q = '') {
   `).join('');
 }
 
+function checkSuperAdmin() {
+  const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
+  if (!session || session.role !== 'super_admin') {
+    showToast('Super Admin authorization required to perform verifications.', 'warn');
+    return false;
+  }
+  return true;
+}
+
 // ── Action Handlers ───────────────────────────────────────────
 window.approveSwimmer = async function(id, name) {
+  if (!checkSuperAdmin()) return;
   const actCell = $(`sw-act-${id}`);
   const { error } = await window.sb.from('swimmers').update({ status: 'APPROVED_ACTIVE' }).eq('swimmer_id', id);
   if (error) {
@@ -320,6 +330,7 @@ window.approveSwimmer = async function(id, name) {
 };
 
 window.rejectSwimmer = async function(id, name) {
+  if (!checkSuperAdmin()) return;
   const actCell = $(`sw-act-${id}`);
   const { error } = await window.sb.from('swimmers').update({ status: 'REJECTED' }).eq('swimmer_id', id);
   if (error) {
@@ -334,6 +345,7 @@ window.rejectSwimmer = async function(id, name) {
 };
 
 window.approveCoach = async function(id, name) {
+  if (!checkSuperAdmin()) return;
   const actCell = $(`co-act-${id}`);
   const { error } = await window.sb.from('coaches').update({ status: 'APPROVED_ACTIVE' }).eq('coach_id', id);
   if (error) {
@@ -348,6 +360,7 @@ window.approveCoach = async function(id, name) {
 };
 
 window.rejectCoach = async function(id, name) {
+  if (!checkSuperAdmin()) return;
   const actCell = $(`co-act-${id}`);
   const { error } = await window.sb.from('coaches').update({ status: 'REJECTED' }).eq('coach_id', id);
   if (error) {
@@ -362,6 +375,7 @@ window.rejectCoach = async function(id, name) {
 };
 
 window.approveAcademy = async function(id, name) {
+  if (!checkSuperAdmin()) return;
   const actCell = $(`ac-act-${id}`);
   const { error } = await window.sb.from('academies').update({ status: 'APPROVED_ACTIVE' }).eq('academy_id', id);
   if (error) {
@@ -376,6 +390,7 @@ window.approveAcademy = async function(id, name) {
 };
 
 window.rejectAcademy = async function(id, name) {
+  if (!checkSuperAdmin()) return;
   const actCell = $(`ac-act-${id}`);
   const { error } = await window.sb.from('academies').update({ status: 'REJECTED' }).eq('academy_id', id);
   if (error) {
@@ -390,6 +405,7 @@ window.rejectAcademy = async function(id, name) {
 };
 
 window.approveEvent = async function(id, name) {
+  if (!checkSuperAdmin()) return;
   const actCell = $(`ev-act-${id}`);
   const { error } = await window.sb.from('tournaments').update({ status: 'PUBLISHED' }).eq('tournament_id', id);
   if (error) {
@@ -404,6 +420,7 @@ window.approveEvent = async function(id, name) {
 };
 
 window.rejectEvent = async function(id, name) {
+  if (!checkSuperAdmin()) return;
   const actCell = $(`ev-act-${id}`);
   const { error } = await window.sb.from('tournaments').update({ status: 'REJECTED_DRAFT' }).eq('tournament_id', id);
   if (error) {
