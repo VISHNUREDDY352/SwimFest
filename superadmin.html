@@ -233,17 +233,32 @@
             50%      { box-shadow:0 0 0 6px rgba(46,204,113,0); }
         }
 
+        .sa-subnav-inner::-webkit-scrollbar { display: none; }
+        .sa-subnav-inner { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+
         @media (max-width:1024px) { .sa-metrics-grid { grid-template-columns:repeat(2,1fr); } }
         @media (max-width:768px) {
-            .sa-metrics-grid { grid-template-columns:1fr 1fr; }
-            .sa-subnav-inner { gap:0; }
-            .sa-nav-tab { padding:10px 10px; font-size:0.72rem; }
-            .sa-queue-table th:nth-child(3), .sa-queue-table td:nth-child(3) { display:none; }
+            .sa-topbar-inner { padding:0 12px; height:50px; }
+            .sa-role-tag { display:none !important; }
+            .sa-logo { font-size:0.95rem; }
+            .sa-topbar-right { gap:6px; }
+            .sa-user-btn, .sa-logout { padding:5px 8px; font-size:0.72rem; }
+
+            .sa-subnav { top:50px; }
+            .sa-subnav-inner { height:44px; padding:0 10px; gap:4px; overflow-x:auto; flex-wrap:nowrap; }
+            .sa-nav-tab { padding:6px 12px; font-size:0.72rem; flex-shrink:0; white-space:nowrap; }
+
+            .sa-container { padding:14px 12px 60px; }
+            .sa-metrics-grid { grid-template-columns:1fr 1fr; gap:10px; }
+            .sa-metric-card { padding:14px 16px; }
+            .sa-metric-value { font-size:1.6rem; }
+
+            .sa-queue-table th, .sa-queue-table td { padding:8px 10px; font-size:0.75rem; }
             .sa-sm-grid { grid-template-columns:1fr; }
             .sa-sm-outcome-row { grid-template-columns:1fr; }
         }
         @media (max-width:480px) {
-            .sa-container { padding:16px 12px 60px; }
+            .sa-container { padding:12px 10px 60px; }
             .sa-metrics-grid { grid-template-columns:1fr; }
         }
 
@@ -276,7 +291,7 @@
         .sa-filter-btn.active { background: var(--primary); color: var(--white); border-color: var(--primary); }
     </style>
 </head>
-<body class="sa-body">
+<body class="sa-body" data-no-back>
 
     <!-- Master Topbar -->
     <header class="sa-master-header">

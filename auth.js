@@ -316,7 +316,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // have back navigation. Skips the home page and role landing
   // dashboards (where "back" has no meaning). History-aware.
   (function initBackButton() {
-    const page = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
+    const rawPage = (window.location.pathname.split('/').pop() || 'index.html');
+    const page = rawPage.split('?')[0].split('#')[0].toLowerCase();
 
     // Pages that should NOT get an injected back button:
     //  - the home page itself
@@ -324,6 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const SKIP_PAGES = [
       '', 'index.html',
       'superadmin.html', 'emdashboard.html', 'orgdashboard.html',
+      'saprofile.html', 'saoverride.html', 'admin.html',
     ];
     if (SKIP_PAGES.includes(page)) return;
 
