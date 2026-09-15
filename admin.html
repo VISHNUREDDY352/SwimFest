@@ -4,58 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Console — SwimFest</title>
-    <script src="guard.js" data-roles="super_admin"></script>
+    <script src="guard.js" data-roles="event_manager,super_admin,organizer"></script>
     <link rel="stylesheet" href="styles.css?v=21">
     <link rel="stylesheet" href="admin.css?v=2">
     <link rel="stylesheet" href="dashboard.css?v=2">
-    <link rel="stylesheet" href="emdashboard.css">
+    <link rel="stylesheet" href="emdashboard.css?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .admin-console-hero {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #ffffff;
-            padding: 24px;
-            border-radius: var(--radius);
-            margin-bottom: 24px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        }
-        .hero-actions-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 16px;
-            margin-top: 20px;
-        }
-        .hero-action-card {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 10px;
-            padding: 16px 20px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            text-decoration: none;
-            color: #ffffff;
-            transition: all 0.2s ease;
-        }
-        .hero-action-card:hover {
-            background: rgba(255, 255, 255, 0.16);
-            border-color: var(--accent);
-            transform: translateY(-2px);
-        }
-        .hero-action-card i {
-            font-size: 1.5rem;
-            color: var(--accent);
-        }
-        .hero-action-title {
-            font-weight: 700;
-            font-size: 0.95rem;
-            margin-bottom: 2px;
-        }
-        .hero-action-sub {
-            font-size: 0.75rem;
-            color: rgba(255,255,255,0.7);
-        }
         .admin-nav-tabs {
             display: flex;
             gap: 8px;
@@ -138,231 +94,339 @@
         .tab-content.active { display: block; }
     </style>
 </head>
-<body class="admin-body">
+<body class="dash-body">
 
-    <!-- Admin Topbar -->
-    <header class="admin-topbar">
-        <div class="admin-topbar-inner">
-            <div class="admin-topbar-left">
-                <a href="index.html" class="admin-logo">
-                    <i class="fas fa-swimmer"></i> SwimFest
+    <!-- Main Navbar -->
+    <header class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="admin.html" class="logo"><i class="fas fa-swimmer"></i> SwimFest <span style="font-size:0.7rem;font-weight:600;color:var(--gray);">Admin Console</span></a>
+            <nav class="nav-links">
+                <a href="admin.html" class="nav-link active">Admin Dashboard</a>
+                <a href="playerlist.html" class="nav-link">Player List</a>
+                <a href="heatgen.html" class="nav-link">Heat Gen</a>
+                <a href="results.html" class="nav-link">Results</a>
+                <a href="racecontrol.html" class="nav-link">Race Control</a>
+                <a href="superadmin.html" id="superAdminLink" class="nav-link" style="display:none;color:var(--warning);"><i class="fas fa-shield-alt"></i> Super Admin</a>
+            </nav>
+            <div style="display:flex;align-items:center;gap:10px;margin-left:auto;">
+                <a href="index.html" class="btn-register-login dash-logout" style="background:var(--primary);">
+                    <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
-                <span class="admin-role-tag"><i class="fas fa-shield-alt"></i> Super Admin Console &amp; Approvals</span>
-            </div>
-            <div class="admin-topbar-right">
-                <a href="playerlist.html" class="admin-user-pill" style="text-decoration:none;"><i class="fas fa-list-check"></i> Player List</a>
-                <a href="superadmin.html" id="superAdminLink" class="admin-user-pill" style="display:none;text-decoration:none;"><i class="fas fa-shield-alt"></i> Super Admin</a>
-                <a href="index.html" class="admin-logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
             </div>
         </div>
     </header>
 
-    <main class="admin-main">
-        <div class="admin-container">
+    <!-- Sticky Admin Control Bar -->
+    <div class="em-control-bar" id="emControlBar">
+        <div class="em-control-inner">
+            <span class="em-control-label">ADMIN CONTROL BAR</span>
+            <a href="addevent.html" class="em-ctrl-btn em-ctrl-primary">
+                <i class="fas fa-plus"></i> Add Event
+            </a>
+            <a href="orgcreate.html" class="em-ctrl-btn em-ctrl-secondary">
+                <i class="fas fa-trophy"></i> Post External Meet
+            </a>
+            <a href="#" class="em-ctrl-btn em-ctrl-secondary" onclick="openAddAcademyModal();return false;">
+                <i class="fas fa-building"></i> Add Academy
+            </a>
+            <a href="#" class="em-ctrl-btn em-ctrl-secondary" onclick="openAddCoachModal();return false;">
+                <i class="fas fa-chalkboard-teacher"></i> Add Coach
+            </a>
+            <a href="#verificationQueues" class="em-ctrl-btn em-ctrl-meets" style="background:var(--primary);">
+                <i class="fas fa-check-double"></i> Approvals Queue
+            </a>
+            <a href="#myMeets" class="em-ctrl-btn em-ctrl-meets">
+                <i class="fas fa-calendar-check"></i> My Meets
+            </a>
+        </div>
+    </div>
 
-            <!-- Hero & Quick Actions Banner -->
-            <div class="admin-console-hero">
-                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+    <main class="em-main">
+        <div class="em-container">
+
+            <!-- Welcome Banner -->
+            <div class="em-welcome-card">
+                <div class="em-welcome-left">
+                    <div class="em-welcome-icon"><i class="fas fa-user-shield"></i></div>
                     <div>
-                        <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);"><i class="fas fa-user-shield"></i> Super Admin Governance</div>
-                        <h1 style="font-size:1.6rem;font-weight:800;margin-top:4px;">Event Creation &amp; Approvals Center</h1>
+                        <h1 class="em-welcome-title">Welcome back, Admin &amp; Event Manager</h1>
+                        <p class="em-welcome-id" id="emIdentity">Platform Operations Team</p>
+                        <p class="em-welcome-sub">Manage tournaments, review &amp; approve new swimmers, coaches, and academies, create online/offline events, and run poolside race operations.</p>
                     </div>
-                    <a href="playerlist.html" class="admin-btn admin-btn-outline" style="color:#ffffff;border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.05);">
-                        <i class="fas fa-users"></i> Open Master Player List
-                    </a>
                 </div>
-
-                <div class="hero-actions-grid">
-                    <a href="addevent.html" class="hero-action-card">
-                        <i class="fas fa-calendar-plus"></i>
-                        <div>
-                            <div class="hero-action-title">Create New Event</div>
-                            <div class="hero-action-sub">Setup meet, events, categories &amp; fees</div>
-                        </div>
-                    </a>
-                    <a href="orgcreate.html" class="hero-action-card">
+                <div class="em-stats-row">
+                    <div class="em-stat-pill">
                         <i class="fas fa-trophy"></i>
-                        <div>
-                            <div class="hero-action-title">Post External Meet</div>
-                            <div class="hero-action-sub">Submit third-party meet details</div>
-                        </div>
-                    </a>
-                    <a href="playerlist.html" class="hero-action-card">
-                        <i class="fas fa-clipboard-list"></i>
-                        <div>
-                            <div class="hero-action-title">Player List &amp; Roster</div>
-                            <div class="hero-action-sub">Audit swimmers, seed times &amp; lock roster</div>
-                        </div>
-                    </a>
-                    <a href="heatgen.html" class="hero-action-card">
-                        <i class="fas fa-bolt"></i>
-                        <div>
-                            <div class="hero-action-title">Heat Generation</div>
-                            <div class="hero-action-sub">Seed lanes and generate heat sheets</div>
-                        </div>
-                    </a>
-                </div>
-            </div>
-
-            <!-- Metric Summary Cards -->
-            <div class="admin-grid-stats" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px;">
-                <div class="admin-stat-chip">
-                    <i class="fas fa-swimmer"></i>
-                    <div>
-                        <div style="font-size:0.7rem;color:var(--gray);font-weight:700;text-transform:uppercase;">Pending Swimmers</div>
-                        <div class="chip-num" id="cntSwimmers">0</div>
+                        <div class="em-stat-val" id="emStatMeets">0</div>
+                        <div class="em-stat-label">Internal Meets</div>
                     </div>
-                </div>
-                <div class="admin-stat-chip">
-                    <i class="fas fa-user-ninja"></i>
-                    <div>
-                        <div style="font-size:0.7rem;color:var(--gray);font-weight:700;text-transform:uppercase;">Pending Coaches</div>
-                        <div class="chip-num" id="cntCoaches">0</div>
+                    <div class="em-stat-pill">
+                        <i class="fas fa-list"></i>
+                        <div class="em-stat-val" id="emStatEntries">0</div>
+                        <div class="em-stat-label">Roster Entries</div>
                     </div>
-                </div>
-                <div class="admin-stat-chip">
-                    <i class="fas fa-building"></i>
-                    <div>
-                        <div style="font-size:0.7rem;color:var(--gray);font-weight:700;text-transform:uppercase;">Pending Academies</div>
-                        <div class="chip-num" id="cntAcademies">0</div>
+                    <div class="em-stat-pill orange">
+                        <i class="fas fa-swimmer"></i>
+                        <div class="em-stat-val" id="cntSwimmers">0</div>
+                        <div class="em-stat-label">Pending Swimmers</div>
                     </div>
-                </div>
-                <div class="admin-stat-chip">
-                    <i class="fas fa-calendar-check"></i>
-                    <div>
-                        <div style="font-size:0.7rem;color:var(--gray);font-weight:700;text-transform:uppercase;">Pending Events</div>
-                        <div class="chip-num" id="cntEvents">0</div>
+                    <div class="em-stat-pill green">
+                        <i class="fas fa-building"></i>
+                        <div class="em-stat-val" id="cntAcademies">0</div>
+                        <div class="em-stat-label">Pending Academies</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Main Approval Queues Tab Container -->
-            <div class="admin-section-header">
-                <div>
-                    <div class="admin-section-label">Verification Queues</div>
-                    <h2 class="admin-section-title">Approvals Management</h2>
-                </div>
-            </div>
-
-            <!-- Tab Navigation Buttons -->
-            <div class="admin-nav-tabs">
-                <button class="admin-tab-btn active" onclick="switchAdminTab('swimmersTab', this)">
-                    <i class="fas fa-swimmer"></i> Swimmer Approvals <span class="badge" id="badgeSwimmers">0</span>
-                </button>
-                <button class="admin-tab-btn" onclick="switchAdminTab('coachesTab', this)">
-                    <i class="fas fa-user-ninja"></i> Coach Approvals <span class="badge" id="badgeCoaches">0</span>
-                </button>
-                <button class="admin-tab-btn" onclick="switchAdminTab('academiesTab', this)">
-                    <i class="fas fa-building"></i> Academy Approvals <span class="badge" id="badgeAcademies">0</span>
-                </button>
-                <button class="admin-tab-btn" onclick="switchAdminTab('eventsTab', this)">
-                    <i class="fas fa-calendar-alt"></i> Event Approvals <span class="badge" id="badgeEvents">0</span>
-                </button>
-            </div>
-
-            <!-- Controls Filter Bar -->
-            <div class="admin-controls-bar">
-                <div class="admin-search-wrap">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="adminConsoleSearch" class="admin-search-input" placeholder="Search pending records by name, email, city, or ID…">
-                    <button class="admin-search-clear" id="adminConsoleSearchClear" style="display:none;">
-                        <i class="fas fa-times"></i>
+            <!-- SECTION 1: VERIFICATION & APPROVAL QUEUES (ADMIN FEATURES) -->
+            <div class="em-section" id="verificationQueues">
+                <div class="em-section-header" style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <span class="em-section-title"><i class="fas fa-user-check"></i> Approvals &amp; Verification Center</span>
+                        <div style="font-size:0.75rem;color:var(--gray);">Review and approve new swimmers, coaches, academies, and organizer events.</div>
+                    </div>
+                    <button class="admin-btn admin-btn-outline" onclick="loadAllQueues()" style="padding:6px 12px;font-size:0.75rem;">
+                        <i class="fas fa-sync-alt"></i> Refresh Approvals
                     </button>
                 </div>
-                <button class="admin-btn admin-btn-outline" onclick="loadAllQueues()">
-                    <i class="fas fa-sync-alt"></i> Refresh Data
-                </button>
+
+                <!-- Tab Navigation Buttons -->
+                <div class="admin-nav-tabs" style="margin-top:16px;">
+                    <button class="admin-tab-btn active" onclick="switchAdminTab('swimmersTab', this)">
+                        <i class="fas fa-swimmer"></i> Swimmer Approvals <span class="badge" id="badgeSwimmers">0</span>
+                    </button>
+                    <button class="admin-tab-btn" onclick="switchAdminTab('coachesTab', this)">
+                        <i class="fas fa-user-ninja"></i> Coach Approvals <span class="badge" id="badgeCoaches">0</span>
+                    </button>
+                    <button class="admin-tab-btn" onclick="switchAdminTab('academiesTab', this)">
+                        <i class="fas fa-building"></i> Academy Approvals <span class="badge" id="badgeAcademies">0</span>
+                    </button>
+                    <button class="admin-tab-btn" onclick="switchAdminTab('eventsTab', this)">
+                        <i class="fas fa-calendar-alt"></i> Event Approvals <span class="badge" id="badgeEvents">0</span>
+                    </button>
+                </div>
+
+                <!-- Search Filter Bar -->
+                <div class="admin-controls-bar" style="margin-bottom:16px;">
+                    <div class="admin-search-wrap">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="adminConsoleSearch" class="admin-search-input" placeholder="Search pending records by name, email, city, or ID…">
+                        <button class="admin-search-clear" id="adminConsoleSearchClear" style="display:none;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TAB 1: SWIMMERS APPROVAL QUEUE -->
+                <div id="swimmersTab" class="tab-content active">
+                    <div class="admin-grid-wrap">
+                        <table class="admin-grid">
+                            <thead>
+                                <tr>
+                                    <th>Swimmer Name</th>
+                                    <th>Gender / DOB</th>
+                                    <th>Category</th>
+                                    <th>Parent &amp; School Contact</th>
+                                    <th>SFI / Ref ID</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="swimmersTableBody">
+                                <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray);">Loading pending swimmers…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 2: COACHES APPROVAL QUEUE -->
+                <div id="coachesTab" class="tab-content">
+                    <div class="admin-grid-wrap">
+                        <table class="admin-grid">
+                            <thead>
+                                <tr>
+                                    <th>Coach Name</th>
+                                    <th>Designation / Academy</th>
+                                    <th>Email</th>
+                                    <th>Certifications &amp; Credentials</th>
+                                    <th>Document</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="coachesTableBody">
+                                <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray);">Loading pending coaches…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 3: ACADEMIES APPROVAL QUEUE -->
+                <div id="academiesTab" class="tab-content">
+                    <div class="admin-grid-wrap">
+                        <table class="admin-grid">
+                            <thead>
+                                <tr>
+                                    <th>Academy Name</th>
+                                    <th>City / Location</th>
+                                    <th>Contact Email</th>
+                                    <th>Registration / License No</th>
+                                    <th>Document</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="academiesTableBody">
+                                <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray);">Loading pending academies…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 4: EVENTS APPROVAL QUEUE -->
+                <div id="eventsTab" class="tab-content">
+                    <div class="admin-grid-wrap">
+                        <table class="admin-grid">
+                            <thead>
+                                <tr>
+                                    <th>Organizer / Host</th>
+                                    <th>Event Title</th>
+                                    <th>Dates &amp; Location</th>
+                                    <th>Gateway Type</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="eventsTableBody">
+                                <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--gray);">Loading pending events…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
-            <!-- TAB 1: SWIMMERS APPROVAL QUEUE -->
-            <div id="swimmersTab" class="tab-content active">
-                <div class="admin-grid-wrap">
-                    <table class="admin-grid">
+            <!-- SECTION 2: MY ASSIGNED TOURNAMENTS PIPELINE -->
+            <div class="em-section" id="myMeets">
+                <div class="em-section-header">
+                    <span class="em-section-title">
+                        <i class="fas fa-project-diagram"></i> Assigned Tournaments Pipeline
+                    </span>
+                    <span style="font-size:0.75rem;color:var(--gray);">Admin Scope: Platform Meets</span>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="em-pipeline-table" id="pipelineTable">
                         <thead>
                             <tr>
-                                <th>Swimmer Name</th>
-                                <th>Gender / DOB</th>
-                                <th>Category</th>
-                                <th>Parent &amp; School Contact</th>
-                                <th>SFI / Ref ID</th>
+                                <th>Tournament Title</th>
+                                <th>Dates</th>
+                                <th>Registration Mode</th>
+                                <th>Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="swimmersTableBody">
-                            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray);">Loading pending swimmers…</td></tr>
-                        </tbody>
+                        <tbody id="pipelineBody"></tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- TAB 2: COACHES APPROVAL QUEUE -->
-            <div id="coachesTab" class="tab-content">
-                <div class="admin-grid-wrap">
-                    <table class="admin-grid">
-                        <thead>
-                            <tr>
-                                <th>Coach Name</th>
-                                <th>Designation / Academy</th>
-                                <th>Email</th>
-                                <th>Certifications &amp; Credentials</th>
-                                <th>Document</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="coachesTableBody">
-                            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray);">Loading pending coaches…</td></tr>
-                        </tbody>
-                    </table>
+            <!-- SECTION 3: END-TO-END LIFECYCLE FLOW -->
+            <div class="em-section">
+                <div class="em-section-header">
+                    <span class="em-section-title"><i class="fas fa-stream"></i> End-to-End Event Lifecycle Flow</span>
                 </div>
+                <div class="em-lifecycle" id="lifecycleFlow"></div>
             </div>
 
-            <!-- TAB 3: ACADEMIES APPROVAL QUEUE -->
-            <div id="academiesTab" class="tab-content">
-                <div class="admin-grid-wrap">
-                    <table class="admin-grid">
-                        <thead>
-                            <tr>
-                                <th>Academy Name</th>
-                                <th>City / Location</th>
-                                <th>Contact Email</th>
-                                <th>Registration / License No</th>
-                                <th>Document</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="academiesTableBody">
-                            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray);">Loading pending academies…</td></tr>
-                        </tbody>
-                    </table>
+            <!-- SECTION 4: QUICK LINKS TO OTHER MODULES -->
+            <div class="em-section">
+                <div class="em-section-header">
+                    <span class="em-section-title"><i class="fas fa-external-link-alt"></i> Admin Operations Launchpad</span>
                 </div>
-            </div>
-
-            <!-- TAB 4: EVENTS APPROVAL QUEUE -->
-            <div id="eventsTab" class="tab-content">
-                <div class="admin-grid-wrap">
-                    <table class="admin-grid">
-                        <thead>
-                            <tr>
-                                <th>Organizer / Host</th>
-                                <th>Event Title</th>
-                                <th>Dates &amp; Location</th>
-                                <th>Gateway Type</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="eventsTableBody">
-                            <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--gray);">Loading pending events…</td></tr>
-                        </tbody>
-                    </table>
+                <div class="dash-section-body" style="padding:16px 20px;">
+                    <div class="dash-launchpad-grid" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+                        <a href="playerlist.html"     class="dash-launch-btn"><i class="fas fa-list-check"></i> Master Player List</a>
+                        <a href="addevent.html"        class="dash-launch-btn"><i class="fas fa-calendar-plus"></i> Create Internal Event</a>
+                        <a href="orgcreate.html"       class="dash-launch-btn"><i class="fas fa-plus-circle"></i> Create Third-Party Event</a>
+                        <a href="heatgen.html"         class="dash-launch-btn"><i class="fas fa-bolt"></i> Heat Generation Engine</a>
+                        <a href="results.html"         class="dash-launch-btn"><i class="fas fa-broadcast-tower"></i> Live Result Entry</a>
+                        <a href="orgdashboard.html"   class="dash-launch-btn"><i class="fas fa-tachometer-alt"></i> Organizer Dashboard</a>
+                        <a href="superadmin.html"      class="dash-launch-btn"><i class="fas fa-shield-alt"></i> Super Admin Console</a>
+                    </div>
                 </div>
             </div>
 
         </div>
     </main>
 
+    <!-- Add Academy Modal -->
+    <div class="modal-overlay" id="addAcademyModal">
+        <div class="modal" style="max-width:500px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-building"></i> Submit Academy for Verification</h3>
+                <button class="modal-close" onclick="closeModal('addAcademyModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding:20px 24px;">
+                <div class="mc-grid" style="gap:14px 20px;">
+                    <div class="mc-field mc-full"><label class="mc-label">Academy Name *</label><input class="mc-input" id="acName" placeholder="e.g. Poseidon Aquatic Center"></div>
+                    <div class="mc-field"><label class="mc-label">City *</label><input class="mc-input" id="acCity" placeholder="Madurai"></div>
+                    <div class="mc-field"><label class="mc-label">State *</label><input class="mc-input" id="acState" value="Tamil Nadu"></div>
+                    <div class="mc-field"><label class="mc-label">Registration No.</label><input class="mc-input" id="acRegNo" placeholder="TN-REG-2026-XXXX"></div>
+                    <div class="mc-field"><label class="mc-label">Head Coach Name</label><input class="mc-input" id="acContact" placeholder="Coach Name"></div>
+                    <div class="mc-field"><label class="mc-label">Contact Phone</label><input class="mc-input" id="acPhone" placeholder="+91 98765 43210"></div>
+                    <div class="mc-field mc-full">
+                        <label class="mc-label">Document Proof (PDF)</label>
+                        <div class="mc-upload-zone" onclick="this.querySelector('input').click()">
+                            <i class="fas fa-file-pdf"></i> <span id="acDocLabel">Choose registration document</span>
+                            <input type="file" id="acDoc" accept=".pdf,.jpg,.jpeg,.png" style="display:none;"
+                                   onchange="document.getElementById('acDocLabel').textContent=this.files[0]?.name||'Choose registration document'">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer admin-modal-footer">
+                <button class="admin-btn admin-btn-outline" onclick="closeModal('addAcademyModal')">Cancel</button>
+                <button class="admin-btn admin-btn-primary" onclick="submitAcademy()"><i class="fas fa-paper-plane"></i> Submit for Verification</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Coach Modal -->
+    <div class="modal-overlay" id="addCoachModal">
+        <div class="modal" style="max-width:500px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-chalkboard-teacher"></i> Submit Coach for Verification</h3>
+                <button class="modal-close" onclick="closeModal('addCoachModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding:20px 24px;">
+                <div class="mc-grid" style="gap:14px 20px;">
+                    <div class="mc-field mc-full"><label class="mc-label">Full Name *</label><input class="mc-input" id="coName" placeholder="Coach Full Name"></div>
+                    <div class="mc-field"><label class="mc-label">Certification Body *</label>
+                        <select class="mc-select" id="coCertBody"><option>ASCA</option><option>NIS</option><option>SFI</option><option>World Aquatics</option></select>
+                    </div>
+                    <div class="mc-field"><label class="mc-label">License Number *</label><input class="mc-input" id="coLicense" placeholder="ASCA-XXXX-2026"></div>
+                    <div class="mc-field"><label class="mc-label">Contact Phone</label><input class="mc-input" id="coPhone" placeholder="+91 98765 43210"></div>
+                    <div class="mc-field"><label class="mc-label">Affiliated Academy</label>
+                        <select class="mc-select" id="coAcademy">
+                            <option value="">None / Self</option>
+                        </select>
+                    </div>
+                    <div class="mc-field mc-full">
+                        <label class="mc-label">Certification Document (PDF)</label>
+                        <div class="mc-upload-zone" onclick="this.querySelector('input').click()">
+                            <i class="fas fa-certificate"></i> <span id="coDocLabel">Choose certification document</span>
+                            <input type="file" id="coDoc" accept=".pdf,.jpg,.jpeg,.png" style="display:none;"
+                                   onchange="document.getElementById('coDocLabel').textContent=this.files[0]?.name||'Choose certification document'">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer admin-modal-footer">
+                <button class="admin-btn admin-btn-outline" onclick="closeModal('addCoachModal')">Cancel</button>
+                <button class="admin-btn admin-btn-primary" onclick="submitCoach()"><i class="fas fa-paper-plane"></i> Submit for Verification</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js"></script>
     <script src="auth.js?v=6"></script>
+    <script src="emdashboard.js"></script>
     <script src="adminconsole.js"></script>
 </body>
 </html>
