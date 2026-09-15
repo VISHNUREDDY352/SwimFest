@@ -67,11 +67,18 @@ async function loadAllQueues() {
 
   const queryTerm = ($('adminConsoleSearch') ? $('adminConsoleSearch').value : '').toLowerCase().trim();
 
+  // Helper check for pending statuses (captures PENDING_VERIFICATION, PENDING, pending, UNVERIFIED, null, empty)
+  const isPending = (status) => {
+    if (!status) return true;
+    const st = String(status).toUpperCase();
+    return st !== 'APPROVED_ACTIVE' && st !== 'APPROVED' && st !== 'REJECTED';
+  };
+
   // 1. Load Pending Swimmers
   try {
     const swRes = await window.sb.from('swimmers').select('*');
     if (!swRes.error && swRes.data) {
-      PENDING_SWIMMERS = swRes.data.filter(s => s && s.status === 'PENDING_VERIFICATION');
+      PENDING_SWIMMERS = swRes.data.filter(s => s && isPending(s.status));
     } else {
       PENDING_SWIMMERS = [];
     }
@@ -84,7 +91,7 @@ async function loadAllQueues() {
   try {
     const coRes = await window.sb.from('coaches').select('*');
     if (!coRes.error && coRes.data) {
-      PENDING_COACHES = coRes.data.filter(c => c && c.status === 'PENDING_VERIFICATION');
+      PENDING_COACHES = coRes.data.filter(c => c && isPending(c.status));
     } else {
       PENDING_COACHES = [];
     }
@@ -97,7 +104,7 @@ async function loadAllQueues() {
   try {
     const acRes = await window.sb.from('academies').select('*');
     if (!acRes.error && acRes.data) {
-      PENDING_ACADEMIES = acRes.data.filter(a => a && a.status === 'PENDING_VERIFICATION');
+      PENDING_ACADEMIES = acRes.data.filter(a => a && isPending(a.status));
     } else {
       PENDING_ACADEMIES = [];
     }
@@ -108,9 +115,13 @@ async function loadAllQueues() {
 
   // 4. Load Pending Events / Tournaments
   try {
-    const evRes = await window.sb.from('tournaments').select('*').eq('status', 'PENDING_APPROVAL');
+    const evRes = await window.sb.from('tournaments').select('*');
     if (!evRes.error && evRes.data) {
-      PENDING_EVENTS = evRes.data;
+      PENDING_EVENTS = evRes.data.filter(e => {
+        if (!e) return false;
+        const st = String(e.status || '').toUpperCase();
+        return st === 'PENDING_APPROVAL' || st === 'PENDING' || st === 'DRAFT' || st === 'REJECTED_DRAFT';
+      });
     } else {
       PENDING_EVENTS = [];
     }
@@ -466,6 +477,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Initial load
+  // Initial load + retries to ensure DB data is fetched when SDK finishes connecting
   loadAllQueues();
+  setTimeout(loadAllQueues, 400);
+  setTimeout(loadAllQueues, 1200);
 });
