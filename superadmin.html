@@ -352,6 +352,94 @@
                     </div>
                 </div>
 
+                <!-- Section 2: Swimmer, Academy & Coach Verification Queue -->
+                <div class="sa-section">
+                    <div class="sa-section-header">
+                        <span class="sa-section-title"><i class="fas fa-id-badge"></i> Section 2 — Swimmer, Academy &amp; Coach Verification Queue <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Swimmers / EMs)</span></span>
+                        <span class="sa-badge" id="s2Badge">Loading…</span>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="sa-queue-table">
+                            <thead>
+                                <tr>
+                                    <th>Submitted By</th>
+                                    <th>Entity Type</th>
+                                    <th>Name / Club Title</th>
+                                    <th>Credential / Tax ID</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="s2Body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Section 1A: Internal Meets Approval Queue -->
+                <div class="sa-section">
+                    <div class="sa-section-header">
+                        <span class="sa-section-title"><i class="fas fa-clipboard-check"></i> Section 1A — Internal Meets Approval Queue <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Event Managers)</span></span>
+                        <span class="sa-badge" id="s1aBadge">Loading…</span>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="sa-queue-table">
+                            <thead>
+                                <tr>
+                                    <th>Created By</th>
+                                    <th>Tournament Title</th>
+                                    <th>Dates</th>
+                                    <th>Venue / City</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="s1aBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Section 1B: Third-Party Meets Approval Queue -->
+                <div class="sa-section">
+                    <div class="sa-section-header">
+                        <span class="sa-section-title"><i class="fas fa-user-tie"></i> Section 1B — Third-Party Meets Approval Queue <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Organizers)</span></span>
+                        <span class="sa-badge" id="s1bBadge">Loading…</span>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="sa-queue-table">
+                            <thead>
+                                <tr>
+                                    <th>Organizer</th>
+                                    <th>Tournament Title</th>
+                                    <th>Payment Type</th>
+                                    <th>Upfront Fee Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="s1bBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Section 2B: Meet Reopen Requests (from Organizers) -->
+                <div class="sa-section">
+                    <div class="sa-section-header">
+                        <span class="sa-section-title"><i class="fas fa-unlock-alt"></i> Meet Reopen Requests <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Organizers)</span></span>
+                        <span class="sa-badge" id="reopenBadge">Loading…</span>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="sa-queue-table">
+                            <thead>
+                                <tr>
+                                    <th>Organizer</th>
+                                    <th>Tournament</th>
+                                    <th>Reason</th>
+                                    <th>Requested</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reopenBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- Approval State Machine (overview) -->
                 <div class="sa-section">
                     <div class="sa-section-header">
@@ -430,98 +518,10 @@
                         </table>
                     </div>
                 </div>
-
-                <!-- Section 1A: Internal Meets Approval Queue -->
-                <div class="sa-section">
-                    <div class="sa-section-header">
-                        <span class="sa-section-title"><i class="fas fa-clipboard-check"></i> Section 1A — Internal Meets Approval Queue <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Event Managers)</span></span>
-                        <span class="sa-badge" id="s1aBadge">Loading…</span>
-                    </div>
-                    <div style="overflow-x:auto;">
-                        <table class="sa-queue-table">
-                            <thead>
-                                <tr>
-                                    <th>Created By</th>
-                                    <th>Tournament Title</th>
-                                    <th>Dates</th>
-                                    <th>Venue / City</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="s1aBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Section 1B: Third-Party Meets Approval Queue -->
-                <div class="sa-section">
-                    <div class="sa-section-header">
-                        <span class="sa-section-title"><i class="fas fa-user-tie"></i> Section 1B — Third-Party Meets Approval Queue <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Organizers)</span></span>
-                        <span class="sa-badge" id="s1bBadge">Loading…</span>
-                    </div>
-                    <div style="overflow-x:auto;">
-                        <table class="sa-queue-table">
-                            <thead>
-                                <tr>
-                                    <th>Organizer</th>
-                                    <th>Tournament Title</th>
-                                    <th>Payment Type</th>
-                                    <th>Upfront Fee Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="s1bBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Section 2B: Meet Reopen Requests (from Organizers) -->
-                <div class="sa-section">
-                    <div class="sa-section-header">
-                        <span class="sa-section-title"><i class="fas fa-unlock-alt"></i> Meet Reopen Requests <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Organizers)</span></span>
-                        <span class="sa-badge" id="reopenBadge">Loading…</span>
-                    </div>
-                    <div style="overflow-x:auto;">
-                        <table class="sa-queue-table">
-                            <thead>
-                                <tr>
-                                    <th>Organizer</th>
-                                    <th>Tournament</th>
-                                    <th>Reason</th>
-                                    <th>Requested</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="reopenBody"></tbody>
-                        </table>
-                    </div>
-                </div>
             </div>
 
             <!-- TAB 3: ACADEMIES & COACHES -->
             <div class="sa-tab-panel" id="panel-academies" data-tab-panel="academies">
-                <!-- Section 2: Swimmer, Academy & Coach Verification Queue -->
-                <div class="sa-section">
-                    <div class="sa-section-header">
-                        <span class="sa-section-title"><i class="fas fa-id-badge"></i> Section 2 — Swimmer, Academy &amp; Coach Verification Queue <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Swimmers / EMs)</span></span>
-                        <span class="sa-badge" id="s2Badge">Loading…</span>
-                    </div>
-                    <div style="overflow-x:auto;">
-                        <table class="sa-queue-table">
-                            <thead>
-                                <tr>
-                                    <th>Submitted By</th>
-                                    <th>Entity Type</th>
-                                    <th>Name / Club Title</th>
-                                    <th>Credential / Tax ID</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="s2Body"></tbody>
-                        </table>
-                    </div>
-                </div>
-
                 <!-- Verified Directory Card -->
                 <div class="sa-section">
                     <div class="sa-section-header">
