@@ -3,12 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Console — Master Player List | SwimFest</title>
-    <script src="guard.js" data-roles="super_admin,event_manager"></script>
+    <title>Admin Console — SwimFest</title>
+    <script src="guard.js" data-roles="super_admin,event_manager,organizer"></script>
     <link rel="stylesheet" href="styles.css?v=21">
     <link rel="stylesheet" href="admin.css?v=2">
+    <link rel="stylesheet" href="dashboard.css?v=2">
+    <link rel="stylesheet" href="emdashboard.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .admin-console-hero {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #ffffff;
+            padding: 24px;
+            border-radius: var(--radius);
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        .hero-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+        .hero-action-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            text-decoration: none;
+            color: #ffffff;
+            transition: all 0.2s ease;
+        }
+        .hero-action-card:hover {
+            background: rgba(255, 255, 255, 0.16);
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+        .hero-action-card i {
+            font-size: 1.5rem;
+            color: var(--accent);
+        }
+        .hero-action-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 2px;
+        }
+        .hero-action-sub {
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.7);
+        }
+        .admin-nav-tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 2px solid var(--gray-light);
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+        .admin-tab-btn {
+            padding: 10px 18px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--gray);
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+        .admin-tab-btn:hover {
+            color: var(--primary);
+        }
+        .admin-tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        .admin-tab-btn .badge {
+            background: #e2e8f0;
+            color: #334155;
+            font-size: 0.72rem;
+            padding: 2px 7px;
+            border-radius: 12px;
+        }
+        .admin-tab-btn.active .badge {
+            background: var(--primary);
+            color: #ffffff;
+        }
+        .sa-btn-approve {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.2s;
+        }
+        .sa-btn-approve:hover { background: #059669; }
+        .sa-btn-reject {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.2s;
+        }
+        .sa-btn-reject:hover { background: #dc2626; }
+        .sa-action-done {
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .sa-action-done.approved-tag { background: #d1fae5; color: #065f46; }
+        .sa-action-done.rejected-tag { background: #fee2e2; color: #991b1b; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
 </head>
 <body class="admin-body">
 
@@ -19,276 +147,222 @@
                 <a href="index.html" class="admin-logo">
                     <i class="fas fa-swimmer"></i> SwimFest
                 </a>
-                <span class="admin-role-tag"><i class="fas fa-shield-alt"></i> Super Admin / Event Manager Console</span>
+                <span class="admin-role-tag"><i class="fas fa-cogs"></i> Admin Console &amp; Approvals</span>
             </div>
             <div class="admin-topbar-right">
-                <span class="admin-user-pill"><i class="fas fa-user-circle"></i> Admin</span>
+                <a href="playerlist.html" class="admin-user-pill" style="text-decoration:none;"><i class="fas fa-list-check"></i> Player List</a>
+                <a href="superadmin.html" id="superAdminLink" class="admin-user-pill" style="display:none;text-decoration:none;"><i class="fas fa-shield-alt"></i> Super Admin</a>
                 <a href="index.html" class="admin-logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
             </div>
         </div>
     </header>
 
     <main class="admin-main">
-
-        <!-- Tournament Status Banner -->
-        <div class="admin-tournament-banner" id="tournamentBanner">
-            <div class="admin-tournament-inner">
-                <div class="admin-t-info">
-                    <div class="admin-t-name" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                        <span>Tournament:</span>
-                        <select id="adminTournamentSelect" style="font:inherit;font-weight:700;padding:6px 10px;border-radius:6px;border:1px solid var(--gray-light);max-width:420px;">
-                            <option value="">Loading tournaments…</option>
-                        </select>
-                    </div>
-                    <div class="admin-t-meta">
-                        <span class="admin-status-chip" id="regStatusChip">
-                            <i class="fas fa-lock"></i> Registration Closed
-                        </span>
-                        <span class="admin-t-meta-item"><i class="fas fa-users"></i> Total Confirmed Entries: <strong id="totalEntries">0</strong></span>
-                        <span class="admin-t-meta-item"><i class="fas fa-list"></i> Event-Entry Rows: <strong id="totalEventRows">0</strong></span>
-                        <span class="admin-t-meta-item" id="lockStatusItem" style="display:none;">
-                            <i class="fas fa-lock" style="color:var(--danger)"></i> <strong style="color:var(--danger)">PLAYER LIST LOCKED</strong>
-                        </span>
-                    </div>
-                </div>
-                <div class="admin-t-actions">
-                    <a href="event.html" class="admin-ghost-btn"><i class="fas fa-arrow-left"></i> Back to Event</a>
-                </div>
-            </div>
-        </div>
-
         <div class="admin-container">
 
-            <!-- Section: Roster Audit & Controls -->
-            <div class="admin-section-header">
-                <div>
-                    <div class="admin-section-label">Chapter 7 — Master Player List</div>
-                    <h2 class="admin-section-title">Roster Audit &amp; Actions</h2>
+            <!-- Hero & Quick Actions Banner -->
+            <div class="admin-console-hero">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+                    <div>
+                        <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);">Admin Operations</div>
+                        <h1 style="font-size:1.6rem;font-weight:800;margin-top:4px;">Event Creation &amp; Approvals Center</h1>
+                    </div>
+                    <a href="playerlist.html" class="admin-btn admin-btn-outline" style="color:#ffffff;border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.05);">
+                        <i class="fas fa-users"></i> Open Master Player List
+                    </a>
+                </div>
+
+                <div class="hero-actions-grid">
+                    <a href="addevent.html" class="hero-action-card">
+                        <i class="fas fa-calendar-plus"></i>
+                        <div>
+                            <div class="hero-action-title">Create New Event</div>
+                            <div class="hero-action-sub">Setup meet, events, categories &amp; fees</div>
+                        </div>
+                    </a>
+                    <a href="orgcreate.html" class="hero-action-card">
+                        <i class="fas fa-trophy"></i>
+                        <div>
+                            <div class="hero-action-title">Post External Meet</div>
+                            <div class="hero-action-sub">Submit third-party meet details</div>
+                        </div>
+                    </a>
+                    <a href="playerlist.html" class="hero-action-card">
+                        <i class="fas fa-clipboard-list"></i>
+                        <div>
+                            <div class="hero-action-title">Player List &amp; Roster</div>
+                            <div class="hero-action-sub">Audit swimmers, seed times &amp; lock roster</div>
+                        </div>
+                    </a>
+                    <a href="heatgen.html" class="hero-action-card">
+                        <i class="fas fa-bolt"></i>
+                        <div>
+                            <div class="hero-action-title">Heat Generation</div>
+                            <div class="hero-action-sub">Seed lanes and generate heat sheets</div>
+                        </div>
+                    </a>
                 </div>
             </div>
 
-            <!-- Filter & Action Bar -->
+            <!-- Metric Summary Cards -->
+            <div class="admin-grid-stats" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px;">
+                <div class="admin-stat-chip">
+                    <i class="fas fa-swimmer"></i>
+                    <div>
+                        <div style="font-size:0.7rem;color:var(--gray);font-weight:700;text-transform:uppercase;">Pending Swimmers</div>
+                        <div class="chip-num" id="cntSwimmers">0</div>
+                    </div>
+                </div>
+                <div class="admin-stat-chip">
+                    <i class="fas fa-user-ninja"></i>
+                    <div>
+                        <div style="font-size:0.7rem;color:var(--gray);font-weight:700;text-transform:uppercase;">Pending Coaches</div>
+                        <div class="chip-num" id="cntCoaches">0</div>
+                    </div>
+                </div>
+                <div class="admin-stat-chip">
+                    <i class="fas fa-building"></i>
+                    <div>
+                        <div style="font-size:0.7rem;color:var(--gray);font-weight:700;text-transform:uppercase;">Pending Academies</div>
+                        <div class="chip-num" id="cntAcademies">0</div>
+                    </div>
+                </div>
+                <div class="admin-stat-chip">
+                    <i class="fas fa-calendar-check"></i>
+                    <div>
+                        <div style="font-size:0.7rem;color:var(--gray);font-weight:700;text-transform:uppercase;">Pending Events</div>
+                        <div class="chip-num" id="cntEvents">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Approval Queues Tab Container -->
+            <div class="admin-section-header">
+                <div>
+                    <div class="admin-section-label">Verification Queues</div>
+                    <h2 class="admin-section-title">Approvals Management</h2>
+                </div>
+            </div>
+
+            <!-- Tab Navigation Buttons -->
+            <div class="admin-nav-tabs">
+                <button class="admin-tab-btn active" onclick="switchAdminTab('swimmersTab', this)">
+                    <i class="fas fa-swimmer"></i> Swimmer Approvals <span class="badge" id="badgeSwimmers">0</span>
+                </button>
+                <button class="admin-tab-btn" onclick="switchAdminTab('coachesTab', this)">
+                    <i class="fas fa-user-ninja"></i> Coach Approvals <span class="badge" id="badgeCoaches">0</span>
+                </button>
+                <button class="admin-tab-btn" onclick="switchAdminTab('academiesTab', this)">
+                    <i class="fas fa-building"></i> Academy Approvals <span class="badge" id="badgeAcademies">0</span>
+                </button>
+                <button class="admin-tab-btn" onclick="switchAdminTab('eventsTab', this)">
+                    <i class="fas fa-calendar-alt"></i> Event Approvals <span class="badge" id="badgeEvents">0</span>
+                </button>
+            </div>
+
+            <!-- Controls Filter Bar -->
             <div class="admin-controls-bar">
                 <div class="admin-search-wrap">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="rosterSearch" class="admin-search-input"
-                           placeholder="Search swimmer, ID, or academy…">
-                    <button class="admin-search-clear" id="rosterSearchClear" style="display:none;">
+                    <input type="text" id="adminConsoleSearch" class="admin-search-input" placeholder="Search pending records by name, email, city, or ID…">
+                    <button class="admin-search-clear" id="adminConsoleSearchClear" style="display:none;">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
-                <div class="admin-filter-group">
-                    <select id="filterCategory" class="admin-select">
-                        <option value="">All Categories</option>
-                        <option value="U-10">U-10</option>
-                        <option value="U-12">U-12</option>
-                        <option value="U-14">U-14</option>
-                        <option value="U-16">U-16</option>
-                    </select>
-                    <select id="filterGender" class="admin-select">
-                        <option value="">All Genders</option>
-                        <option value="Boy">Boys</option>
-                        <option value="Girl">Girls</option>
-                    </select>
-                    <select id="filterAcademy" class="admin-select">
-                        <option value="">All Academies</option>
-                    </select>
-                    <select id="filterFlag" class="admin-select">
-                        <option value="">All Statuses</option>
-                        <option value="flagged">Flagged Only</option>
-                        <option value="clean">Clean Only</option>
-                    </select>
-                </div>
-                <div class="admin-action-btns">
-                    <button class="admin-btn admin-btn-outline" id="addManualBtn">
-                        <i class="fas fa-plus"></i> Add Manual / Offline Swimmer
-                    </button>
-                    <button class="admin-btn admin-btn-export" id="exportBtn">
-                        <i class="fas fa-file-excel"></i> Export Roster (CSV)
-                    </button>
+                <button class="admin-btn admin-btn-outline" onclick="loadAllQueues()">
+                    <i class="fas fa-sync-alt"></i> Refresh Data
+                </button>
+            </div>
+
+            <!-- TAB 1: SWIMMERS APPROVAL QUEUE -->
+            <div id="swimmersTab" class="tab-content active">
+                <div class="admin-grid-wrap">
+                    <table class="admin-grid">
+                        <thead>
+                            <tr>
+                                <th>Swimmer Name</th>
+                                <th>Gender / DOB</th>
+                                <th>Category</th>
+                                <th>Parent &amp; School Contact</th>
+                                <th>SFI / Ref ID</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="swimmersTableBody">
+                            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray);">Loading pending swimmers…</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <!-- Grid stats row -->
-            <div class="admin-grid-stats" id="adminGridStats">
-                <!-- filled by JS -->
-            </div>
-
-            <!-- Master Player List Data Grid -->
-            <div class="admin-grid-wrap" id="adminGridWrap">
-                <table class="admin-grid" id="adminGrid">
-                    <thead>
-                        <tr>
-                            <th class="col-id">ID</th>
-                            <th class="col-swimmer">Swimmer</th>
-                            <th class="col-dob">Gender / DOB</th>
-                            <th class="col-cat">Category</th>
-                            <th class="col-academy">Academy</th>
-                            <th class="col-event">Event</th>
-                            <th class="col-seed">Seed Time</th>
-                            <th class="col-action">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="adminGridBody">
-                        <!-- Rendered by JS -->
-                    </tbody>
-                </table>
-                <div class="admin-empty" id="adminEmpty" style="display:none;">
-                    <i class="fas fa-inbox"></i>
-                    <p>No entries match your filters.</p>
+            <!-- TAB 2: COACHES APPROVAL QUEUE -->
+            <div id="coachesTab" class="tab-content">
+                <div class="admin-grid-wrap">
+                    <table class="admin-grid">
+                        <thead>
+                            <tr>
+                                <th>Coach Name</th>
+                                <th>Designation / Academy</th>
+                                <th>Email</th>
+                                <th>Certifications &amp; Credentials</th>
+                                <th>Document</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="coachesTableBody">
+                            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray);">Loading pending coaches…</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <!-- Final Roster Verification & Lock -->
-            <div class="admin-lock-block" id="lockBlock">
-                <div class="admin-lock-warning" id="lockWarning">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <div>
-                        <strong>Final Roster Verification &amp; Lock</strong>
-                        <p>Submitting the Final Player List locks all swimmer profiles and event mappings. This action cannot be undone. The finalized data will be handed off to the Heat Generation Engine.</p>
-                    </div>
+            <!-- TAB 3: ACADEMIES APPROVAL QUEUE -->
+            <div id="academiesTab" class="tab-content">
+                <div class="admin-grid-wrap">
+                    <table class="admin-grid">
+                        <thead>
+                            <tr>
+                                <th>Academy Name</th>
+                                <th>City / Location</th>
+                                <th>Contact Email</th>
+                                <th>Registration / License No</th>
+                                <th>Document</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="academiesTableBody">
+                            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray);">Loading pending academies…</td></tr>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="admin-audit-results" id="auditResults" style="display:none;">
-                    <!-- Filled by audit engine before lock -->
-                </div>
-                <div class="admin-lock-actions">
-                    <button class="admin-btn admin-btn-draft" id="saveDraftBtn">
-                        <i class="fas fa-save"></i> Save Draft Changes
-                    </button>
-                    <button class="admin-btn admin-btn-lock" id="submitFinalBtn">
-                        <i class="fas fa-lock"></i> Submit Final Player List
-                    </button>
-                    <a href="heatgen.html" class="admin-btn" style="background:var(--accent);color:var(--white);">
-                        <i class="fas fa-bolt"></i> Go to Heat Generation
-                    </a>
-                    <a href="results.html" class="admin-btn" style="background:var(--success);color:var(--white);">
-                        <i class="fas fa-broadcast-tower"></i> Live Result Entry
-                    </a>
-                    <a href="orgdashboard.html" class="admin-btn" style="background:#1a5c1a;color:var(--white);">
-                        <i class="fas fa-building"></i> Organizer Dashboard
-                    </a>
-                </div>
-                <!-- Locked state (shown after lock) -->
-                <div class="admin-locked-state" id="lockedState" style="display:none;">
-                    <i class="fas fa-lock"></i>
-                    <div>
-                        <strong>Player List Locked</strong>
-                        <p>All entries are now read-only. Data has been handed off to the Heat Generation Engine.</p>
-                    </div>
-                    <a href="index.html" class="admin-btn admin-btn-outline">
-                        <i class="fas fa-home"></i> Back to Home
-                    </a>
+            </div>
+
+            <!-- TAB 4: EVENTS APPROVAL QUEUE -->
+            <div id="eventsTab" class="tab-content">
+                <div class="admin-grid-wrap">
+                    <table class="admin-grid">
+                        <thead>
+                            <tr>
+                                <th>Organizer / Host</th>
+                                <th>Event Title</th>
+                                <th>Dates &amp; Location</th>
+                                <th>Gateway Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eventsTableBody">
+                            <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--gray);">Loading pending events…</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
         </div>
     </main>
 
-    <!-- Manual Walk-In Entry Modal -->
-    <div class="modal-overlay" id="manualEntryModal">
-        <div class="modal admin-modal">
-            <div class="modal-header">
-                <h3><i class="fas fa-user-plus"></i> Add Manual / Offline Swimmer</h3>
-                <button class="modal-close" id="manualModalClose"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="modal-body admin-modal-body">
-                <div class="admin-form-grid">
-                    <div class="admin-field full-width">
-                        <label class="admin-label req">Full Name</label>
-                        <input type="text" id="mFullName" class="admin-input" placeholder="Swimmer full name">
-                    </div>
-                    <div class="admin-field">
-                        <label class="admin-label req">Gender</label>
-                        <select id="mGender" class="admin-input">
-                            <option value="Boy">Boy</option>
-                            <option value="Girl">Girl</option>
-                        </select>
-                    </div>
-                    <div class="admin-field">
-                        <label class="admin-label req">Date of Birth</label>
-                        <input type="date" id="mDob" class="admin-input">
-                    </div>
-                    <div class="admin-field">
-                        <label class="admin-label">Academy</label>
-                        <select id="mAcademy" class="admin-input">
-                            <option value="">None / Unattached</option>
-                        </select>
-                    </div>
-                    <div class="admin-field">
-                        <label class="admin-label req">Event</label>
-                        <select id="mEvent" class="admin-input">
-                            <option value="">— Select after gender/DOB —</option>
-                        </select>
-                    </div>
-                    <div class="admin-field">
-                        <label class="admin-label req">Seed Time</label>
-                        <input type="text" id="mSeedTime" class="admin-input" placeholder="MM:SS.ms or NT" maxlength="10">
-                    </div>
-                    <div class="admin-field full-width">
-                        <label class="admin-label">Parent / Guardian Contact</label>
-                        <input type="tel" id="mContact" class="admin-input" placeholder="+91 98765 43210">
-                    </div>
-                </div>
-                <div class="admin-derived-row" id="mDerivedRow" style="display:none;">
-                    <span class="admin-derived-pill">YOB: <strong id="mYob">—</strong></span>
-                    <span class="admin-derived-pill">Age: <strong id="mAge">—</strong> yrs</span>
-                    <span class="admin-derived-pill category"><strong id="mCategory">—</strong></span>
-                </div>
-            </div>
-            <div class="modal-footer admin-modal-footer">
-                <button class="admin-btn admin-btn-outline" id="manualModalCancel">Cancel</button>
-                <button class="admin-btn admin-btn-primary" id="manualModalSave">
-                    <i class="fas fa-plus"></i> Add to Roster
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Confirm Delete Modal -->
-    <div class="modal-overlay" id="deleteModal">
-        <div class="modal admin-modal" style="max-width:420px;">
-            <div class="modal-header">
-                <h3><i class="fas fa-trash-alt" style="color:var(--danger)"></i> Remove Entry</h3>
-                <button class="modal-close" id="deleteModalClose"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="modal-body" style="padding:20px 24px;">
-                <p id="deleteModalMsg" style="font-size:0.9rem;color:var(--dark);line-height:1.6;">
-                    Are you sure you want to remove this entry? This action disqualifies/purges the registration.
-                </p>
-            </div>
-            <div class="modal-footer admin-modal-footer">
-                <button class="admin-btn admin-btn-outline" id="deleteModalCancel">Cancel</button>
-                <button class="admin-btn admin-btn-danger" id="deleteModalConfirm">
-                    <i class="fas fa-trash-alt"></i> Remove Entry
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Final Lock Confirm Modal -->
-    <div class="modal-overlay" id="lockConfirmModal">
-        <div class="modal admin-modal" style="max-width:460px;">
-            <div class="modal-header">
-                <h3><i class="fas fa-lock" style="color:var(--danger)"></i> Submit Final Player List</h3>
-                <button class="modal-close" id="lockModalClose"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="modal-body" style="padding:20px 24px;">
-                <div class="admin-lock-confirm-body" id="lockConfirmBody">
-                    <!-- Filled by JS with audit summary -->
-                </div>
-            </div>
-            <div class="modal-footer admin-modal-footer">
-                <button class="admin-btn admin-btn-outline" id="lockModalCancel">Go Back &amp; Review</button>
-                <button class="admin-btn admin-btn-danger" id="lockModalConfirm">
-                    <i class="fas fa-lock"></i> Confirm &amp; Lock
-                </button>
-            </div>
-        </div>
-    </div>
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js"></script>
     <script src="auth.js?v=6"></script>
-    <script src="admin.js"></script>
+    <script src="adminconsole.js"></script>
 </body>
 </html>
