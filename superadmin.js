@@ -103,13 +103,19 @@ async function loadMeetQueues() {
 // ── Supabase: pending academy / coach verifications ───────────
 async function loadVerificationQueue() {
   if (!window.sb) return;
-  const [ac, co, org] = await Promise.all([
+  const [ac, co, org, sw] = await Promise.all([
     window.sb.from('academies').select('academy_id, academy_name, city, registration_no, document_url, status, created_by_email, contact_person').eq('status', 'PENDING_VERIFICATION'),
     window.sb.from('coaches').select('coach_id, full_name, designation, certifications, document_url, status, created_by_email').eq('status', 'PENDING_VERIFICATION'),
     window.sb.from('organizer_directory').select('organizer_id, org_name, city, contact_person, registration_no, document_url, status, email').eq('status', 'PENDING_VERIFICATION'),
+    window.sb.from('swimmers').select('swimmer_id, full_name, gender, category, parent_name, parent_phone, parent_email, school_name, status, sfi_serial_no').eq('status', 'PENDING_VERIFICATION'),
   ]);
 
   S2_QUEUE = [];
+  (sw.data || []).forEach(s => S2_QUEUE.push({
+    id: s.swimmer_id, table: 'swimmers', idCol: 'swimmer_id',
+    entityType: 'SWIMMER', name: s.full_name, detail: `${s.gender || ''} ${s.category || ''} · Parent: ${s.parent_name || '—'} (${s.parent_phone || '—'}) ${s.school_name ? '· School: ' + s.school_name : ''}`,
+    email: s.parent_email || null, credentialId: s.sfi_serial_no || `SWM-${String(s.swimmer_id).slice(0,8).toUpperCase()}`, documentUrl: null,
+  }));
   (org.data || []).forEach(o => S2_QUEUE.push({
     id: o.organizer_id, table: 'organizers', idCol: 'organizer_id',
     entityType: 'ORGANIZER', name: o.org_name, detail: `Contact: ${o.contact_person || '—'} · ${o.city || ''}`,
@@ -308,13 +314,16 @@ function renderS2() {
     return;
   }
   $('s2Body').innerHTML = S2_QUEUE.map((item, i) => {
-    const entityBadge = item.entityType === 'ACADEMY'
-      ? `<span class="entity-badge entity-academy"><i class="fas fa-building"></i> Academy</span>`
-      : item.entityType === 'ORGANIZER'
-        ? `<span class="entity-badge entity-academy"><i class="fas fa-user-tie"></i> Organizer</span>`
-        : `<span class="entity-badge entity-coach"><i class="fas fa-chalkboard-teacher"></i> Coach</span>`;
-    const submissionLabel = item.entityType === 'ACADEMY' ? 'Academy submission'
-      : item.entityType === 'ORGANIZER' ? 'Organizer signup' : 'Coach submission';
+    const entityBadge = item.entityType === 'SWIMMER'
+      ? `<span class="entity-badge" style="background:#e0e7ff;color:#3730a3;"><i class="fas fa-swimmer"></i> Swimmer Profile</span>`
+      : item.entityType === 'ACADEMY'
+        ? `<span class="entity-badge entity-academy"><i class="fas fa-building"></i> Academy</span>`
+        : item.entityType === 'ORGANIZER'
+          ? `<span class="entity-badge entity-academy"><i class="fas fa-user-tie"></i> Organizer</span>`
+          : `<span class="entity-badge entity-coach"><i class="fas fa-chalkboard-teacher"></i> Coach</span>`;
+    const submissionLabel = item.entityType === 'SWIMMER' ? 'Swimmer registration'
+      : item.entityType === 'ACADEMY' ? 'Academy submission'
+        : item.entityType === 'ORGANIZER' ? 'Organizer signup' : 'Coach submission';
     const emailTag = item.email
       ? `<div style="font-size:0.72rem;color:var(--primary);margin-top:2px;"><i class="fas fa-envelope" style="font-size:0.65rem;"></i> ${escHtml(item.email)}</div>`
       : '';

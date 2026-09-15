@@ -91,6 +91,7 @@ async function loadAccount() {
         PROFILE.parentName  = sw.parent_name  || PROFILE.parentName;
         PROFILE.parentPhone = sw.parent_phone || PROFILE.parentPhone;
         PROFILE.parentEmail = sw.parent_email || PROFILE.parentEmail;
+        PROFILE.status      = sw.status || 'PENDING_VERIFICATION';
       }
     } catch (_) { /* table may be empty for a new user — fine */ }
   }
@@ -108,6 +109,28 @@ function renderHeader() {
   $('statMedals').textContent      = PROFILE.stats.medals;
   $('statPB').textContent          = PROFILE.stats.pb;
   $('statTournaments').textContent = PROFILE.stats.tournaments;
+
+  // Dynamic verification status pill
+  const vEl = document.querySelector('.pf-verified');
+  if (vEl) {
+    const st = PROFILE.status || 'PENDING_VERIFICATION';
+    if (st === 'APPROVED_ACTIVE') {
+      vEl.className = 'pf-verified';
+      vEl.title = 'Verified Account';
+      vEl.style.cssText = 'background:var(--success-light);color:var(--success);border:1px solid #a3d9a5;';
+      vEl.innerHTML = '<i class="fas fa-check-circle"></i> Verified';
+    } else if (st === 'REJECTED') {
+      vEl.className = 'pf-verified rejected';
+      vEl.title = 'Verification Declined by Admin';
+      vEl.style.cssText = 'background:#fde8e8;color:var(--danger);border:1px solid #fca5a5;';
+      vEl.innerHTML = '<i class="fas fa-times-circle"></i> Verification Declined';
+    } else {
+      vEl.className = 'pf-verified pending';
+      vEl.title = 'Pending Admin Verification';
+      vEl.style.cssText = 'background:#fff3cd;color:#856404;border:1px solid #ffeeba;';
+      vEl.innerHTML = '<i class="fas fa-clock"></i> Pending Verification';
+    }
+  }
 }
 
 // ── Render Personal Bests ─────────────────────────────────────

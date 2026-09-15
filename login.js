@@ -324,6 +324,7 @@ window.handleSignup = async function(e) {
           parent_name  : name,
           parent_phone : phone,
           parent_email : email,
+          status       : 'PENDING_VERIFICATION',
         });
         console.log('[SwimFest] swimmer record created for account.');
       }

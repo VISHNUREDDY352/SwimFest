@@ -96,8 +96,13 @@ create table if not exists swimmers (
   parent_name    varchar(120),
   parent_phone   varchar(15) not null,
   parent_email   varchar(100),
+  school_name    varchar(150),
+  nationality    varchar(50) default 'Indian',
+  blood_group    varchar(10),
+  id_ref         varchar(100),
   academy_id     uuid references academies(academy_id) on delete set null,
   coach_id       uuid references coaches(coach_id) on delete set null,
+  status         verification_status_enum not null default 'PENDING_VERIFICATION',
   created_at     timestamptz default now()
 );
 

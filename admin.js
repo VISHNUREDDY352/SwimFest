@@ -78,7 +78,7 @@ async function loadRoster(tournamentId, silent = false) {
   const nameMap = {};
   if (swimmerIds.length) {
     const { data: dir } = await window.sb
-      .from('swimmer_directory').select('swimmer_id, full_name, academy_name').in('swimmer_id', swimmerIds);
+      .from('swimmers').select('swimmer_id, full_name, status, school_name').in('swimmer_id', swimmerIds);
     (dir || []).forEach(s => { nameMap[s.swimmer_id] = s; });
   }
 
@@ -86,6 +86,7 @@ async function loadRoster(tournamentId, silent = false) {
     const s = nameMap[e.swimmer_id] || {};
     return {
       id: e.entry_id,
+      swimmerIdRaw: e.swimmer_id,
       swimId: e.swimmer_id ? String(e.swimmer_id).slice(0, 8) : '—',
       name: s.full_name || 'Unknown Swimmer',
       gender: e.gender,
@@ -97,6 +98,7 @@ async function loadRoster(tournamentId, silent = false) {
       coach: '—',
       event: e.event_name,
       seedTime: msToSeed(e.seed_time_ms),
+      status: s.status || 'APPROVED_ACTIVE',
       flags: [],
       manual: false,
     };
@@ -231,10 +233,16 @@ function renderGrid() {
     ).join('');
     const manualBadge = row.manual ? '<span class="manual-badge">Walk-in</span>' : '';
 
+    const statusBadge = row.status === 'PENDING_VERIFICATION'
+      ? '<span style="background:#fff3cd;color:#856404;font-size:0.65rem;padding:2px 7px;border-radius:10px;font-weight:700;margin-left:4px;"><i class="fas fa-clock"></i> Pending Approval</span>'
+      : row.status === 'REJECTED'
+        ? '<span style="background:#fde8e8;color:var(--danger);font-size:0.65rem;padding:2px 7px;border-radius:10px;font-weight:700;margin-left:4px;"><i class="fas fa-times-circle"></i> Rejected</span>'
+        : '';
+
     tr.innerHTML = `
       <td><span class="row-num">${String(idx + 1).padStart(3,'0')}</span></td>
       <td>
-        <div class="grid-swimmer-name">${escHtml(row.name)} ${manualBadge}</div>
+        <div class="grid-swimmer-name">${escHtml(row.name)} ${manualBadge} ${statusBadge}</div>
         <div class="grid-swimmer-id">${escHtml(row.swimId)}</div>
         ${flagsHtml}
       </td>
