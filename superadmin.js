@@ -703,7 +703,7 @@ function renderAllMeets() {
             <a href="saoverride.html?id=${tid}" target="_blank" class="em-action-btn em-btn-edit" title="Universal Override">
               <i class="fas fa-unlock-alt"></i> Override
             </a>
-            <button onclick="openAllMeetSites('${escHtml(t.title.replace(/'/g, "\\'"))}', '${t.tournament_id}')" class="em-action-btn" style="background:#0f172a;color:#fff;" title="Open all associated pages for this meet in new tabs">
+            <button onclick="openAllMeetSites('${escHtml(t.title.replace(/'/g, "\\'"))}', '${t.tournament_id}')" class="em-action-btn em-btn-all-sites" title="Open all associated pages for this meet in new tabs">
               <i class="fas fa-external-link-square-alt"></i> Open All Sites
             </button>
             ${isPending ? `

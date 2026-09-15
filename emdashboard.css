@@ -278,14 +278,16 @@
 .reg-mode-b { background: #fef3c7; color: #92400e; }
 
 /* Action buttons group */
-.em-action-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.em-action-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 
 .em-action-btn {
     padding: 6px 12px;
     border-radius: var(--radius-sm);
     font-size: 0.72rem;
     font-weight: 700;
-    border: none;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #1e293b;
     cursor: pointer;
     font-family: inherit;
     transition: var(--transition);
@@ -294,22 +296,53 @@
     align-items: center;
     gap: 5px;
     white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
-.em-btn-view     { background: var(--light); color: var(--primary); border: 1px solid var(--gray-light); }
-.em-btn-view:hover { background: #edf7ff; border-color: var(--primary); }
+.em-action-btn i {
+    color: var(--primary, #0057FF);
+}
 
-.em-btn-manage   { background: var(--primary); color: var(--white); }
-.em-btn-manage:hover { background: var(--primary-dark); }
+.em-action-btn:hover {
+    background: #f8fafc;
+    border-color: var(--primary, #0057FF);
+    color: var(--primary, #0057FF);
+}
 
-.em-btn-race     { background: var(--danger); color: var(--white); }
-.em-btn-race:hover { background: #c0392b; }
+/* Unified clean outline design for all action buttons */
+.em-btn-view, 
+.em-btn-manage, 
+.em-btn-race, 
+.em-btn-archive, 
+.em-btn-edit {
+    background: #ffffff !important;
+    color: #1e293b !important;
+    border: 1px solid #cbd5e1 !important;
+}
 
-.em-btn-archive  { background: var(--dark); color: var(--white); }
-.em-btn-archive:hover { background: var(--dark-secondary); }
+.em-btn-view:hover, 
+.em-btn-manage:hover, 
+.em-btn-race:hover, 
+.em-btn-archive:hover, 
+.em-btn-edit:hover {
+    background: #f8fafc !important;
+    border-color: var(--primary, #0057FF) !important;
+    color: var(--primary, #0057FF) !important;
+}
 
-.em-btn-edit     { background: var(--warning); color: var(--white); }
-.em-btn-edit:hover { background: #e67e22; }
+/* Open All Sites primary button */
+.em-btn-all-sites {
+    background: var(--dark, #0f172a) !important;
+    color: #ffffff !important;
+    border: 1px solid var(--dark, #0f172a) !important;
+}
+.em-btn-all-sites i {
+    color: #38bdf8 !important;
+}
+.em-btn-all-sites:hover {
+    background: #1e293b !important;
+    color: #ffffff !important;
+}
 
 /* ── Lifecycle Flow ── */
 .em-lifecycle {
