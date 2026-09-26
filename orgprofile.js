@@ -119,11 +119,21 @@
         (localStorage.getItem(key) ? localStorage : sessionStorage).setItem(key, JSON.stringify(s)); session = s; }
     } catch (_) {}
 
-    // Update organization if we have one
+    // Update organization if we have one, or create one if not yet present
     if (org && orgName) {
       await window.sb.from('organizers').update({ org_name: orgName, city, contact_person: name, phone_number: phone })
         .eq('organizer_id', org.organizer_id);
       org.org_name = orgName; org.city = city;
+    } else if (!org && orgName && session && session.userId) {
+      const { data: newOrg } = await window.sb.from('organizers').upsert({
+        owner_id: session.userId,
+        org_name: orgName,
+        city: city || 'Tamil Nadu',
+        contact_person: name,
+        phone_number: phone,
+        status: 'APPROVED_ACTIVE'
+      }, { onConflict: 'owner_id' }).select('*').maybeSingle();
+      if (newOrg) org = newOrg;
     }
 
     closeEdit();

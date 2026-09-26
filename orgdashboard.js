@@ -31,7 +31,11 @@ async function loadOrgPipeline() {
     .select('tournament_id, title, venue_name, city, start_date, end_date, gateway_option, status, created_by')
     .eq('created_by', userId)
     .order('start_date', { ascending: false });
-  if (error) { console.error('[SwimFest] org pipeline:', error.message); return; }
+  if (error) {
+    console.error('[SwimFest] org pipeline:', error.message);
+    body.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--danger);"><i class="fas fa-exclamation-triangle"></i> Unable to load meets: ${escHtml(error.message)}</td></tr>`;
+    return;
+  }
 
   const rows = data || [];
   const myIds = rows.map(t => t.tournament_id);
@@ -73,7 +77,11 @@ async function loadOrgPipeline() {
 
   // ── Real header metrics ── (reuse `session` from above)
   const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  const orgName = (session && session.name) ? session.name : 'My Organization';
+  let orgName = (session && session.name) ? session.name : 'My Organization';
+  try {
+    const { data: orgRow } = await window.sb.from('organizers').select('org_name').eq('owner_id', userId).maybeSingle();
+    if (orgRow && orgRow.org_name) orgName = orgRow.org_name;
+  } catch (_) {}
   setTxt('orgIdentity', `Organization: ${orgName}`);
   setTxt('orgStatEvents', rows.length);
   setTxt('orgStatAthletes', athleteSet.size.toLocaleString('en-IN'));
@@ -111,7 +119,7 @@ function statusChip(s){
 }
 
 function actionBtns(t){
-  if (t.status === 'PENDING_APPROVAL') return `
+  if (t.status === 'PENDING_APPROVAL' || t.status === 'DRAFT' || t.status === 'REJECTED_DRAFT') return `
     <div class="em-action-group">
       <a href="orgcreate.html"     class="em-action-btn em-btn-view"><i class="fas fa-eye"></i> View Summary</a>
       <a href="orgcreate.html"     class="em-action-btn em-btn-edit"><i class="fas fa-pen"></i> Edit Draft</a>

@@ -21,7 +21,7 @@
                 <a href="index.html" class="dash-logo"><i class="fas fa-swimmer"></i> SwimFest</a>
                 <span class="dash-role-tag">Organizer Console | Create New Event</span>
             </div>
-            <a href="orgdashboard.html" class="dash-logout">
+            <a href="orgdashboard.html" class="dash-back-btn">
                 <i class="fas fa-times"></i> Cancel / Dashboard
             </a>
         </div>
@@ -408,8 +408,18 @@
       if(session && session.userId) row.created_by = session.userId;
       if(session && session.email)  row.created_by_email = session.email;
 
-      const { data, error } = await window.sb
+      let { data, error } = await window.sb
         .from('tournaments').insert(row).select('tournament_id').single();
+
+      // Fallback: If DB schema does not have created_by_email, retry without it
+      if (error && error.message && error.message.includes('created_by_email')) {
+        delete row.created_by_email;
+        const retry = await window.sb
+          .from('tournaments').insert(row).select('tournament_id').single();
+        data = retry.data;
+        error = retry.error;
+      }
+
       if(error){ console.error('[SwimFest] create meet:', error.message); showToast('Save failed: '+error.message,'warn'); return null; }
       return data ? data.tournament_id : null;
     }

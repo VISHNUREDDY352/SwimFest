@@ -315,7 +315,7 @@ window.handleSignup = async function(e) {
       const { data: existingSw } = await window.sb.from('swimmers')
         .select('swimmer_id').eq('owner_id', res.session.userId).limit(1).maybeSingle();
       if (!existingSw) {
-        await window.sb.from('swimmers').insert({
+        const swRow = {
           owner_id     : res.session.userId,
           full_name    : name,
           gender       : selectedGender,
@@ -325,7 +325,12 @@ window.handleSignup = async function(e) {
           parent_phone : phone,
           parent_email : email,
           status       : 'PENDING_VERIFICATION',
-        });
+        };
+        let { error: swErr } = await window.sb.from('swimmers').insert(swRow);
+        if (swErr && swErr.message && swErr.message.includes('status')) {
+          delete swRow.status;
+          await window.sb.from('swimmers').insert(swRow);
+        }
         console.log('[SwimFest] swimmer record created for account.');
       }
     } catch (err) { console.warn('[SwimFest] swimmer insert:', err.message); }

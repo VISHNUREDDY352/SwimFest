@@ -214,7 +214,7 @@ window.submitAcademy = async function() {
   const file = $('acDoc')?.files?.[0] || null;
   const docUrl = await uploadVerificationDoc(file, 'academies');
 
-  const { error } = await window.sb.from('academies').insert({
+  const acRow = {
     academy_name: name,
     city,
     state: $('acState')?.value.trim() || 'Tamil Nadu',
@@ -224,7 +224,13 @@ window.submitAcademy = async function() {
     document_url: docUrl,
     status: 'PENDING_VERIFICATION',
     created_by_email: userEmail,
-  });
+  };
+  let { error } = await window.sb.from('academies').insert(acRow);
+  if (error && error.message && error.message.includes('created_by_email')) {
+    delete acRow.created_by_email;
+    const retry = await window.sb.from('academies').insert(acRow);
+    error = retry.error;
+  }
   if (error) { console.error('[SwimFest] academy submit:', error.message); showToast('Submit failed: ' + error.message, 'warn'); return; }
   closeModal('addAcademyModal');
   showToast('Academy submitted to Super Admin verification queue.', 'success');
@@ -243,14 +249,20 @@ window.submitCoach = async function() {
   const docUrl = await uploadVerificationDoc(file, 'coaches');
 
   const certBody = $('coCertBody')?.value || '';
-  const { error } = await window.sb.from('coaches').insert({
+  const coRow = {
     full_name: name,
     mobile_number: $('coPhone')?.value.trim() || null,
     certifications: [`${certBody} · ${license}`],
     document_url: docUrl,
     status: 'PENDING_VERIFICATION',
     created_by_email: userEmail,
-  });
+  };
+  let { error } = await window.sb.from('coaches').insert(coRow);
+  if (error && error.message && error.message.includes('created_by_email')) {
+    delete coRow.created_by_email;
+    const retry = await window.sb.from('coaches').insert(coRow);
+    error = retry.error;
+  }
   if (error) { console.error('[SwimFest] coach submit:', error.message); showToast('Submit failed: ' + error.message, 'warn'); return; }
   closeModal('addCoachModal');
   showToast('Coach submitted to Super Admin verification queue.', 'success');

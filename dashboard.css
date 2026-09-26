@@ -72,20 +72,22 @@
 }
 .dash-user-btn:hover { border-color: rgba(255,255,255,0.4); }
 
-.dash-logout {
+.dash-logout,
+.dash-back-btn {
     display: flex;
     align-items: center;
     gap: 6px;
     padding: 7px 12px;
     border: 1px solid rgba(255,255,255,0.12);
     border-radius: var(--radius-sm);
-    color: rgba(255,255,255,0.5);
+    color: rgba(255,255,255,0.65);
     font-size: 0.78rem;
     font-weight: 600;
     text-decoration: none;
     transition: var(--transition);
 }
 .dash-logout:hover { color: var(--danger); border-color: var(--danger); }
+.dash-back-btn:hover { color: var(--white); border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.06); }
 
 /* ── Sub-navigation tabs ── */
 .dash-subnav {
