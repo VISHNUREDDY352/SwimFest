@@ -411,9 +411,18 @@
       let { data, error } = await window.sb
         .from('tournaments').insert(row).select('tournament_id').single();
 
-      // Fallback: If DB schema does not have created_by_email, retry without it
+      // Fallback 1: If DB schema does not have created_by_email, retry without it
       if (error && error.message && error.message.includes('created_by_email')) {
         delete row.created_by_email;
+        const retry = await window.sb
+          .from('tournaments').insert(row).select('tournament_id').single();
+        data = retry.data;
+        error = retry.error;
+      }
+
+      // Fallback 2: If created_by causes foreign key error (stale user ID from previous DB), retry without it
+      if (error && error.message && (error.message.includes('foreign key') || error.message.includes('created_by') || error.message.includes('violates foreign key constraint'))) {
+        delete row.created_by;
         const retry = await window.sb
           .from('tournaments').insert(row).select('tournament_id').single();
         data = retry.data;
