@@ -317,20 +317,29 @@ document.addEventListener('DOMContentLoaded', () => {
   // Adds a Back button to the header of any page that doesn't already
   // have back navigation. Skips the home page and role landing
   // dashboards (where "back" has no meaning). History-aware.
-  // Super admins always return to the super admin console, on the
-  // section they last had open there.
+  // A page a super admin opened from the super admin console returns
+  // to the console (on the section they last had open there).
   (function initBackButton() {
-    const rawPage = (window.location.pathname.split('/').pop() || 'index.html');
-    const page = rawPage.split('?')[0].split('#')[0].toLowerCase();
+    // Page name without ".html", so it also matches clean URLs (/superadmin)
+    const pageName = (path) => (path.split(/[?#]/)[0].split('/').pop() || 'index')
+      .toLowerCase().replace(/\.html$/, '');
+    const page = pageName(window.location.pathname);
+    if (page === 'superadmin') return;
 
+    // Opened from the super admin console? (same-origin referrer)
     const session = SwimAuth.getSession();
-    const isSuperAdmin = !!session && session.role === 'super_admin';
-    if (page === 'superadmin.html') return;
+    let fromConsole = false;
+    if (session && session.role === 'super_admin' && document.referrer) {
+      try {
+        const ref = new URL(document.referrer);
+        fromConsole = ref.origin === window.location.origin && pageName(ref.pathname) === 'superadmin';
+      } catch (_) {}
+    }
 
     let saReturn = 'superadmin.html';
     try { saReturn = localStorage.getItem(SA_RETURN_KEY) || saReturn; } catch (_) {}
     const goBack = () => {
-      if (isSuperAdmin) window.location.href = saReturn;
+      if (fromConsole) window.location.href = saReturn;
       else if (window.history.length > 1) window.history.back();
       else window.location.href = 'index.html';
     };
@@ -338,14 +347,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Pages that should NOT get an injected back button:
     //  - the home page itself
     //  - role landing pages / dashboards (their own nav returns elsewhere)
-    // A super admin still gets one on the dashboards, to return to the console.
-    const SKIP_PAGES = [
-      '', 'index.html',
-      'emdashboard.html', 'orgdashboard.html',
-      'saprofile.html', 'saoverride.html', 'admin.html',
-    ];
-    if (page === '' || page === 'index.html') return;
-    if (!isSuperAdmin && SKIP_PAGES.includes(page)) return;
+    // Opened from the console, the dashboards still get one to return there.
+    const SKIP_PAGES = ['emdashboard', 'orgdashboard', 'saprofile', 'saoverride', 'admin'];
+    if (page === 'index') return;
+    if (!fromConsole && SKIP_PAGES.includes(page)) return;
 
     // If the page already has a visible back control, don't add another.
     // Detect by: "back" in the text, a "back" class, or a left-arrow icon
@@ -357,15 +362,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (el.querySelector && el.querySelector('.fa-arrow-left')) return true;
       return false;
     });
-    if (isSuperAdmin) {
+    if (fromConsole) {
       // A page's own "back to dashboard" links also lead to the console.
       // Only links to a dashboard/home page are redirected — in-page
       // buttons (wizard steps, modal "Go back") keep their behaviour.
-      const DASHBOARD_PAGES = ['index.html', 'emdashboard.html', 'admin.html', 'orgdashboard.html', 'superadmin.html'];
+      const DASHBOARD_PAGES = ['index', 'emdashboard', 'admin', 'orgdashboard', 'superadmin'];
       backControls.forEach(el => {
         if (el.tagName !== 'A') return;
-        const target = (el.getAttribute('href') || '').split(/[?#]/)[0].split('/').pop().toLowerCase();
-        if (!DASHBOARD_PAGES.includes(target)) return;
+        if (!DASHBOARD_PAGES.includes(pageName(el.getAttribute('href') || ''))) return;
         el.setAttribute('href', saReturn);
         el.addEventListener('click', (e) => {
           e.preventDefault();
@@ -386,7 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.className = 'global-back-btn';
     btn.innerHTML = '<i class="fas fa-arrow-left"></i><span>Back</span>';
     btn.setAttribute('aria-label', 'Go back');
-    if (isSuperAdmin) btn.title = 'Back to Super Admin console';
+    if (fromConsole) btn.title = 'Back to Super Admin console';
     btn.addEventListener('click', goBack);
 
     // Place it inside the page header, just left of the SwimFest logo.
