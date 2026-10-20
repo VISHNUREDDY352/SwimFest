@@ -1217,12 +1217,14 @@ a.btn-profile i { font-size: 0.85rem; color: inherit; }
 .host-prompt-ok { background: var(--primary); color: var(--white); }
 .host-prompt-ok:hover { background: var(--primary-dark); }
 
-/* ===== Universal floating Back button (injected by auth.js) ===== */
+/* ===== Universal Back button (injected by auth.js below the header) ===== */
+.global-back-bar {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 16px 24px 0;
+    box-sizing: border-box;
+}
 .global-back-btn {
-    position: fixed;
-    top: 82px;
-    left: 16px;
-    z-index: 9990;
     display: inline-flex;
     align-items: center;
     gap: 7px;
@@ -1245,6 +1247,28 @@ a.btn-profile i { font-size: 0.85rem; color: inherit; }
 }
 .global-back-btn i { font-size: 0.8rem; }
 
+/* Inside a header, next to the logo: compact and tinted to suit the bar */
+.global-back-btn.in-header {
+    flex: none;
+    height: 36px;
+    padding: 0 12px;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    box-shadow: none;
+}
+.global-back-btn.in-header:hover { background: rgba(255, 255, 255, 0.26); }
+/* The public navbar is white, so use a light blue tint there */
+.navbar .global-back-btn.in-header {
+    background: rgba(0, 119, 182, 0.08);
+    border-color: rgba(0, 119, 182, 0.25);
+    color: var(--primary);
+}
+.navbar .global-back-btn.in-header:hover { background: rgba(0, 119, 182, 0.16); }
+
 @media (max-width: 768px) {
-    .global-back-btn { top: 70px; left: 10px; padding: 7px 12px; font-size: 0.78rem; }
+    .global-back-bar { padding: 12px 16px 0; }
+    .global-back-btn { padding: 7px 12px; font-size: 0.78rem; }
+    /* Icon-only in crowded mobile headers */
+    .global-back-btn.in-header { width: 36px; padding: 0; justify-content: center; }
+    .global-back-btn.in-header span { display: none; }
 }

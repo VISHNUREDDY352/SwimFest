@@ -311,8 +311,8 @@ document.addEventListener('DOMContentLoaded', () => {
     SwimAuth.logoutAndRedirect();
   });
 
-  // ── Universal floating "Back" button ────────────────────────
-  // Adds a top-left Back button to any page that doesn't already
+  // ── Universal "Back" button ─────────────────────────────────
+  // Adds a Back button below the header of any page that doesn't already
   // have back navigation. Skips the home page and role landing
   // dashboards (where "back" has no meaning). History-aware.
   (function initBackButton() {
@@ -348,12 +348,27 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.type = 'button';
     btn.id = 'globalBackBtn';
     btn.className = 'global-back-btn';
-    btn.innerHTML = '<i class="fas fa-arrow-left"></i> Back';
+    btn.innerHTML = '<i class="fas fa-arrow-left"></i><span>Back</span>';
+    btn.setAttribute('aria-label', 'Go back');
     btn.addEventListener('click', () => {
       if (window.history.length > 1) window.history.back();
       else window.location.href = 'index.html';
     });
-    document.body.appendChild(btn);
+
+    // Place it inside the page header, just left of the SwimFest logo.
+    // Pages without a header logo get it in its own bar at the top.
+    const header = document.querySelector('body > header, body > .navbar, body > [class*="topbar"]');
+    const logo = header && header.querySelector('[class*="logo"]:not([class*="logout"])');
+    if (logo) {
+      btn.classList.add('in-header');
+      logo.insertAdjacentElement('beforebegin', btn);
+    } else {
+      const bar = document.createElement('div');
+      bar.className = 'global-back-bar';
+      bar.appendChild(btn);
+      if (header) header.insertAdjacentElement('afterend', bar);
+      else document.body.insertAdjacentElement('afterbegin', bar);
+    }
   })();
 
   // ── Universal mobile menu (compact top-right dropdown) ──────
