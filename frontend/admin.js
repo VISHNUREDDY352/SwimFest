@@ -105,19 +105,19 @@ function renderSidebar() {
       ])
       + sideGroup('Meets', [
         sideLink('admin.html#myMeets', 'trophy', 'My meets'),
-        sideLink('playerlist.html', 'list-check', 'Player list', true),
+        sideLink('playerlist.html', 'list-check', 'Master player list', true),
         sideLink('heatgen.html', 'bolt', 'Heat generation'),
         sideLink('results.html', 'broadcast-tower', 'Live results'),
-        sideLink('racecontrol.html', 'flag-checkered', 'Race control'),
+        sideLink('orgracecontrol.html', 'flag-checkered', 'Race control'),
       ])
-      + sideGroup('Create', [sideLink('addevent.html', 'plus', 'Add event')]);
+      + sideGroup('Create', [sideLink('orgcreate.html', 'plus', 'Add meet')]);
   }
   $('plNav').innerHTML = html;
 
   if (SESSION) {
     const name = SESSION.name || SESSION.email || 'Signed in';
     $('plUserName').textContent = name;
-    $('plUserRole').textContent = { organizer: 'Organizer', event_manager: 'Event Manager', super_admin: 'Super Admin' }[role] || '';
+    $('plUserRole').textContent = { organizer: 'Organizer', event_manager: 'Admin', super_admin: 'Super Admin' }[role] || '';
     $('plInitials').textContent = String(name).split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'SF';
   }
 }
@@ -700,6 +700,7 @@ function refreshRosterLive() {
 document.addEventListener('DOMContentLoaded', () => {
   SESSION = window.SwimAuth ? window.SwimAuth.getSession() : null;
   renderSidebar();
+  if (window.SwimNav) window.SwimNav.applySuperAdmin({ nav: 'plNav', brand: 'plBrand', brandSub: 'plBrandSub', userLink: 'plUserLink', name: 'plUserName', initials: 'plInitials', role: 'plUserRole' }, 'playerlist.html');
   renderStatus();
   renderGrid();
   loadAdminTournaments();

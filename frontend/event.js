@@ -55,6 +55,7 @@ document.addEventListener('keydown', (e) => {
   }
   function money(n) { return '₹' + Number(n || 0).toLocaleString('en-IN'); }
   function setText(id, txt) { const el = document.getElementById(id); if (el && txt) el.textContent = txt; }
+  function escHtml(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
   const STATUS_LABEL = {
     PUBLISHED: 'Entries Open', CLOSED: 'Closing Soon', LOCKED: 'Live Now',
@@ -88,7 +89,21 @@ document.addEventListener('keydown', (e) => {
     if (t.host_organization) setText('evHostedBy', 'Hosted by: ' + t.host_organization);
     setText('evStatusBadge', STATUS_LABEL[t.status] || t.status);
     setText('evVenue', `${t.venue_name || ''}${t.city ? ', ' + t.city : ''}`);
-    setText('evSpecs', `${t.pool_length || ''} | ${t.lane_count || 8} Lanes | Electronic Touch-Pad Ready`);
+    setText('evSpecs', `${t.pool_length === '25m' ? '25 m pool' : '50 m pool'} | ${t.lane_count || 8} lanes`);
+    setText('evResultsNote', `Results will be published live during the event (${fmtDate(t.start_date)} – ${fmtDate(t.end_date)}).`);
+
+    // Poster uploaded by the organizer
+    const poster = document.getElementById('evPoster');
+    if (poster && t.poster_url) { poster.src = t.poster_url; poster.alt = `${t.title} poster`; poster.hidden = false; }
+
+    // Races the organizer switched on (older meets have no list yet)
+    const raceBody = document.getElementById('evEventsTableBody');
+    if (raceBody && Array.isArray(t.events_offered) && t.events_offered.length) {
+      raceBody.innerHTML = t.events_offered.map((name, i) => {
+        const m = /^(\d+)m\s+(.+)$/.exec(name) || [];
+        return `<tr><td>${i + 1}</td><td>${escHtml(m[2] || name)}</td><td>${m[1] ? m[1] + ' m' : '—'}</td></tr>`;
+      }).join('');
+    }
     setText('evDates', `${fmtDate(t.start_date)} – ${fmtDate(t.end_date)}`);
     if (t.registration_deadline) setText('evDeadline', fmtDate(t.registration_deadline));
 
@@ -99,7 +114,7 @@ document.addEventListener('keydown', (e) => {
     setText('evMobileFee', `${fee} (${t.max_individual_events || 3} Events)`);
 
     // Relay add-on fee (hide the row when the meet has no relay fee)
-    const relayAmt = t.relay_fee_amount != null ? money(t.relay_fee_amount) : null;
+    const relayAmt = t.relay_add_on_fee != null ? money(t.relay_add_on_fee) : null;
     setText('evRelayFee', relayAmt || '—');
     setText('evRelayFeeSidebar', relayAmt || '—');
     if (!relayAmt) {
@@ -111,7 +126,7 @@ document.addEventListener('keydown', (e) => {
       : 'SINGLE CATEGORY ONLY (Swim-Up disabled for this meet)');
 
     // Point the register buttons at this tournament
-    const regUrl = `register.html?tournament=${encodeURIComponent(t.title)}&from=event`;
+    const regUrl = `register.html?t=${encodeURIComponent(t.tournament_id)}&from=event`;
     const btn  = document.getElementById('evRegisterBtn');
     const btnM = document.getElementById('evRegisterBtnMobile');
     const btnC = document.getElementById('evContinueBtn');

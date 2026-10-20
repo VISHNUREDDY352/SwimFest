@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create a Meet — SwimFest</title>
-    <script src="guard.js" data-roles="organizer,super_admin"></script>
-    <link rel="stylesheet" href="styles.css?v=23">
+    <script src="guard.js" data-roles="organizer,event_manager,super_admin"></script>
+    <link rel="stylesheet" href="styles.css?v=24">
     <link rel="stylesheet" href="admin.css?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -61,6 +61,13 @@
         .oc-sw::after { content:""; position:absolute; top:3px; left:3px; width:1.125rem; height:1.125rem; border-radius:999px; background:#fff; transition:left 0.15s; box-shadow:0 1px 2px rgba(0,0,0,0.2); }
         .oc-sw.on { background:var(--ac-blue); }
         .oc-sw.on::after { left:calc(100% - 1.125rem - 3px); }
+        .oc-poster { border:1.5px dashed #cbd5e1; border-radius:0.75rem; padding:0.875rem; display:flex; flex-direction:column; gap:0.75rem; }
+        .oc-poster img { width:100%; max-height:16rem; object-fit:cover; border-radius:0.5rem; }
+        .oc-poster img[hidden] { display:none; }
+        .oc-poster-empty { display:flex; align-items:center; gap:0.625rem; color:var(--ac-muted); font-size:0.84rem; }
+        .oc-poster-empty i { font-size:1.4rem; color:#94a3b8; }
+        .oc-poster-actions { display:flex; gap:0.5rem; flex-wrap:wrap; }
+        .oc-poster-actions [hidden] { display:none; }
         .oc-soon { display:inline-block; padding:2px 0.5rem; border-radius:999px; background:var(--ac-line-soft); color:var(--ac-muted); font-size:0.7rem; font-weight:700; }
 
         .oc-opt { display:flex; gap:0.875rem; padding:1rem; border:1.5px solid var(--ac-line); border-radius:0.75rem; cursor:pointer; background:#fff; text-align:left; width:100%; font:inherit; color:var(--ac-ink); }
@@ -112,14 +119,16 @@
 
     <!-- ── Sidebar ── -->
     <aside class="ac-sidebar" id="acSidebar" aria-label="Organizer navigation">
-        <a href="orgdashboard.html" class="ac-brand" data-back-anchor>
+        <a href="orgdashboard.html" class="ac-brand" id="ocBrand" data-back-anchor>
             <span class="ac-brand-mark"><i class="fas fa-swimmer"></i></span>
             <span>
                 <span class="ac-brand-name">SwimFest</span>
-                <span class="ac-brand-sub">Organizer Dashboard</span>
+                <span class="ac-brand-sub" id="ocBrandSub">Organizer Dashboard</span>
             </span>
         </a>
 
+        <!-- Organizer links; orgcreate.js swaps in the Admin links for staff -->
+        <div id="ocNav" style="display:flex;flex-direction:column;gap:1.1rem;">
         <nav class="ac-side-group">
             <a href="orgdashboard.html" class="ac-side-link"><i class="fas fa-table-columns"></i> Overview</a>
             <a href="orgdashboard.html#myMeets" class="ac-side-link"><i class="fas fa-trophy"></i> My meets</a>
@@ -136,9 +145,10 @@
             <div class="ac-side-label">Create</div>
             <a href="orgcreate.html" class="ac-side-link active" aria-current="page"><i class="fas fa-plus"></i> Create event</a>
         </nav>
+        </div>
 
         <div class="ac-side-user">
-            <a href="orgprofile.html" class="ac-side-user-link" title="Organization profile">
+            <a href="orgprofile.html" class="ac-side-user-link" id="ocUserLink" title="Organization profile">
                 <span class="ac-avatar-lg" id="ocInitials">OR</span>
                 <div class="ac-side-user-info">
                     <span class="ac-side-user-name" id="ocUserName">Signed in</span>
@@ -162,8 +172,8 @@
         <div class="oc-wrap">
             <div class="ac-page-head" style="align-items:flex-end;">
                 <div>
-                    <h1 class="ac-page-title">Create a meet</h1>
-                    <p class="ac-page-sub">Fill in the details, then send it to the super admin for approval.</p>
+                    <h1 class="ac-page-title" id="ocHeading">Create a meet</h1>
+                    <p class="ac-page-sub" id="ocSubheading">Fill in the details, then send it to the super admin for approval.</p>
                 </div>
                 <div class="ac-head-actions">
                     <button type="button" class="ac-btn ac-btn-ghost" id="draftBtn"><i class="fas fa-floppy-disk"></i> Save draft</button>
@@ -230,7 +240,17 @@
                                 <button class="oc-sw on" type="button" id="swNonMedal" aria-pressed="true" aria-label="Non-medalists only"></button></div>
                             <div class="oc-toggle"><span><b>Allow swim-up</b><small>Swimmers may enter the next older age group</small></span>
                                 <button class="oc-sw" type="button" id="swSwimUp" aria-pressed="false" aria-label="Allow swim-up"></button></div>
-                            <div class="oc-toggle" style="border-style:dashed;"><span><b>Meet poster</b><small>JPG or PNG, shown on the meet page</small></span><span class="oc-soon">Coming soon</span></div>
+                            <div class="oc-field"><span class="oc-label">Meet poster</span>
+                                <div class="oc-poster" id="posterBox">
+                                    <img id="posterPreview" alt="Poster preview" hidden>
+                                    <div class="oc-poster-empty" id="posterEmpty"><i class="fas fa-image"></i><span>JPG, PNG or WebP, up to 5 MB. Shown at the top of the meet page.</span></div>
+                                    <div class="oc-poster-actions">
+                                        <button type="button" class="ac-btn ac-btn-ghost" id="posterPick"><i class="fas fa-upload"></i> Choose image</button>
+                                        <button type="button" class="ac-btn ac-btn-ghost" id="posterRemove" hidden><i class="fas fa-trash-can"></i> Remove</button>
+                                    </div>
+                                    <input type="file" id="posterFile" accept="image/jpeg,image/png,image/webp" hidden>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -253,7 +273,7 @@
                             <h2 id="doneTitle">Sent for approval</h2>
                             <p id="doneText"></p>
                             <div class="oc-done-actions">
-                                <a href="orgdashboard.html#myMeets" class="ac-btn ac-btn-primary"><i class="fas fa-trophy"></i> Go to My meets</a>
+                                <a href="orgdashboard.html#myMeets" class="ac-btn ac-btn-primary" id="doneMyMeets"><i class="fas fa-trophy"></i> Go to My meets</a>
                                 <a href="orgcreate.html" class="ac-btn ac-btn-ghost"><i class="fas fa-plus"></i> Create another</a>
                             </div>
                         </div>
@@ -278,7 +298,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=7"></script>
-    <script src="auth.js?v=11"></script>
-    <script src="orgcreate.js?v=1"></script>
+    <script src="auth.js?v=14"></script>
+    <script src="consolenav.js?v=2"></script>
+    <script src="orgcreate.js?v=6"></script>
 </body>
 </html>

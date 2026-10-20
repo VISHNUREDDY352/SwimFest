@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Organizer Race Control — SwimFest</title>
-    <script src="guard.js" data-roles="organizer,super_admin"></script>
-    <link rel="stylesheet" href="styles.css?v=23">
+    <title>Race Control — SwimFest</title>
+    <script src="guard.js" data-roles="organizer,event_manager,super_admin"></script>
+    <link rel="stylesheet" href="styles.css?v=24">
     <link rel="stylesheet" href="admin.css?v=2">
     <link rel="stylesheet" href="dashboard.css?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -58,14 +58,16 @@
 
     <!-- ── Sidebar (same as Organizer Dashboard) ── -->
     <aside class="ac-sidebar" id="acSidebar" aria-label="Organizer navigation">
-        <a href="orgdashboard.html" class="ac-brand" data-back-anchor>
+        <a href="orgdashboard.html" class="ac-brand" id="rcBrand" data-back-anchor>
             <span class="ac-brand-mark"><i class="fas fa-swimmer"></i></span>
             <span>
                 <span class="ac-brand-name">SwimFest</span>
-                <span class="ac-brand-sub">Organizer Dashboard</span>
+                <span class="ac-brand-sub" id="rcBrandSub">Organizer Dashboard</span>
             </span>
         </a>
 
+        <!-- Organizer links; orgracecontrol.js swaps in the Admin links for staff -->
+        <div id="rcNav" style="display:flex;flex-direction:column;gap:1.1rem;">
         <nav class="ac-side-group">
             <a href="orgdashboard.html" class="ac-side-link"><i class="fas fa-table-columns"></i> Overview</a>
             <a href="orgdashboard.html#myMeets" class="ac-side-link"><i class="fas fa-trophy"></i> My meets</a>
@@ -82,9 +84,10 @@
             <div class="ac-side-label">Create</div>
             <a href="orgcreate.html" class="ac-side-link"><i class="fas fa-plus"></i> Create event</a>
         </nav>
+        </div>
 
         <div class="ac-side-user">
-            <a href="orgprofile.html" class="ac-side-user-link" title="Organization profile">
+            <a href="orgprofile.html" class="ac-side-user-link" id="rcUserLink" title="Organization profile">
                 <span class="ac-avatar-lg" id="orgInitials">OR</span>
             <div class="ac-side-user-info">
                 <span class="ac-side-user-name" id="orgName">My Organization</span>
@@ -238,7 +241,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=7"></script>
-    <script src="auth.js?v=11"></script>
-    <script src="orgracecontrol.js?v=2"></script>
+    <script src="auth.js?v=14"></script>
+    <script src="consolenav.js?v=2"></script>
+    <script src="orgracecontrol.js?v=5"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register — SwimFest</title>
-    <link rel="stylesheet" href="styles.css?v=23">
+    <link rel="stylesheet" href="styles.css?v=24">
     <link rel="stylesheet" href="register.css?v=3">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -80,7 +80,7 @@
                 <div class="step-connector"></div>
                 <div class="step-item" id="step-indicator-3">
                     <div class="step-circle">3</div>
-                    <span class="step-label">Checkout</span>
+                    <span class="step-label">Review &amp; submit</span>
                 </div>
             </div>
 
@@ -90,9 +90,8 @@
                     <div class="reg-card-header">
                         <div>
                             <h2 class="reg-step-title">Step 1 of 3: Swimmer Profile &amp; Eligibility Verification</h2>
-                            <p class="reg-step-sub">Swimmer ID: <strong id="swimmerIdDisplay">SWM-2026-——</strong></p>
+                            <p class="reg-step-sub">The age group is worked out from the date of birth.</p>
                         </div>
-                        <span class="verified-badge"><i class="fas fa-shield-alt"></i> Verified Account</span>
                     </div>
 
                     <div class="reg-section-label">Profile Data (Auto-Filled)</div>
@@ -227,7 +226,7 @@
                     <!-- Package Banner -->
                     <div class="package-banner">
                         <i class="fas fa-info-circle"></i>
-                        Flat base registration package fee for <strong>₹800.00</strong> — covers up to <strong>3 individual events</strong> plus the optional Individual Medley. Relays are billed separately.
+                        Entry fee for this meet is <strong id="pkgFee">₹800.00</strong>. It covers up to <strong>3 individual races</strong><span id="pkgImNote"> plus the optional Individual Medley</span>. Relays are charged separately.
                     </div>
 
                     <!-- Individual Events -->
@@ -241,8 +240,8 @@
                     </div>
 
                     <!-- Individual Medley -->
-                    <div class="reg-section-label">Individual Medley (IM) Option</div>
-                    <div class="events-list">
+                    <div class="reg-section-label" id="imSection">Individual Medley (IM) Option</div>
+                    <div class="events-list" id="imList">
                         <div class="event-row im-row" id="imRow">
                             <label class="event-check-label">
                                 <input type="checkbox" class="event-checkbox" id="imCheckbox">
@@ -258,15 +257,15 @@
                     </div>
 
                     <!-- Relay Add-On -->
-                    <div class="reg-section-label">Relay Add-On Entry <span class="billed-sep-tag">Billed Separately</span></div>
-                    <div class="events-list">
+                    <div class="reg-section-label" id="relaySection">Relay Add-On Entry <span class="billed-sep-tag">Billed Separately</span></div>
+                    <div class="events-list" id="relayList">
                         <div class="event-row relay-row">
                             <label class="event-check-label">
                                 <input type="checkbox" class="event-checkbox" id="relayCheckbox">
                                 <span class="event-name">4×50m Freestyle Relay Entry</span>
                             </label>
                             <div class="event-right">
-                                <span class="relay-fee-tag">+ ₹300.00 add-on fee per team</span>
+                                <span class="relay-fee-tag" id="relayFeeTag">+ ₹300.00 per team</span>
                             </div>
                         </div>
                     </div>
@@ -275,12 +274,12 @@
                     <div class="fee-summary" id="feeSummary">
                         <div class="fee-summary-title">Summary Calculation</div>
                         <div class="fee-row">
-                            <span>Base Swimmer Package Fee (up to 3 events + IM)</span>
-                            <span>₹800.00</span>
+                            <span>Entry fee (up to 3 races)</span>
+                            <span id="sumBaseFee">₹800.00</span>
                         </div>
                         <div class="fee-row" id="relayFeeRow" style="display:none;">
-                            <span>Optional Relay Add-On Fee</span>
-                            <span>₹300.00</span>
+                            <span>Relay fee</span>
+                            <span id="sumRelayFee">₹300.00</span>
                         </div>
                         <div class="fee-divider"></div>
                         <div class="fee-row fee-total">
@@ -305,9 +304,9 @@
                 <div class="step3-title-row">
                     <div>
                         <p class="reg-step-eyebrow">Step 3 of 3</p>
-                        <h2 class="step3-heading">Review Booking, Declarations &amp; Payment</h2>
+                        <h2 class="step3-heading">Review and submit</h2>
                     </div>
-                    <span class="verified-badge"><i class="fas fa-lock"></i> Secure Checkout</span>
+                    
                 </div>
 
                 <!-- A. Booking Summary Header -->
@@ -350,16 +349,16 @@
                         <div class="cart-fee-row">
                             <div>
                                 <div class="cart-fee-name">Swimmer Registration Package Fee</div>
-                                <div class="cart-fee-sub">Covers up to 3 events + IM</div>
+                                <div class="cart-fee-sub">Covers up to 3 races</div>
                             </div>
-                            <div class="cart-fee-amount">₹800.00</div>
+                            <div class="cart-fee-amount" id="cartBaseFee">₹800.00</div>
                         </div>
                         <div class="cart-fee-row" id="cartRelayRow" style="display:none;">
                             <div>
                                 <div class="cart-fee-name">Optional Relay Add-On</div>
                                 <div class="cart-fee-sub" id="cartRelaySub">Boys 4×50m Relay</div>
                             </div>
-                            <div class="cart-fee-amount">₹300.00</div>
+                            <div class="cart-fee-amount" id="cartRelayFee">₹300.00</div>
                         </div>
                         <div class="cart-divider"></div>
                         <div class="cart-fee-row">
@@ -370,12 +369,12 @@
                         </div>
                         <div class="cart-fee-row">
                             <div>
-                                <div class="cart-fee-name">Platform &amp; Technology Fee <span class="gst-note">(Inclusive of GST)</span></div>
+                                <div class="cart-fee-name">Platform fee <span class="gst-note">(incl. GST)</span></div>
                             </div>
-                            <div class="cart-fee-amount">₹50.00</div>
+                            <div class="cart-fee-amount" id="cartPlatformFee">₹50.00</div>
                         </div>
                         <div class="cart-total-row">
-                            <span>Total Payable Amount</span>
+                            <span>Total to pay</span>
                             <span id="cartGrandTotal">₹850.00</span>
                         </div>
                     </div>
@@ -422,11 +421,11 @@
                     </button>
                     <div class="checkout-footer-right">
                         <div class="checkout-footer-total">
-                            <span class="cft-label">Total Payable</span>
+                            <span class="cft-label">Total to pay</span>
                             <span class="cft-amount" id="footerTotal">₹850.00</span>
                         </div>
                         <button type="button" class="btn-reg btn-proceed-payment" id="confirmPay" disabled>
-                            <i class="fas fa-lock"></i> Proceed to Payment <i class="fas fa-arrow-right"></i>
+                            <i class="fas fa-paper-plane"></i> Submit registration <i class="fas fa-arrow-right"></i>
                         </button>
                     </div>
                 </div>
@@ -437,14 +436,8 @@
             <div class="reg-step" id="stepProcessing" style="display:none;">
                 <div class="reg-card processing-card">
                     <div class="processing-spinner"><i class="fas fa-circle-notch fa-spin"></i></div>
-                    <h2 class="processing-title">Processing Payment…</h2>
-                    <p class="processing-sub">Please do not close this window or press back.</p>
-                    <div class="processing-gateway-note">
-                        <i class="fas fa-shield-alt"></i> Secured by Razorpay &nbsp;|&nbsp;
-                        <i class="fas fa-mobile-alt"></i> UPI &nbsp;·&nbsp;
-                        <i class="fas fa-credit-card"></i> Cards &nbsp;·&nbsp;
-                        <i class="fas fa-university"></i> Net Banking
-                    </div>
+                    <h2 class="processing-title">Saving your registration…</h2>
+                    <p class="processing-sub">Please keep this window open.</p>
                 </div>
             </div>
 
@@ -452,10 +445,10 @@
             <div class="reg-step" id="stepFailed" style="display:none;">
                 <div class="reg-card failure-card">
                     <div class="failure-icon"><i class="fas fa-times-circle"></i></div>
-                    <h2 class="failure-title">Payment Failed</h2>
-                    <p class="failure-sub" id="failureReason">Your payment could not be processed. Please try again.</p>
+                    <h2 class="failure-title">Registration not saved</h2>
+                    <p class="failure-sub" id="failureReason">Your registration could not be saved. Please try again.</p>
                     <div class="failure-actions">
-                        <button class="btn-reg btn-reg-ghost" id="retryPayBtn"><i class="fas fa-redo"></i> Retry Payment</button>
+                        <button class="btn-reg btn-reg-ghost" id="retryPayBtn"><i class="fas fa-redo"></i> Try again</button>
                         <a href="index.html" class="btn-reg btn-reg-ghost"><i class="fas fa-home"></i> Back to Home</a>
                     </div>
                 </div>
@@ -467,7 +460,7 @@
                 <div class="success-banner">
                     <div class="success-banner-icon"><i class="fas fa-check-circle"></i></div>
                     <div>
-                        <h2 class="success-banner-title">Registration Confirmed!</h2>
+                        <h2 class="success-banner-title">Registration received</h2>
                         <p class="success-banner-sub">Booking Reference: <strong id="successRefNo">BK-2026-——</strong></p>
                     </div>
                 </div>
@@ -477,10 +470,10 @@
                     <div class="receipt-header">
                         <div class="receipt-logo"><i class="fas fa-swimmer"></i> SwimFest</div>
                         <div class="receipt-title-block">
-                            <div class="receipt-title">Official Registration Receipt</div>
+                            <div class="receipt-title">Registration summary</div>
                             <div class="receipt-ref" id="receiptRef">BK-2026-——</div>
                         </div>
-                        <div class="receipt-paid-stamp">PAID</div>
+                        <div class="receipt-paid-stamp" id="payStamp">NOT PAID YET</div>
                     </div>
 
                     <div class="receipt-section-label">Swimmer Details</div>
@@ -495,23 +488,17 @@
                     <div class="receipt-section-label">Fee Summary</div>
                     <div id="receiptFeeSummary"></div>
 
-                    <div class="receipt-footer-note">
+                    <div class="receipt-footer-note" id="payNote">
                         <i class="fas fa-info-circle"></i>
-                        This is an auto-generated receipt. For queries contact: support@swimfest.in &nbsp;|&nbsp; +91 98400 00000
+                        <span id="payNoteText"></span>
                     </div>
-                </div>
-
-                <!-- Notification confirmation -->
-                <div class="notif-confirm-card">
-                    <i class="fas fa-bell"></i>
-                    <span>Confirmation sent to <strong id="notifContact">—</strong> via SMS &amp; WhatsApp.</span>
                 </div>
 
                 <!-- Actions -->
                 <div class="success-cta-bar">
                     <a href="index.html" class="btn-reg btn-reg-ghost"><i class="fas fa-home"></i> Back to Home</a>
-                    <button class="btn-reg btn-reg-primary" onclick="printReceipt()"><i class="fas fa-download"></i> Download Receipt (PDF)</button>
-                    <button class="btn-reg btn-reg-primary" id="dashboardBtn"><i class="fas fa-user"></i> Go to Swimmer Dashboard</button>
+                    <button class="btn-reg btn-reg-primary" onclick="printReceipt()"><i class="fas fa-print"></i> Print summary</button>
+                    <a href="profile.html" class="btn-reg btn-reg-primary"><i class="fas fa-user"></i> Go to my profile</a>
                 </div>
             </div>
 
@@ -527,7 +514,7 @@
                 <button class="modal-close" id="subCapClose"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
-                <p id="subCapMsg">Your ₹800 package includes up to 3 individual events. You have currently selected <strong id="subCapCount">1</strong> event(s). Would you like to select more or proceed?</p>
+                <p id="subCapMsg">Your entry fee includes up to 3 individual races. You have currently selected <strong id="subCapCount">1</strong> event(s). Would you like to select more or proceed?</p>
             </div>
             <div class="modal-footer">
                 <button class="btn-reg btn-reg-ghost" id="subCapGoBack">Select More Events</button>
@@ -538,7 +525,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=7"></script>
-    <script src="auth.js?v=11"></script>
-    <script src="register.js?v=2"></script>
+    <script src="auth.js?v=14"></script>
+    <script src="register.js?v=3"></script>
 </body>
 </html>

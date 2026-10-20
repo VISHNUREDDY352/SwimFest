@@ -77,15 +77,27 @@ async function loadMetrics() {
       window.sb.from('tournaments').select('tournament_id', { count:'exact', head:true }).in('status', ['PUBLISHED','LOCKED']),
       window.sb.from('swimmer_directory').select('swimmer_id', { count:'exact', head:true }),
       window.sb.from('academies').select('academy_id', { count:'exact', head:true }),
-      window.sb.from('bookings').select('total_amount'),
+      window.sb.from('bookings').select('total_amount, payment_status'),
     ]);
     if (cards[0]) cards[0].textContent = meets.count ?? 0;
     if (cards[1]) cards[1].textContent = (swimmers.count ?? 0).toLocaleString('en-IN');
     if (cards[2]) cards[2].textContent = acads.count ?? 0;
-    if (cards[3]) {
-      const gross = (bookings.data || []).reduce((s, b) => s + Number(b.total_amount || 0), 0);
-      cards[3].textContent = '₹' + gross.toLocaleString('en-IN');
-    }
+
+    // Only bookings marked PAID count as money received
+    const rows = bookings.data || [];
+    const sum = list => list.reduce((s, b) => s + Number(b.total_amount || 0), 0);
+    const paid = rows.filter(b => b.payment_status === 'PAID');
+    const unpaid = rows.filter(b => b.payment_status !== 'PAID');
+    const money = n => '₹' + n.toLocaleString('en-IN');
+    if (cards[3]) cards[3].textContent = money(sum(paid));
+    $('saTotalTxns').textContent = rows.length.toLocaleString('en-IN');
+    $('saGrossRevenue').textContent = `${money(sum(paid))} · ${paid.length} booking${paid.length === 1 ? '' : 's'}`;
+    $('saPendingFees').textContent = `${money(sum(unpaid))} · ${unpaid.length} booking${unpaid.length === 1 ? '' : 's'}`;
+
+    // Offline (Option B) meets that are live owe the ₹5,000 software fee, which can't be paid online yet
+    const { count: offline } = await window.sb.from('tournaments').select('tournament_id', { count: 'exact', head: true })
+      .eq('gateway_option', 'OPTION_B_NO_GATEWAY').in('status', ['PUBLISHED', 'CLOSED', 'LOCKED', 'CLOSURE_REQUESTED', 'COMPLETED']);
+    $('saPendingPayouts').textContent = `${offline ?? 0} meet${offline === 1 ? '' : 's'} · ${money((offline || 0) * 5000)} not collected`;
   } catch (e) { console.warn('[SwimFest] metrics:', e.message); }
 }
 
@@ -112,20 +124,27 @@ async function loadMeetQueues() {
   console.info('[SwimFest] PENDING_APPROVAL tournaments found:', (data || []).length);
 
   const rows = data || [];
-  // Split: Option A gateway → internal (1A); Option B → third-party (1B)
-  S1A_QUEUE = rows.filter(t => t.gateway_option === 'OPTION_A_PLATFORM_GATEWAY').map(t => ({
+  // Who created each meet: staff (Admin / super admin) → internal (1A),
+  // anyone else (organizers) → third-party (1B)
+  const creatorIds = [...new Set(rows.map(t => t.created_by).filter(Boolean))];
+  const creators = {};
+  if (creatorIds.length) {
+    const { data: ps } = await window.sb.from('profiles').select('id, role, email').in('id', creatorIds);
+    (ps || []).forEach(p => { creators[p.id] = p; });
+  }
+  const isStaffMeet = t => ['event_manager', 'super_admin'].includes((creators[t.created_by] || {}).role);
+  const emailOf = t => (creators[t.created_by] || {}).email || t.created_by_email || null;
+
+  S1A_QUEUE = rows.filter(isStaffMeet).map(t => ({
     id: t.tournament_id, createdBy: t.host_organization || '—', title: t.title,
-    createdByEmail: t.created_by_email || null,
+    createdByEmail: emailOf(t),
     dates: fmtDateRange(t.start_date, t.end_date), venue: `${t.venue_name || ''}${t.city ? ', ' + t.city : ''}`,
   }));
-  S1B_QUEUE = rows.filter(t => t.gateway_option !== 'OPTION_A_PLATFORM_GATEWAY').map(t => {
-    const amt = t.platform_fee ?? t.registration_fee ?? null;
-    return {
-      id: t.tournament_id, organizer: t.host_organization || '—', title: t.title,
-      createdByEmail: t.created_by_email || null,
-      payType: 'B', feePaid: !!t.fee_paid, feeAmt: amt != null ? `₹${amt}` : '—',
-    };
-  });
+  S1B_QUEUE = rows.filter(t => !isStaffMeet(t)).map(t => ({
+    id: t.tournament_id, organizer: t.host_organization || '—', title: t.title,
+    createdByEmail: emailOf(t),
+    payType: t.gateway_option === 'OPTION_A_PLATFORM_GATEWAY' ? 'A' : 'B',
+  }));
 
   renderS1A();
   renderS1B();
@@ -268,7 +287,7 @@ window.denyReopen = async function(i) {
 function renderS1A() {
   setQueueCount('s1a', S1A_QUEUE.length);
   if (!S1A_QUEUE.length) {
-    $('s1aBody').innerHTML = emptyRow('No internal meets from Event Managers are waiting for approval.');
+    $('s1aBody').innerHTML = emptyRow('No internal meets from Admins are waiting for approval.');
     return;
   }
   $('s1aBody').innerHTML = S1A_QUEUE.map((item, i) => {
@@ -309,13 +328,11 @@ function renderS1B() {
     const payChip = item.payType === 'A'
       ? `<span class="pay-chip pay-chip-a"><i class="fas fa-credit-card"></i> Option A (Platform GW)</span>`
       : `<span class="pay-chip pay-chip-b"><i class="fas fa-file-excel"></i> Option B (No Gateway)</span>`;
-    const feeChip = item.feePaid === null
-      ? `<span class="sa-fee-chip fee-na">N/A (Option A)</span>`
-      : item.feePaid
-        ? `<span class="sa-fee-chip fee-paid"><i class="fas fa-check-circle"></i> Paid (${item.feeAmt})</span>`
-        : `<span class="sa-fee-chip fee-pending"><i class="fas fa-times-circle"></i> Unpaid</span>`;
-    // Block approve if Option B and fee not paid
-    const canApprove = item.feePaid !== false;
+    // The ₹5,000 software fee can't be paid online yet, so it never blocks approval
+    const feeChip = item.payType === 'A'
+      ? `<span class="sa-fee-chip fee-na">None (online payments)</span>`
+      : `<span class="sa-fee-chip fee-pending" title="Online payment of this fee is coming soon"><i class="fas fa-clock"></i> ₹5,000 not paid online</span>`;
+    const canApprove = true;
     const emailTag = item.createdByEmail
       ? `<div style="font-size:0.72rem;color:var(--primary);margin-top:2px;"><i class="fas fa-envelope" style="font-size:0.65rem;"></i> ${escHtml(item.createdByEmail)}</div>`
       : '';
@@ -587,7 +604,7 @@ window.filterMeetsByStatus = function(status, btn) {
 
 window.openAllMeetSites = function(title, tid) {
   const encTitle = encodeURIComponent(title);
-  window.open(`event.html?tournament=${encTitle}`, '_blank');
+  window.open(`event.html?id=${encodeURIComponent(tid)}`, '_blank');
   window.open(`admin.html?t=${encTitle}`, '_blank');
   window.open(`results.html`, '_blank');
   window.open(`heatsheets.html?tournament=${encTitle}`, '_blank');
@@ -675,7 +692,7 @@ function renderAllMeets() {
     return `
       <tr>
         <td>
-          <a href="event.html?tournament=${encTitle}" target="_blank" class="sa-meet-title" style="color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+          <a href="event.html?id=${encodeURIComponent(t.tournament_id)}" target="_blank" class="sa-meet-title" style="color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
             ${escHtml(t.title)} <i class="fas fa-external-link-alt" style="font-size:0.65rem;color:var(--gray);"></i>
           </a>
           <div class="sa-meet-sub">
@@ -704,7 +721,7 @@ function renderAllMeets() {
         </td>
         <td>
           <div class="em-action-group">
-            <a href="event.html?tournament=${encTitle}" target="_blank" class="em-action-btn em-btn-view" title="Open Public Event Page">
+            <a href="event.html?id=${encodeURIComponent(t.tournament_id)}" target="_blank" class="em-action-btn em-btn-view" title="Open Public Event Page">
               <i class="fas fa-globe"></i> Public Site
             </a>
             <a href="admin.html?t=${encTitle}" target="_blank" class="em-action-btn em-btn-manage" title="Master Player List / Roster">
@@ -719,7 +736,7 @@ function renderAllMeets() {
             <a href="heatsheets.html?tournament=${encTitle}" target="_blank" class="em-action-btn em-btn-view" title="Heat Sheets & Schedule">
               <i class="fas fa-file-alt"></i> Sheets
             </a>
-            <a href="racecontrol.html" target="_blank" class="em-action-btn em-btn-manage" title="Poolside Race Control">
+            <a href="orgracecontrol.html" target="_blank" class="em-action-btn em-btn-manage" title="Poolside Race Control">
               <i class="fas fa-stopwatch"></i> Race Control
             </a>
             <a href="saoverride.html?id=${tid}" target="_blank" class="em-action-btn em-btn-edit" title="Universal Override">
@@ -745,8 +762,8 @@ function renderAllMeets() {
 const VALID_TABS = ['dashboard', 'meets', 'academies', 'financials'];
 
 const QUEUE_META = {
-  s2:     { title: 'Swimmers, academies, coaches & organizers', sub: 'Submitted by swimmers, Event Managers and organizers' },
-  s1a:    { title: 'Internal meets', sub: 'Submitted by Event Managers — approving publishes the meet' },
+  s2:     { title: 'Swimmers, academies, coaches & organizers', sub: 'Submitted by swimmers, Admins and organizers' },
+  s1a:    { title: 'Internal meets', sub: 'Submitted by Admins — approving publishes the meet' },
   s1b:    { title: 'Third-party meets', sub: 'Submitted by organizers — upfront fee must be paid before approval' },
   reopen: { title: 'Reopen requests', sub: 'Organizers asking to reopen a completed meet' },
 };

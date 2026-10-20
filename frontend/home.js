@@ -65,7 +65,9 @@
     return `
       <div class="event-card" data-name="${esc(t.title)}" data-venue="${esc(t.venue_name)}" data-categories="${dataCats}" data-status="${dataStatus}">
         <div class="card-image">
-          <div class="card-poster ${theme}"><i class="fas fa-trophy"></i><span>${esc(shortName)}</span></div>
+          ${t.poster_url
+            ? `<img class="card-poster-img" src="${esc(t.poster_url)}" alt="${esc(t.title)} poster" loading="lazy">`
+            : `<div class="card-poster ${theme}"><i class="fas fa-trophy"></i><span>${esc(shortName)}</span></div>`}
           <div class="card-categories">${catBadges}</div>
           <span class="status-badge ${st.cls}">${st.label}</span>
         </div>
@@ -79,7 +81,7 @@
             <p><i class="fas fa-gavel"></i> <strong>Rules:</strong> ${t.allow_swim_up ? 'Swim-Up Enabled' : 'Single Category Only'}</p>
           </div>
           <div class="card-actions">
-            <a href="event.html?tournament=${regParam}" class="btn-card btn-register" style="flex:1;">Register Now <i class="fas fa-arrow-right"></i></a>
+            <a href="event.html?id=${encodeURIComponent(t.tournament_id)}" class="btn-card btn-register" style="flex:1;">Register Now <i class="fas fa-arrow-right"></i></a>
           </div>
         </div>
       </div>`;

@@ -1272,3 +1272,6 @@ a.btn-profile i { font-size: 0.85rem; color: inherit; }
     .global-back-btn.in-header { width: 36px; padding: 0; justify-content: center; }
     .global-back-btn.in-header span { display: none; }
 }
+
+/* Organizer-uploaded poster on home meet cards */
+.card-poster-img { width: 100%; height: 100%; object-fit: cover; display: block; }

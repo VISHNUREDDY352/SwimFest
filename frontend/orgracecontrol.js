@@ -52,7 +52,7 @@ async function loadMeets() {
     .select('tournament_id, title, start_date, end_date, status, gateway_option, lane_count, venue_name, city')
     .in('status', ['PUBLISHED', 'CLOSED', 'LOCKED', 'CLOSURE_REQUESTED', 'COMPLETED'])
     .order('start_date', { ascending: false });
-  if (session.role !== 'super_admin') query = query.eq('created_by', session.userId);
+  if (session.role === 'organizer') query = query.eq('created_by', session.userId);
   const { data, error } = await query;
   if (error) { sel.innerHTML = `<option>Could not load meets</option>`; console.error('[SwimFest] race control meets:', error.message); return; }
 
@@ -316,9 +316,32 @@ function setNavOpen(open) {
   $('acMenuBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
+// Admins and super admins run every meet from here, with the
+// Admin console links instead of the organizer's.
+function renderStaffNav(session) {
+  const link = (href, icon, label, active) =>
+    `<a href="${href}" class="ac-side-link${active ? ' active' : ''}"${active ? ' aria-current="page"' : ''}><i class="fas fa-${icon}"></i> ${label}</a>`;
+  $('rcNav').innerHTML = `
+    <nav class="ac-side-group">${link('admin.html', 'table-columns', 'Overview')}${link('admin.html#verificationQueues', 'clipboard-check', 'Approvals')}</nav>
+    <nav class="ac-side-group" aria-label="Meets"><div class="ac-side-label">Meets</div>
+      ${link('admin.html#myMeets', 'trophy', 'My meets')}${link('playerlist.html', 'list-check', 'Master player list')}
+      ${link('heatgen.html', 'bolt', 'Heat generation')}${link('results.html', 'broadcast-tower', 'Live results')}
+      ${link('orgracecontrol.html', 'flag-checkered', 'Race control', true)}</nav>
+    <nav class="ac-side-group" aria-label="Create"><div class="ac-side-label">Create</div>${link('orgcreate.html', 'plus', 'Add meet')}</nav>`;
+  $('rcBrand').setAttribute('href', 'admin.html');
+  $('rcBrandSub').textContent = 'Admin Console';
+  const name = session.name || session.email || 'Signed in';
+  $('orgName').textContent = name;
+  $('orgInitials').textContent = String(name).split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'AD';
+  $('orgIdBadge').textContent = session.role === 'super_admin' ? 'Super Admin' : 'Admin';
+  if (session.role === 'super_admin') { $('rcUserLink').setAttribute('href', 'saprofile.html'); $('rcUserLink').title = 'Your profile'; }
+  else { $('rcUserLink').removeAttribute('href'); $('rcUserLink').removeAttribute('title'); }
+}
+
 async function renderOrgIdentity() {
   const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
   if (!session) return;
+  if (session.role !== 'organizer') { renderStaffNav(session); return; }
   if (session.userId) $('orgIdBadge').textContent = 'Organizer · ID ' + String(session.userId).slice(0, 8).toUpperCase();
   let name = session.name || 'My Organization';
   try {
@@ -365,5 +388,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { setNavOpen(false); closeClosureModal(); } });
 
   renderOrgIdentity();
+  if (window.SwimNav) window.SwimNav.applySuperAdmin({ nav: 'rcNav', brand: 'rcBrand', brandSub: 'rcBrandSub', userLink: 'rcUserLink', name: 'orgName', initials: 'orgInitials', role: 'orgIdBadge' }, 'orgracecontrol.html');
   loadMeets();
 });

@@ -6,10 +6,11 @@
 'use strict';
 
 // ─── Constants ────────────────────────────────────────────────
-const TOURNAMENT_YEAR   = 2026;
-const BASE_FEE          = 800;
-const RELAY_FEE         = 300;
-const PLATFORM_FEE      = 50;
+// Defaults; applyMeet() replaces them with the chosen meet's own values
+let TOURNAMENT_YEAR     = new Date().getFullYear();
+let BASE_FEE            = 800;
+let RELAY_FEE           = 300;
+let PLATFORM_FEE        = 50;      // online-payment meets only (Option A)
 const MAX_INDIV_EVENTS  = 3;
 
 const TOURNAMENT_NAME   = 'Select a Tournament';
@@ -125,7 +126,8 @@ const EVENT_MASTER = [
 // ─── App State ────────────────────────────────────────────────
 const state = {
   currentStep    : 1,
-  swimmerId      : generateSwimmerId(),
+  meet           : null,   // the tournaments row being registered for
+  submitting     : false,
   tournamentName : TOURNAMENT_NAME,
   tournamentVenue: TOURNAMENT_VENUE,
   tournamentDates: TOURNAMENT_DATES,
@@ -163,10 +165,6 @@ const state = {
 };
 
 // ─── Utilities ────────────────────────────────────────────────
-function generateSwimmerId() {
-  return `SWM-${TOURNAMENT_YEAR}-` + Math.floor(10000 + Math.random() * 90000);
-}
-
 function generateBookingRef() {
   return `BK-${TOURNAMENT_YEAR}-` + Math.floor(10000 + Math.random() * 90000);
 }
@@ -193,8 +191,16 @@ function deriveCategory(dob) {
   return CATEGORIES.find(c => compAge >= c.minAge && compAge <= c.maxAge) || null;
 }
 
+// Races switched on for this meet (Create a meet), or null for older
+// meets saved before races were stored — those offer every race.
+function offeredRaces() {
+  const list = state.meet && state.meet.events_offered;
+  return Array.isArray(list) && list.length ? new Set(list) : null;
+}
+
 function getFilteredEvents(gender, category) {
-  return EVENT_MASTER.filter(e => e.gender === gender && e.category === category);
+  const offered = offeredRaces();
+  return EVENT_MASTER.filter(e => e.gender === gender && e.category === category && (!offered || offered.has(e.name)));
 }
 
 function countSelectedEvents() { return Object.keys(state.selectedEvents).length; }
@@ -272,7 +278,6 @@ function goToStep(n) {
 
 // ─── STEP 1 ───────────────────────────────────────────────────
 function initStep1() {
-  $('swimmerIdDisplay').textContent = state.swimmerId;
   $('dob').max = `${TOURNAMENT_YEAR - 8}-12-31`;
 
   $$('.gender-btn').forEach(btn => {
@@ -370,7 +375,15 @@ function renderEventGrid() {
 
   const events = getFilteredEvents(gender, category);
   const list   = $('eventsList');
-  list.innerHTML = '';
+  list.innerHTML = events.length ? '' :
+    `<div class="event-row"><span class="seed-placeholder-text">This meet has no individual races for ${escHtml(catLabel(gender, category))}.</span></div>`;
+
+  // Individual Medley only when the meet offers it
+  const offered = offeredRaces();
+  const imOffered = !offered || offered.has('100m Individual Medley');
+  if (!imOffered) { state.imSelected = false; state.imSeedTime = ''; }
+  $('imSection').style.display = imOffered ? '' : 'none';
+  $('imList').style.display    = imOffered ? '' : 'none';
 
   events.forEach(ev => {
     const isSelected  = !!state.selectedEvents[ev.id];
@@ -502,7 +515,7 @@ function validateStep2() {
   if (countSelectedEvents() < MAX_INDIV_EVENTS) {
     $('subCapCount').textContent = countSelectedEvents();
     $('subCapMsg').innerHTML =
-      `Your ₹800 package covers up to <strong>${MAX_INDIV_EVENTS}</strong> individual events. ` +
+      `Your ${formatCurrency(BASE_FEE)} entry fee covers up to <strong>${MAX_INDIV_EVENTS}</strong> individual races. ` +
       `You've selected <strong>${countSelectedEvents()}</strong>. Proceed or add more?`;
     openModal('subCapModal');
     return;
@@ -521,7 +534,7 @@ function renderCheckout() {
   $('bsRegClose').textContent    = regClose ? `Registration closes ${regClose}` : '';
   $('bsSwimmerName').textContent = d.fullName || '—';
   $('bsSwimmerMeta').innerHTML   =
-    `${genderLabel(d.gender)} ${d.category} &nbsp;·&nbsp; ID: ${state.swimmerId}`;
+    `${genderLabel(d.gender)} ${d.category}`;
   $('bsAcademy').innerHTML = `${d.academy ? escHtml(d.academy) : 'Unattached'}${d.schoolName ? '<br><span style="font-size:0.75rem;color:var(--gray);">School: ' + escHtml(d.schoolName) + '</span>' : ''}`;
   $('bsCoach').textContent   = d.coach   ? `Coach: ${d.coach}` : 'None / Self-Coached';
 
@@ -665,33 +678,27 @@ function initiatePayment() {
     return;
   }
 
-  // Transition → PROCESSING
+  if (state.submitting) return;
+  state.submitting = true;
   state.paymentState = 'processing';
   hide('step3');
   show('stepProcessing');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  // Simulate gateway callback after 2.5s (Rule 5.3)
-  setTimeout(() => {
-    // 90% success simulation — in production this is replaced by Razorpay callback
-    const success = Math.random() < 0.9;
-    if (success) {
-      handlePaymentSuccess();
-    } else {
-      handlePaymentFailure('Payment declined by bank. Please try a different method.');
-    }
-  }, 2500);
+  // No online payment yet: the registration is saved with payment pending
+  state.bookingRefNo = generateBookingRef();
+  saveRegistrationToDB()
+    .then(handleSaveSuccess)
+    .catch(e => {
+      console.error('[SwimFest] registration save failed:', e);
+      handlePaymentFailure(e.message);
+    })
+    .finally(() => { state.submitting = false; });
 }
 
-// ── SUCCESS callback ──
-async function handlePaymentSuccess() {
-  state.paymentState = 'success';
-  state.bookingRefNo = generateBookingRef();
-
-  // Persist the registration to Supabase (best-effort; UI proceeds regardless)
-  try { await saveRegistrationToDB(); }
-  catch (e) { console.error('[SwimFest] DB save failed:', e); }
-
+// ── SUCCESS ──
+function handleSaveSuccess() {
+  state.paymentState = 'saved';
   hide('stepProcessing');
   renderSuccessReceipt();
   show('stepSuccess');
@@ -700,11 +707,12 @@ async function handlePaymentSuccess() {
 }
 
 // ── Persist swimmer + booking + event_entries to Supabase ─────
+// "00:39.20" → 39200 ms ("00:39.2" → 39200); NT → null
 function seedTimeToMs(t) {
   if (!t || t.toUpperCase() === 'NT') return null;
   const m = t.match(/^(\d{1,2}):(\d{2})\.(\d{1,2})$/);
   if (!m) return null;
-  return parseInt(m[1])*60000 + parseInt(m[2])*1000 + parseInt(m[3].padEnd(2,'0'));
+  return parseInt(m[1])*60000 + parseInt(m[2])*1000 + parseInt(m[3].padEnd(2,'0')) * 10;
 }
 
 function parseEventName(name) {
@@ -714,9 +722,12 @@ function parseEventName(name) {
 }
 
 async function saveRegistrationToDB() {
-  if (!window.sb) { console.warn('[SwimFest] Supabase not loaded — skipping DB save.'); return; }
+  if (!window.sb) throw new Error('Not connected to the database. Refresh the page and try again.');
   const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
   const userId  = session ? session.userId : null;
+  if (!userId) throw new Error('Your sign-in has expired. Log in again, then register.');
+  const tournamentId = state.meet && state.meet.tournament_id;
+  if (!tournamentId) throw new Error('No meet selected. Go back and pick a meet.');
   const d = state.swimmerData;
 
   // 1. Resolve academy_id (optional)
@@ -740,7 +751,7 @@ async function saveRegistrationToDB() {
     }
     if (existing) {
       swimmerId = existing.swimmer_id;
-      await window.sb.from('swimmers').update({
+      const { error: upErr } = await window.sb.from('swimmers').update({
         gender: d.gender, date_of_birth: d.dob, category: d.category,
         sfi_serial_no: d.serialNo || null, parent_name: d.fullName,
         parent_phone: d.parentContact, parent_email: session ? session.email : null,
@@ -748,6 +759,7 @@ async function saveRegistrationToDB() {
         nationality: d.nationality || 'Indian', blood_group: d.bloodGroup || null,
         id_ref: d.idRef || null,
       }).eq('swimmer_id', swimmerId);
+      if (upErr) throw upErr;
     } else {
       const { data, error } = await window.sb.from('swimmers').insert({
         owner_id: userId,
@@ -761,15 +773,12 @@ async function saveRegistrationToDB() {
       if (error) throw error;
       swimmerId = data.swimmer_id;
     }
-  } catch (e) { console.error('[SwimFest] swimmer save error:', e.message); return; }
+  } catch (e) { throw new Error('Could not save the swimmer\'s details: ' + e.message); }
 
-  // 3. Find tournament_id by title
-  let tournamentId = null;
-  try {
-    const { data: tr } = await window.sb.from('tournaments')
-      .select('tournament_id').eq('title', state.tournamentName || TOURNAMENT_NAME).maybeSingle();
-    if (tr) tournamentId = tr.tournament_id;
-  } catch (_) {}
+  // 3. One registration per swimmer per meet
+  const { data: dupe } = await window.sb.from('bookings')
+    .select('booking_id').eq('tournament_id', tournamentId).eq('swimmer_id', swimmerId).limit(1);
+  if (dupe && dupe.length) throw new Error(`${d.fullName} is already registered for this meet.`);
 
   // 4. Create booking
   let bookingId = null;
@@ -779,12 +788,12 @@ async function saveRegistrationToDB() {
       base_fee: BASE_FEE, relay_fee: state.relaySelected ? RELAY_FEE : 0,
       platform_fee: PLATFORM_FEE, total_amount: calcGrandTotal(),
       relay_selected: state.relaySelected, im_selected: state.imSelected,
-      payment_status: 'PAID', payment_ref: 'pay_' + Math.random().toString(36).slice(2,12),
+      payment_status: 'PENDING', payment_ref: null,
       booking_ref: state.bookingRefNo,
     }).select('booking_id').single();
     if (error) throw error;
     bookingId = data.booking_id;
-  } catch (e) { console.error('[SwimFest] booking save error:', e.message); return; }
+  } catch (e) { throw new Error('Could not save the registration: ' + e.message); }
 
   // 5. Insert event entries
   const rows = [];
@@ -814,10 +823,12 @@ async function saveRegistrationToDB() {
     });
   }
   if (rows.length) {
-    try {
-      const { error } = await window.sb.from('event_entries').insert(rows);
-      if (error) throw error;
-    } catch (e) { console.error('[SwimFest] entries save error:', e.message); }
+    const { error } = await window.sb.from('event_entries').insert(rows);
+    if (error) {
+      // Don't leave a booking with no races behind
+      await window.sb.from('bookings').delete().eq('booking_id', bookingId);
+      throw new Error('Could not save the races: ' + error.message);
+    }
   }
 
   console.info(`[SwimFest] Registration saved ✓ swimmer=${swimmerId} booking=${bookingId} entries=${rows.length}`);
@@ -842,13 +853,9 @@ function renderSuccessReceipt() {
   $('successRefNo').textContent = ref;
   $('receiptRef').textContent   = ref;
 
-  // Notification contact
-  $('notifContact').textContent = d.parentContact || '—';
-
   // Swimmer details grid
   const swimmerFields = [
     { label: 'Full Name',       value: d.fullName },
-    { label: 'Swimmer ID',      value: state.swimmerId },
     { label: 'Category',        value: catLabel(d.gender, d.category) },
     { label: 'Date of Birth',   value: formatDate(d.dob) },
     { label: 'Parent Contact',  value: d.parentContact },
@@ -870,7 +877,7 @@ function renderSuccessReceipt() {
     { label: 'Tournament', value: state.tournamentName || TOURNAMENT_NAME },
     { label: 'Venue',      value: state.tournamentVenue || TOURNAMENT_VENUE },
     { label: 'Dates',      value: state.tournamentDates || TOURNAMENT_DATES },
-    { label: 'Reg Closed', value: state.regCloseDate || REG_CLOSE_DATE },
+    { label: 'Entries close', value: state.regCloseDate || REG_CLOSE_DATE },
   ];
   $('receiptTournamentDetails').innerHTML = tourFields.map(f => `
     <div class="receipt-field">
@@ -915,35 +922,35 @@ function renderSuccessReceipt() {
   const subtotal = calcSubtotal();
   let feeHtml = `
     <div class="receipt-fee-row">
-      <span>Swimmer Registration Package Fee (up to 3 events + IM)</span>
+      <span>Entry fee (up to 3 races)</span>
       <span>${formatCurrency(BASE_FEE)}</span>
     </div>`;
   if (state.relaySelected) {
     feeHtml += `
     <div class="receipt-fee-row">
-      <span>Optional Relay Add-On (${genderLabel(d.gender)} 4×50m)</span>
+      <span>Relay (${genderLabel(d.gender)} 4×50m)</span>
       <span>${formatCurrency(RELAY_FEE)}</span>
     </div>`;
   }
   feeHtml += `
     <div class="receipt-fee-row">
-      <span>Subtotal Payable</span>
+      <span>Subtotal</span>
       <span>${formatCurrency(subtotal)}</span>
-    </div>
+    </div>${PLATFORM_FEE ? `
     <div class="receipt-fee-row">
-      <span>Platform &amp; Technology Fee (Incl. GST)</span>
+      <span>Platform fee (incl. GST)</span>
       <span>${formatCurrency(PLATFORM_FEE)}</span>
-    </div>
+    </div>` : ''}
     <div class="receipt-fee-row receipt-fee-total">
-      <span>Total Amount Paid</span>
+      <span>Total to pay</span>
       <span>${formatCurrency(grand)}</span>
     </div>`;
   $('receiptFeeSummary').innerHTML = feeHtml;
 
-  // Dashboard button
-  $('dashboardBtn').onclick = () => {
-    alert(`Swimmer Dashboard for ${d.fullName} — feature coming soon!`);
-  };
+  // How to pay depends on the meet's payment option
+  $('payNoteText').textContent = isOfflineMeet()
+    ? 'The host collects entry fees for this meet. Pay them directly (cash, bank transfer or UPI) and keep this booking reference.'
+    : 'Online payment is coming soon. Your place is saved with payment pending; keep this booking reference.';
 }
 
 // Exposed for print button in HTML
@@ -981,17 +988,78 @@ function initNavButtons() {
   $('confirmPay').addEventListener('click', initiatePayment);
 }
 
-// ─── URL Params ───────────────────────────────────────────────
-function applyUrlParams() {
-  const params   = new URLSearchParams(window.location.search);
-  const tourName = params.get('tournament');
-  if (tourName) {
-    state.tournamentName = decodeURIComponent(tourName);
-    const el = $('tournamentName');
-    if (el) el.textContent = state.tournamentName;
-    return true;
+// ─── The meet being registered for ───────────────────────────
+function isOfflineMeet() {
+  return !!(state.meet && state.meet.gateway_option === 'OPTION_B_NO_GATEWAY');
+}
+
+function todayIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Why entries are closed, or '' when the meet is open
+function closedReason(meet) {
+  if (!meet) return 'That meet could not be found.';
+  if (meet.status !== 'PUBLISHED') return `Entries for ${meet.title} are closed.`;
+  const deadline = meet.registration_deadline ? String(meet.registration_deadline).slice(0, 10) : null;
+  if (deadline && deadline < todayIso()) return `Entries for ${meet.title} closed on ${fmtPickDate(deadline)}.`;
+  return '';
+}
+
+function applyMeet(meet) {
+  state.meet            = meet;
+  state.tournamentName  = meet.title;
+  state.tournamentVenue = [meet.venue_name, meet.city].filter(Boolean).join(', ') || '—';
+  state.tournamentDates = `${fmtPickDate(meet.start_date)} – ${fmtPickDate(meet.end_date)}`;
+  state.regCloseDate    = meet.registration_deadline ? fmtPickDate(meet.registration_deadline) : '—';
+
+  if (meet.start_date) TOURNAMENT_YEAR = new Date(meet.start_date).getFullYear();
+  BASE_FEE     = meet.reg_fee_amount   != null ? Number(meet.reg_fee_amount)   : 800;
+  RELAY_FEE    = meet.relay_add_on_fee != null ? Number(meet.relay_add_on_fee) : 300;
+  PLATFORM_FEE = isOfflineMeet() ? 0 : (meet.platform_fee != null ? Number(meet.platform_fee) : 50);
+
+  $('tournamentName').textContent = meet.title;
+  const metaEl = document.querySelector('.reg-tour-meta');
+  if (metaEl) {
+    metaEl.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${escHtml(state.tournamentVenue)} &nbsp;|&nbsp; <i class="fas fa-calendar-alt"></i> ${escHtml(state.tournamentDates)}`;
   }
-  return false;
+  renderFeeLabels();
+}
+
+// Fill every fee shown on the page from the meet's fees
+function renderFeeLabels() {
+  const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
+  set('pkgFee',      formatCurrency(BASE_FEE));
+  set('relayFeeTag', RELAY_FEE ? `+ ${formatCurrency(RELAY_FEE)} per team` : 'No extra fee');
+  set('sumBaseFee',  formatCurrency(BASE_FEE));
+  set('sumRelayFee', formatCurrency(RELAY_FEE));
+  set('cartBaseFee', formatCurrency(BASE_FEE));
+  set('cartRelayFee', formatCurrency(RELAY_FEE));
+  set('cartPlatformFee', formatCurrency(PLATFORM_FEE));
+  const platformRow = $('cartPlatformFee') && $('cartPlatformFee').closest('.cart-fee-row');
+  if (platformRow) platformRow.style.display = PLATFORM_FEE ? '' : 'none';
+  const offered = offeredRaces();
+  const imNote = $('pkgImNote');
+  if (imNote) imNote.style.display = !offered || offered.has('100m Individual Medley') ? '' : 'none';
+}
+
+// ?t=<tournament_id> (preferred) or the older ?tournament=<title>
+async function loadMeetFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const id     = params.get('t');
+  const title  = params.get('tournament');
+  if (!id && !title) return { requested: false };
+  if (!window.sb) return { requested: true, meet: null };
+  let q = window.sb.from('tournaments').select('*');
+  q = id ? q.eq('tournament_id', id)
+         : q.eq('title', title).order('start_date', { ascending: false });
+  const { data, error } = await q.limit(5);
+  if (error) console.warn('[SwimFest] meet load:', error.message);
+  const rows = data || [];
+  // A title can match several meets; prefer one that is open for entries
+  const meet = rows.find(m => !closedReason(m)) || rows[0] || null;
+  return { requested: true, meet };
 }
 
 // ─── Tournament Picker (when no tournament pre-selected) ──────
@@ -1000,7 +1068,7 @@ function fmtPickDate(d) {
   return new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
 }
 
-async function showTournamentPicker() {
+async function showTournamentPicker(notice) {
   const picker = $('tournamentPicker');
   const wrap   = $('wizardWrap');
   picker.style.display = '';
@@ -1012,8 +1080,9 @@ async function showTournamentPicker() {
   if (window.sb) {
     try {
       const { data } = await window.sb.from('tournaments')
-        .select('*').in('status', ['PUBLISHED','CLOSED']).order('start_date');
-      if (data) list = data;
+        .select('*').eq('status', 'PUBLISHED').order('start_date');
+      // Only meets still taking entries
+      if (data) list = data.filter(t => !closedReason(t));
     } catch (e) { console.warn('[SwimFest] picker load:', e.message); }
   }
 
@@ -1032,16 +1101,16 @@ async function showTournamentPicker() {
       </div>
     </div>`;
 
+  const noticeHtml = notice
+    ? `<div class="reg-picker-empty" style="grid-column:1/-1;"><i class="fas fa-circle-info"></i> ${escHtml(notice)} Pick another meet below.</div>`
+    : '';
   if (!list.length) {
-    grid.innerHTML = `<div class="reg-picker-empty">
+    grid.innerHTML = noticeHtml + `<div class="reg-picker-empty">
       <i class="fas fa-calendar-times"></i>
       No open tournaments right now. Check back soon!</div>` + hostCardHtml;
   } else {
-    grid.innerHTML = list.map((t, i) => `
-    <div class="reg-pick-card" data-title="${escHtml(t.title)}"
-         data-venue="${escHtml(t.venue_name)}, ${escHtml(t.city)}"
-         data-dates="${fmtPickDate(t.start_date)} – ${fmtPickDate(t.end_date)}"
-         data-regclose="${t.registration_deadline ? fmtPickDate(t.registration_deadline) : ''}">
+    grid.innerHTML = noticeHtml + list.map((t, i) => `
+    <div class="reg-pick-card" data-id="${escHtml(t.tournament_id)}">
       <div class="reg-pick-poster t${i % 4}"><i class="fas fa-trophy"></i></div>
       <div class="reg-pick-body">
         <span class="reg-pick-status">Entries Open</span>
@@ -1049,7 +1118,7 @@ async function showTournamentPicker() {
         <div class="reg-pick-meta">
           <p><i class="fas fa-map-marker-alt"></i> ${escHtml(t.venue_name)}, ${escHtml(t.city)}</p>
           <p><i class="fas fa-calendar-alt"></i> ${fmtPickDate(t.start_date)} – ${fmtPickDate(t.end_date)}</p>
-          <p><i class="fas fa-rupee-sign"></i> ₹${Number(t.reg_fee_amount||800).toLocaleString('en-IN')} package</p>
+          <p><i class="fas fa-rupee-sign"></i> ₹${Number(t.reg_fee_amount ?? 800).toLocaleString('en-IN')} entry fee</p>
         </div>
         <button class="reg-pick-btn">Register for this <i class="fas fa-arrow-right"></i></button>
       </div>
@@ -1057,9 +1126,10 @@ async function showTournamentPicker() {
   }
 
   // Tournament card click → choose tournament and start wizard
-  grid.querySelectorAll('.reg-pick-card[data-title]').forEach(card => {
+  grid.querySelectorAll('.reg-pick-card[data-id]').forEach(card => {
     card.addEventListener('click', () => {
-      chooseTournament(card.dataset.title, card.dataset.venue, card.dataset.dates, card.dataset.regclose);
+      const meet = list.find(t => t.tournament_id === card.dataset.id);
+      if (meet) chooseTournament(meet);
     });
   });
 
@@ -1071,17 +1141,8 @@ async function showTournamentPicker() {
   });
 }
 
-function chooseTournament(title, venue, dates, regClose) {
-  state.tournamentName  = title;
-  state.tournamentVenue = venue || '—';
-  state.tournamentDates = dates || '—';
-  if (regClose) state.regCloseDate = regClose;
-  $('tournamentName').textContent = title;
-  // Update the context banner meta
-  const metaEl = document.querySelector('.reg-tour-meta');
-  if (metaEl && venue) {
-    metaEl.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${escHtml(venue)} &nbsp;|&nbsp; <i class="fas fa-calendar-alt"></i> ${escHtml(dates)}`;
-  }
+function chooseTournament(meet) {
+  applyMeet(meet);
   // Came via the picker → back buttons return to the picker
   setBackTargets('picker');
   $('tournamentPicker').style.display = 'none';
@@ -1095,8 +1156,9 @@ function setBackTargets(mode) {
   const step1 = $('backStep1');
   if (mode === 'event') {
     // Came from the event details page → return there
-    if (top)   { top.setAttribute('href', 'event.html');   top.innerHTML   = '<i class="fas fa-arrow-left"></i> Back to Event'; }
-    if (step1) { step1.setAttribute('href', 'event.html'); step1.innerHTML = '<i class="fas fa-arrow-left"></i> Back to Details'; }
+    const evUrl = state.meet ? `event.html?id=${encodeURIComponent(state.meet.tournament_id)}` : 'event.html';
+    if (top)   { top.setAttribute('href', evUrl);   top.innerHTML   = '<i class="fas fa-arrow-left"></i> Back to Event'; }
+    if (step1) { step1.setAttribute('href', evUrl); step1.innerHTML = '<i class="fas fa-arrow-left"></i> Back to Details'; }
   } else {
     // Came via the tournament picker (hero banner / generic register)
     // → return to the picker instead of a specific event page
@@ -1107,9 +1169,8 @@ function setBackTargets(mode) {
 
 function backToPicker(e) {
   if (e) e.preventDefault();
-  wizardStarted = false;             // allow wizard to re-init for a new choice
   $('wizardWrap').style.display = 'none';
-  $('tournamentPicker').style.display = '';
+  showTournamentPicker();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -1224,7 +1285,8 @@ function renderSwimmerVerificationBanner() {
 // ─── Wizard init (runs once a tournament is chosen) ───────────
 let wizardStarted = false;
 function startWizard() {
-  if (wizardStarted) return;
+  renderFeeLabels();
+  if (wizardStarted) { goToStep(1); return; }   // switching meets restarts at step 1
   wizardStarted = true;
   const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
   prefillFromSession(session);
@@ -1242,21 +1304,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const session = window.SwimAuth && window.SwimAuth.requireLogin();
   if (!session) return; // redirected to login — stop initializing
 
-  const hasTournament = applyUrlParams();
   const params = new URLSearchParams(window.location.search);
   const from = params.get('from');   // 'event' when coming from a details page
 
-  if (hasTournament) {
-    // A specific tournament was passed in the URL → go straight to the wizard.
-    // Back button behaviour depends on where they came from.
-    setBackTargets(from === 'event' ? 'event' : 'picker');
-    $('tournamentPicker').style.display = 'none';
-    $('wizardWrap').style.display = '';
-    startWizard();
-  } else {
-    // Generic "Register for Tournament" (hero banner) → pick a tournament first
-    showTournamentPicker();
-  }
+  loadMeetFromUrl().then(({ requested, meet }) => {
+    const reason = requested ? closedReason(meet) : '';
+    if (requested && !reason) {
+      // A specific open meet was passed in the URL → go straight to the wizard.
+      // Back button behaviour depends on where they came from.
+      applyMeet(meet);
+      setBackTargets(from === 'event' ? 'event' : 'picker');
+      $('tournamentPicker').style.display = 'none';
+      $('wizardWrap').style.display = '';
+      startWizard();
+    } else {
+      // No meet, or its entries are closed → pick an open meet first
+      showTournamentPicker(reason);
+    }
+  });
 });
 
 // ─── Prefill Step 1 from logged-in session ────────────────────

@@ -5,88 +5,161 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Super Admin Profile — SwimFest</title>
     <script src="guard.js" data-roles="super_admin"></script>
-    <link rel="stylesheet" href="styles.css?v=23">
-    <link rel="stylesheet" href="orgprofile.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=24">
+    <link rel="stylesheet" href="admin.css?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="console.css?v=2">
+    <style>
+        /* ── Super admin profile: page-specific pieces on top of console.css ── */
+        .sp-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:1.25rem; align-items:start; }
+        .sp-list { margin:0; padding:0.5rem 1.25rem 1rem; display:grid; grid-template-columns:minmax(8rem, auto) 1fr; }
+        .sp-list dt, .sp-list dd { margin:0; padding:0.7rem 0; border-bottom:1px solid var(--ac-line-soft); font-size:0.88rem; }
+        .sp-list dt { color:var(--ac-muted); }
+        .sp-list dd { font-weight:600; text-align:right; overflow-wrap:anywhere; }
+        .sp-list dt:last-of-type, .sp-list dd:last-of-type { border-bottom:0; }
+        .sp-hero { display:flex; align-items:center; gap:1rem; }
+        .sp-avatar { width:3.5rem; height:3.5rem; border-radius:999px; background:var(--ac-navy); color:#7dd3fc; display:grid; place-items:center; font-weight:800; font-size:1.2rem; flex:none; }
+        .sp-links { padding:0.5rem; display:flex; flex-direction:column; }
+        .sp-links a { display:flex; align-items:center; gap:0.75rem; padding:0.75rem; border-radius:0.625rem; color:var(--ac-ink); text-decoration:none; font-size:0.9rem; font-weight:600; }
+        .sp-links a:hover { background:var(--ac-line-soft); color:var(--ac-blue); }
+        .sp-links a i { width:1.25rem; text-align:center; color:var(--ac-muted); }
+        .sp-links a small { display:block; font-weight:500; color:var(--ac-muted); font-size:0.78rem; }
+        .sp-form { display:flex; flex-direction:column; gap:0.875rem; }
+        .sp-field { display:flex; flex-direction:column; gap:0.375rem; }
+        .sp-field label { font-size:0.8rem; font-weight:600; color:var(--ac-muted); }
+        .sp-input { height:2.625rem; padding:0 0.75rem; border:1px solid #cbd5e1; border-radius:0.625rem; font:inherit; font-size:0.9rem; color:var(--ac-ink); }
+        .sp-input:focus { border-color:var(--ac-blue); outline:none; box-shadow:0 0 0 3px #e0f2fe; }
+        .sp-error { color:#b91c1c; font-size:0.8rem; min-height:1rem; margin:0; }
+        .ac-side-link.warn, .ac-side-link.warn i { color:#fcd34d; }
+        @media (max-width:900px) { .sp-grid { grid-template-columns:minmax(0, 1fr); } }
+    </style>
 </head>
-<body>
+<body class="ac-body">
+<div class="ac-shell" id="acShell">
 
-    <!-- Navbar -->
-    <header class="navbar" id="navbar">
-        <div class="nav-container">
-            <a href="superadmin.html" class="logo"><i class="fas fa-swimmer"></i> SwimFest <span style="font-size:0.7rem;font-weight:600;color:var(--gray);">Super Admin</span></a>
-            <nav class="nav-links">
-                <a href="superadmin.html" class="nav-link">Console</a>
-                <a href="admin.html" class="nav-link">Admin Console</a>
-                <a href="playerlist.html" class="nav-link">Player List</a>
-                <a href="saoverride.html" class="nav-link">Override Engine</a>
-                <a href="apiref.html" class="nav-link">API Docs</a>
-            </nav>
-            <a href="saprofile.html" class="btn-profile"><i class="fas fa-user"></i> Profile</a>
-            <a href="#" class="btn-register-login dash-logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
-        </div>
-    </header>
+    <!-- ── Sidebar ── -->
+    <aside class="ac-sidebar" id="acSidebar" aria-label="Super admin navigation">
+        <a href="superadmin.html" class="ac-brand" data-back-anchor>
+            <span class="ac-brand-mark"><i class="fas fa-swimmer"></i></span>
+            <span>
+                <span class="ac-brand-name">SwimFest</span>
+                <span class="ac-brand-sub">Super Admin Console</span>
+            </span>
+        </a>
 
-    <main class="op-page">
-        <!-- Header card -->
-        <div class="op-hero" style="background:linear-gradient(135deg,var(--dark),var(--dark-secondary),var(--primary-dark));">
-            <div class="op-hero-inner">
-                <div class="op-avatar" id="saAvatar" style="color:var(--accent-light);">SA</div>
-                <div class="op-hero-info">
-                    <h1 class="op-name" id="saName">Loading…</h1>
-                    <p class="op-role"><i class="fas fa-user-shield"></i> Super Administrator</p>
-                    <p class="op-sub" id="saEmail">—</p>
+        <nav class="ac-side-group">
+            <a href="superadmin.html" class="ac-side-link"><i class="fas fa-clipboard-check"></i> Approvals</a>
+        </nav>
+
+        <nav class="ac-side-group" aria-label="Tools">
+            <div class="ac-side-label">Tools</div>
+            <a href="playerlist.html" class="ac-side-link"><i class="fas fa-list-check"></i> Master player list</a>
+            <a href="heatgen.html" class="ac-side-link"><i class="fas fa-bolt"></i> Heat generation</a>
+            <a href="results.html" class="ac-side-link"><i class="fas fa-broadcast-tower"></i> Live results</a>
+            <a href="academy.html" class="ac-side-link"><i class="fas fa-building-columns"></i> Academy directory</a>
+            <a href="admin.html" class="ac-side-link"><i class="fas fa-cogs"></i> Admin console</a>
+            <a href="orgdashboard.html" class="ac-side-link"><i class="fas fa-user-tie"></i> Organizer dashboard</a>
+            <a href="saoverride.html" class="ac-side-link warn"><i class="fas fa-unlock-alt"></i> Universal override</a>
+        </nav>
+
+        <div class="ac-side-user">
+            <a href="saprofile.html" class="ac-side-user-link" title="Your profile" aria-current="page" style="background:var(--ac-navy-2);">
+                <span class="ac-avatar-lg" id="sideInitials">SA</span>
+                <div class="ac-side-user-info">
+                    <span class="ac-side-user-name" id="sideName">Super Admin</span>
+                    <span class="ac-side-user-sub">Super Admin</span>
                 </div>
-                <button class="op-edit-btn" id="saEditBtn"><i class="fas fa-pen"></i> Edit Profile</button>
-            </div>
+            </a>
+            <a href="#" class="ac-icon-btn dash-logout" aria-label="Log out" title="Log out"><i class="fas fa-sign-out-alt"></i></a>
+        </div>
+    </aside>
+    <div class="ac-scrim" id="acScrim"></div>
+
+    <!-- ── Main ── -->
+    <div class="ac-main">
+        <div class="ac-mobilebar">
+            <button class="ac-icon-btn" id="acMenuBtn" aria-label="Open menu" aria-controls="acSidebar" aria-expanded="false"><i class="fas fa-bars"></i></button>
+            <span style="font-weight:700;">SwimFest</span>
+            <span style="font-size:0.72rem;color:#94a3b8;">Profile</span>
         </div>
 
-        <div class="op-container">
-            <!-- Platform-wide stats -->
-            <div class="op-stats" id="saStats"></div>
-
-            <!-- Account details -->
-            <div class="op-card">
-                <h2 class="op-card-title"><i class="fas fa-id-card"></i> Account Details</h2>
-                <div class="op-detail-grid" id="saDetails"></div>
-            </div>
-
-            <!-- Governance quick actions -->
-            <div class="op-card">
-                <h2 class="op-card-title"><i class="fas fa-shield-halved"></i> Governance</h2>
-                <div class="op-actions">
-                    <a href="superadmin.html" class="op-action"><i class="fas fa-gauge"></i> Super Admin Console</a>
-                    <a href="admin.html" class="op-action"><i class="fas fa-cogs"></i> Admin Console</a>
-                    <a href="playerlist.html" class="op-action"><i class="fas fa-list-check"></i> Master Player List</a>
-                    <a href="saoverride.html" class="op-action"><i class="fas fa-unlock-alt"></i> Universal Override</a>
-                    <a href="apiref.html" class="op-action"><i class="fas fa-code"></i> API Reference</a>
+        <main class="ac-container" id="top">
+            <div class="ac-page-head">
+                <div class="sp-hero">
+                    <span class="sp-avatar" id="saAvatar">SA</span>
+                    <div>
+                        <h1 class="ac-page-title" id="saName">Loading…</h1>
+                        <p class="ac-page-sub" id="saEmail">Super administrator</p>
+                    </div>
+                </div>
+                <div class="ac-head-actions">
+                    <button type="button" class="ac-btn ac-btn-primary" id="saEditBtn"><i class="fas fa-pen"></i> Edit profile</button>
                 </div>
             </div>
-        </div>
-    </main>
 
-    <!-- Edit modal -->
-    <div class="op-modal-overlay" id="saEditModal">
-        <div class="op-modal">
-            <div class="op-modal-header">
-                <h3><i class="fas fa-pen"></i> Edit Profile</h3>
-                <button class="op-modal-close" id="saModalClose"><i class="fas fa-times"></i></button>
+            <div class="ac-metrics">
+                <div class="ac-metric">
+                    <span class="ac-metric-icon" style="background:#e0f2fe;color:#0369a1;"><i class="fas fa-trophy"></i></span>
+                    <div><div class="ac-metric-label">Meets</div><div class="ac-metric-value" id="statMeets">—</div></div>
+                </div>
+                <div class="ac-metric">
+                    <span class="ac-metric-icon" style="background:#fef3c7;color:#b45309;"><i class="fas fa-hourglass-half"></i></span>
+                    <div><div class="ac-metric-label">Meets waiting for approval</div><div class="ac-metric-value" id="statPending">—</div></div>
+                </div>
+                <div class="ac-metric">
+                    <span class="ac-metric-icon" style="background:#dcfce7;color:#15803d;"><i class="fas fa-building"></i></span>
+                    <div><div class="ac-metric-label">Academies</div><div class="ac-metric-value" id="statAcademies">—</div></div>
+                </div>
+                <div class="ac-metric">
+                    <span class="ac-metric-icon" style="background:#ede9fe;color:#6d28d9;"><i class="fas fa-swimmer"></i></span>
+                    <div><div class="ac-metric-label">Swimmers</div><div class="ac-metric-value" id="statSwimmers">—</div></div>
+                </div>
             </div>
-            <div class="op-modal-body">
-                <div class="op-field"><label>Full Name</label><input id="saEditName" class="op-input"></div>
-                <div class="op-field"><label>Phone</label><input id="saEditPhone" class="op-input"></div>
+
+            <div class="sp-grid">
+                <section class="ac-card" aria-labelledby="accTitle">
+                    <div class="ac-card-head"><div><h2 class="ac-card-title" id="accTitle">Your account</h2><p class="ac-card-sub">Signed in with full access to every meet</p></div>
+                        <span class="ac-pill ac-pill-live">Super admin</span></div>
+                    <dl class="sp-list" id="saDetails"></dl>
+                </section>
+                <section class="ac-card" aria-labelledby="govTitle">
+                    <div class="ac-card-head"><div><h2 class="ac-card-title" id="govTitle">Governance</h2><p class="ac-card-sub">Where approvals and overrides happen</p></div></div>
+                    <nav class="sp-links">
+                        <a href="superadmin.html"><i class="fas fa-clipboard-check"></i><span>Approvals<small>Meets, verifications and reopen requests</small></span></a>
+                        <a href="admin.html"><i class="fas fa-cogs"></i><span>Admin console<small>The Admin's view of every meet</small></span></a>
+                        <a href="saoverride.html"><i class="fas fa-unlock-alt"></i><span>Universal override<small>Change any locked record, with an audit trail</small></span></a>
+                    </nav>
+                </section>
             </div>
-            <div class="op-modal-footer">
-                <button class="op-btn-ghost" id="saCancelBtn">Cancel</button>
-                <button class="op-btn-primary" id="saSaveBtn"><i class="fas fa-save"></i> Save Changes</button>
+        </main>
+    </div>
+</div>
+
+    <!-- Edit profile -->
+    <div class="modal-overlay" id="saEditModal">
+        <div class="modal" style="max-width:440px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-pen"></i> Edit profile</h3>
+                <button class="modal-close" id="saModalClose" aria-label="Close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding:20px 24px;">
+                <div class="sp-form">
+                    <div class="sp-field"><label for="saEditName">Full name</label><input id="saEditName" class="sp-input" maxlength="120" autocomplete="name"></div>
+                    <div class="sp-field"><label for="saEditPhone">Phone</label><input id="saEditPhone" class="sp-input" maxlength="15" inputmode="tel" autocomplete="tel"></div>
+                    <p class="sp-error" id="saEditError"></p>
+                </div>
+            </div>
+            <div class="modal-footer admin-modal-footer">
+                <button class="admin-btn admin-btn-outline" id="saCancelBtn">Cancel</button>
+                <button class="admin-btn admin-btn-primary" id="saSaveBtn"><i class="fas fa-save"></i> Save changes</button>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=7"></script>
-    <script src="auth.js?v=11"></script>
-    <script src="saprofile.js"></script>
+    <script src="auth.js?v=14"></script>
+    <script src="saprofile.js?v=2"></script>
 </body>
 </html>

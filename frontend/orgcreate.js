@@ -8,15 +8,16 @@
 
 'use strict';
 
-// Strokes × distances. null = race doesn't exist, true/false = on by default.
-// Names match the race names used at registration ("50m Freestyle").
+// Strokes × distances. null = not a race swimmers can enter at registration,
+// true/false = on by default. Names match registration ("50m Freestyle").
+// 25 m races are U-10 only; 200 m Breaststroke/Backstroke are U-14 and up.
 const DISTANCES = [25, 50, 100, 200];
 const STROKES = [
   { name: 'Freestyle',         on: [true, true, true, true]   },
   { name: 'Backstroke',        on: [true, true, true, true]   },
   { name: 'Breaststroke',      on: [true, true, true, true]   },
-  { name: 'Butterfly',         on: [true, true, true, false]  },
-  { name: 'Individual Medley', on: [null, null, false, false] },
+  { name: 'Butterfly',         on: [true, true, true, null]   },
+  { name: 'Individual Medley', on: [null, null, true, null]   },
 ];
 const SOFTWARE_FEE = 5000;
 
@@ -26,6 +27,7 @@ let draftId = null;        // set once the meet has been saved; later saves upda
 let busy = false;
 let dirty = false;         // unsaved changes since the last save
 let sent = false;
+const poster = { file: null, url: null, preview: null };   // url = saved poster_url
 
 const $ = id => document.getElementById(id);
 const val = id => ($(id).value || '').trim();
@@ -133,6 +135,7 @@ function renderSummary() {
     ['Races', races ? `${races} race${races === 1 ? '' : 's'}` : ''],
     ['Entry fee', val('fBase') !== '' ? `₹${val('fBase')}` : ''],
     ['Payments', gateway() === 'A' ? 'Online on SwimFest' : 'Collected by you'],
+    ['Poster', poster.file || poster.url ? 'Added' : 'None'],
   ];
   $('sumList').innerHTML = rows.map(([k, v]) =>
     `<li><span>${k}</span><span class="${v ? '' : 'missing'}">${v ? escHtml(v) : 'Missing'}</span></li>`).join('');
@@ -193,6 +196,7 @@ function collect(status) {
     non_medalist_rule:     $('swNonMedal').classList.contains('on'),
     gateway_option:        gateway() === 'A' ? 'OPTION_A_PLATFORM_GATEWAY' : 'OPTION_B_NO_GATEWAY',
     events_offered:        racesOn(),
+    poster_url:            poster.url,
     status,
   };
 }
@@ -202,6 +206,7 @@ async function saveMeet(status) {
   if (!window.sb) { showToast('Not connected to the database. Refresh the page and try again.', 'warn'); return null; }
   if (!SESSION || !SESSION.userId) { showToast('Your sign-in has expired. Log in again to save this meet.', 'warn'); return null; }
 
+  if (!(await uploadPoster())) return null;
   const row = collect(status);
   let res;
   if (draftId) {
@@ -280,16 +285,144 @@ async function submitMeet() {
   showPanel(3, true);
 }
 
+// ─── Poster ───────────────────────────────────────────────────
+const POSTER_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+
+function renderPoster() {
+  const src = poster.preview || poster.url;
+  $('posterPreview').hidden = !src;
+  if (src) $('posterPreview').src = src;
+  $('posterEmpty').hidden = !!src;
+  $('posterEmpty').style.display = src ? 'none' : '';
+  $('posterRemove').hidden = !src;
+  $('posterPick').innerHTML = src ? '<i class="fas fa-upload"></i> Change image' : '<i class="fas fa-upload"></i> Choose image';
+  renderSummary();
+}
+
+function pickPoster(file) {
+  if (!file) return;
+  if (!POSTER_TYPES[file.type]) { showToast('Use a JPG, PNG or WebP image for the poster.', 'warn'); return; }
+  if (file.size > 5 * 1024 * 1024) { showToast('That image is over 5 MB. Pick a smaller one.', 'warn'); return; }
+  if (poster.preview) URL.revokeObjectURL(poster.preview);
+  poster.file = file;
+  poster.preview = URL.createObjectURL(file);
+  markDirty();
+  renderPoster();
+}
+
+function removePoster() {
+  if (poster.preview) URL.revokeObjectURL(poster.preview);
+  poster.file = null; poster.preview = null; poster.url = null;
+  markDirty();
+  renderPoster();
+}
+
+// Uploads a newly chosen poster into the user's own folder; true when
+// there is nothing to upload or the upload worked.
+async function uploadPoster() {
+  if (!poster.file) return true;
+  const path = `${SESSION.userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${POSTER_TYPES[poster.file.type]}`;
+  const bucket = window.sb.storage.from('meet-posters');
+  const { error } = await bucket.upload(path, poster.file, { contentType: poster.file.type, upsert: false });
+  if (error) {
+    console.error('[SwimFest] poster upload:', error.message);
+    showToast(/bucket/i.test(error.message)
+      ? "Poster storage isn't set up yet. Run backend/db/meet_posters_storage.sql in Supabase, or remove the poster to save without it."
+      : "Couldn't upload the poster: " + error.message, 'warn');
+    return false;
+  }
+  poster.url = bucket.getPublicUrl(path).data.publicUrl;
+  poster.file = null;
+  return true;
+}
+
+// ─── Reopen a draft or a returned meet (?id=) ─────────────────
+async function loadExistingMeet() {
+  const id = new URLSearchParams(location.search).get('id');
+  if (!id || !window.sb || !SESSION) return;
+  let q = window.sb.from('tournaments').select('*').eq('tournament_id', id);
+  if (!isSuperAdmin()) q = q.eq('created_by', SESSION.userId);
+  const { data: t, error } = await q.maybeSingle();
+  if (error || !t) { showToast('That meet could not be opened. It may belong to another account.', 'warn'); return; }
+  if (!['DRAFT', 'REJECTED_DRAFT'].includes(t.status)) {
+    showToast('Only drafts and meets sent back by the super admin can be edited here.', 'warn');
+    return;
+  }
+
+  draftId = t.tournament_id;
+  const set = (fid, v) => { if (v != null) $(fid).value = v; };
+  set('fTitle', t.title); set('fHost', t.host_organization); set('fCity', t.city); set('fVenue', t.venue_name);
+  if (t.state) {
+    const sel = $('fState');
+    if (![...sel.options].some(o => o.value === t.state)) sel.add(new Option(t.state, t.state));
+    sel.value = t.state;
+  }
+  set('fStart', t.start_date); set('fEnd', t.end_date);
+  set('fDeadline', t.registration_deadline ? String(t.registration_deadline).slice(0, 10) : '');
+  set('fBase', t.reg_fee_amount); set('fRelay', t.relay_add_on_fee);
+  const pick = (seg, v) => document.querySelectorAll(`[data-seg="${seg}"] button`).forEach(b => b.classList.toggle('on', b.dataset.v === String(v)));
+  if (t.pool_length) pick('pool', t.pool_length);
+  if (t.lane_count) pick('lanes', t.lane_count);
+  const sw = (sid, on) => { $(sid).classList.toggle('on', !!on); $(sid).setAttribute('aria-pressed', !!on); };
+  sw('swNonMedal', t.non_medalist_rule);
+  sw('swSwimUp', t.allow_swim_up);
+  const gw = t.gateway_option === 'OPTION_A_PLATFORM_GATEWAY' ? 'A' : 'B';
+  document.querySelectorAll('.oc-opt').forEach(o => o.classList.toggle('on', o.dataset.gw === gw));
+  $('feeBox').hidden = gw === 'A';
+  if (Array.isArray(t.events_offered) && t.events_offered.length) {
+    const on = new Set(t.events_offered);
+    STROKES.forEach(s => s.on.forEach((v, i) => { if (v !== null) s.on[i] = on.has(`${DISTANCES[i]}m ${s.name}`); }));
+  }
+
+  poster.url = t.poster_url || null;
+  renderPoster();
+
+  const returned = t.status === 'REJECTED_DRAFT';
+  $('ocHeading').textContent = returned ? 'Fix and resend' : 'Edit draft';
+  $('ocSubheading').textContent = returned
+    ? 'The super admin sent this meet back. Make your changes, then send it for approval again.'
+    : 'Carry on where you left off, then send it to the super admin for approval.';
+  document.title = `${$('ocHeading').textContent} — SwimFest`;
+  $('draftBtn').innerHTML = '<i class="fas fa-floppy-disk"></i> Save draft';
+  renderMatrix();
+  updateDateHint();
+  renderSummary();
+  dirty = false;
+}
+
+// ─── Staff sidebar ────────────────────────────────────────────
+// Admins (and super admins) create meets here too ("Add meet"),
+// so they get the Admin console links instead of the organizer's.
+const isStaff = () => SESSION && ['event_manager', 'super_admin'].includes(SESSION.role);
+
+function renderStaffNav() {
+  if (!isStaff()) return;
+  const link = (href, icon, label, active) =>
+    `<a href="${href}" class="ac-side-link${active ? ' active' : ''}"${active ? ' aria-current="page"' : ''}><i class="fas fa-${icon}"></i> ${label}</a>`;
+  $('ocNav').innerHTML = `
+    <nav class="ac-side-group">${link('admin.html', 'table-columns', 'Overview')}${link('admin.html#verificationQueues', 'clipboard-check', 'Approvals')}</nav>
+    <nav class="ac-side-group" aria-label="Meets"><div class="ac-side-label">Meets</div>
+      ${link('admin.html#myMeets', 'trophy', 'My meets')}${link('playerlist.html', 'list-check', 'Master player list')}
+      ${link('heatgen.html', 'bolt', 'Heat generation')}${link('results.html', 'broadcast-tower', 'Live results')}
+      ${link('orgracecontrol.html', 'flag-checkered', 'Race control')}</nav>
+    <nav class="ac-side-group" aria-label="Create"><div class="ac-side-label">Create</div>${link('orgcreate.html', 'plus', 'Add meet', true)}</nav>`;
+  $('ocBrand').setAttribute('href', 'admin.html');
+  $('ocBrandSub').textContent = 'Admin Console';
+  $('doneMyMeets').setAttribute('href', 'admin.html#myMeets');
+  if (SESSION.role === 'super_admin') { $('ocUserLink').setAttribute('href', 'saprofile.html'); $('ocUserLink').title = 'Your profile'; }
+  else { $('ocUserLink').removeAttribute('href'); $('ocUserLink').removeAttribute('title'); }
+}
+
 // ─── Prefill + sidebar ────────────────────────────────────────
 async function loadOrganization() {
   if (!SESSION) return;
   const name = SESSION.name || SESSION.email || 'Signed in';
   $('ocUserName').textContent = name;
-  $('ocUserRole').textContent = isSuperAdmin() ? 'Super Admin' : 'Organizer';
+  $('ocUserRole').textContent = { super_admin: 'Super Admin', event_manager: 'Admin' }[SESSION.role] || 'Organizer';
   $('ocInitials').textContent = String(name).split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'OR';
   if (isSuperAdmin()) $('sumStatus').innerHTML = 'You\'re a super admin, so this meet is <b>published straight away</b> when you press Publish.';
 
-  if (!window.sb || !SESSION.userId) return;
+  if (!window.sb || !SESSION.userId || isStaff()) return;
   const { data: org } = await window.sb.from('organizers').select('org_name, city, state').eq('owner_id', SESSION.userId).maybeSingle();
   if (!org) return;
   if (org.org_name) {
@@ -338,11 +471,13 @@ function showToast(msg, type = 'info') {
 // ─── Bootstrap ────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   SESSION = window.SwimAuth ? window.SwimAuth.getSession() : null;
+  renderStaffNav();
+  if (window.SwimNav) window.SwimNav.applySuperAdmin({ nav: 'ocNav', brand: 'ocBrand', brandSub: 'ocBrandSub', userLink: 'ocUserLink', name: 'ocUserName', initials: 'ocInitials', role: 'ocUserRole' }, 'orgcreate.html');
   $('fStart').min = today();
   $('fEnd').min = today();
   renderMatrix();
   renderSummary();
-  loadOrganization();
+  loadExistingMeet().then(loadOrganization);
 
   $('matrix').addEventListener('click', e => {
     const b = e.target.closest('.oc-chip');
@@ -389,6 +524,9 @@ document.addEventListener('DOMContentLoaded', () => {
   $('backBtn').addEventListener('click', () => go(step - 1));
   document.querySelectorAll('.oc-step').forEach(s => s.addEventListener('click', () => go(Number(s.dataset.step))));
   $('draftBtn').addEventListener('click', saveDraft);
+  $('posterPick').addEventListener('click', () => $('posterFile').click());
+  $('posterFile').addEventListener('change', e => { pickPoster(e.target.files[0]); e.target.value = ''; });
+  $('posterRemove').addEventListener('click', removePoster);
 
   $('acMenuBtn').addEventListener('click', () => setNavOpen(!$('acShell').classList.contains('nav-open')));
   $('acScrim').addEventListener('click', () => setNavOpen(false));

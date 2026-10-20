@@ -142,19 +142,19 @@ function renderSidebar() {
       ])
       + sideGroup('Meets', [
         sideLink('admin.html#myMeets', 'trophy', 'My meets'),
-        sideLink('playerlist.html', 'list-check', 'Player list'),
+        sideLink('playerlist.html', 'list-check', 'Master player list'),
         sideLink('heatgen.html', 'bolt', 'Heat generation'),
         sideLink('results.html', 'broadcast-tower', 'Live results', true),
-        sideLink('racecontrol.html', 'flag-checkered', 'Race control'),
+        sideLink('orgracecontrol.html', 'flag-checkered', 'Race control'),
       ])
-      + sideGroup('Create', [sideLink('addevent.html', 'plus', 'Add event')]);
+      + sideGroup('Create', [sideLink('orgcreate.html', 'plus', 'Add meet')]);
   }
   $('lrNav').innerHTML = html;
 
   if (SESSION) {
     const name = SESSION.name || SESSION.email || 'Signed in';
     $('lrUserName').textContent = name;
-    $('lrUserRole').textContent = { organizer: 'Organizer', event_manager: 'Event Manager', super_admin: 'Super Admin' }[role] || '';
+    $('lrUserRole').textContent = { organizer: 'Organizer', event_manager: 'Admin', super_admin: 'Super Admin' }[role] || '';
     $('lrInitials').textContent = String(name).split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'SF';
   }
 }
@@ -358,7 +358,7 @@ function renderGrid() {
   if (!ev) {
     const msg = !MEET ? 'Pick a meet to enter results.'
       : (SESSION && SESSION.role === 'organizer')
-        ? 'No heats yet. The Event Manager generates heats after the player list is locked.'
+        ? 'No heats yet. The Admin generates heats after the player list is locked.'
         : 'No heats yet. Generate them from Heat generation once the player list is locked.';
     tbody.innerHTML = `<tr><td colspan="6" class="ac-empty-cell">${msg}</td></tr>`;
     $('entryTitle').textContent = 'Enter times';
@@ -784,6 +784,7 @@ function showToast(msg, type = 'info') {
 document.addEventListener('DOMContentLoaded', () => {
   SESSION = window.SwimAuth ? window.SwimAuth.getSession() : null;
   renderSidebar();
+  if (window.SwimNav) window.SwimNav.applySuperAdmin({ nav: 'lrNav', brand: 'lrBrand', brandSub: 'lrBrandSub', userLink: 'lrUserLink', name: 'lrUserName', initials: 'lrInitials', role: 'lrUserRole' }, 'results.html');
   renderAll();
   loadResultTournaments();
 

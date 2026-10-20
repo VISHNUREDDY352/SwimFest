@@ -3,13 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Academy & Coach Directory — SwimFest</title>
-    <link rel="stylesheet" href="styles.css?v=23">
-    <link rel="stylesheet" href="academy.css?v=2">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>Academies, Coaches & Swimmers — SwimFest</title>
+    <link rel="stylesheet" href="styles.css?v=24">
+    <link rel="stylesheet" href="academy.css?v=3">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* ── Academy directory (redesign) ── */
+        :root { --ad-deep:#0b3a53; --ad-ink:#0b2233; --ad-body:#33495a; --ad-muted:#5b7383; --ad-line:#dde7ec;
+                --ad-ground:#f4f8fa; --ad-pool:#0e7490; --ad-lane:#22a6c4; --ad-sky:#8fd3e3; --ad-mist:#c9e3ec; }
+        .ad-page { background:var(--ad-ground); color:var(--ad-ink); font-family:Inter, system-ui, sans-serif; }
+        .ad-display { font-family:Archivo, Inter, sans-serif; }
+        .ad-wrap { max-width:1320px; margin:0 auto; padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); box-sizing:border-box; }
+
+        /* Banner */
+        .ad-hero { background:var(--ad-deep); color:#fff; }
+        .ad-hero-inner { padding-block:48px 44px; display:flex; flex-wrap:wrap; gap:32px 48px; align-items:stretch; }
+        .ad-hero-main { flex:999 1 560px; min-width:0; display:flex; flex-direction:column; gap:20px; }
+        .ad-eyebrow { margin:0; font-size:0.8rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--ad-sky); }
+        .ad-title { margin:0; font-size:clamp(2rem, 4vw, 2.75rem); line-height:1.1; font-weight:800; color:#fff; text-wrap:balance; }
+        .ad-sub { margin:0; font-size:1.05rem; line-height:1.55; color:var(--ad-mist); max-width:40rem; }
+        .ad-search-row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+        .ad-search { flex:1 1 320px; display:flex; align-items:center; gap:10px; background:#fff; border-radius:12px; padding:0 16px; height:52px; }
+        .ad-search i { color:var(--ad-muted); }
+        .ad-search input { flex:1; border:0; outline:none; font:inherit; font-size:1rem; color:var(--ad-ink); min-width:0; background:transparent; }
+        .ad-search-clear { border:0; background:none; color:var(--ad-muted); cursor:pointer; width:32px; height:32px; border-radius:8px; }
+        .ad-search-clear:hover { background:var(--ad-ground); }
+        .ad-seg { display:flex; gap:4px; background:rgba(255,255,255,0.1); padding:4px; border-radius:12px; }
+        .ad-seg button { padding:0 16px; height:44px; border-radius:9px; border:0; background:transparent; color:#fff; font:inherit; font-size:0.9rem; font-weight:600; cursor:pointer; }
+        .ad-seg button[aria-pressed="true"] { background:#fff; color:var(--ad-deep); }
+        .ad-chips { display:flex; flex-wrap:wrap; gap:8px; }
+        .ad-chip { padding:9px 16px; min-height:44px; border-radius:999px; border:1px solid rgba(255,255,255,0.35); background:transparent; color:#fff; font:inherit; font-size:0.9rem; font-weight:600; cursor:pointer; }
+        .ad-chip span { opacity:0.7; font-weight:500; margin-left:4px; }
+        .ad-chip[aria-pressed="true"] { background:#fff; border-color:#fff; color:var(--ad-deep); }
+        .ad-hero :focus-visible { outline:2px solid var(--ad-sky); outline-offset:2px; }
+
+        .ad-glance { flex:1 1 380px; min-width:0; display:flex; flex-direction:column; gap:14px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); border-radius:20px; padding:22px; }
+        .ad-glance dl { margin:0; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; }
+        .ad-glance dl > div { background:rgba(255,255,255,0.08); border-radius:14px; padding:14px 16px; }
+        .ad-glance dt { font-size:0.82rem; color:var(--ad-mist); }
+        .ad-glance dd { margin:4px 0 0; font-size:2.1rem; font-weight:800; font-variant-numeric:tabular-nums; }
+        .ad-pool-art { flex:1; min-height:72px; border-radius:12px; background:var(--ad-pool); padding:6px; display:flex; flex-direction:column; gap:3px; box-sizing:border-box; }
+        .ad-pool-art span { flex:1; background:var(--ad-lane); border-radius:2px; }
+
+        /* Results */
+        .ad-main { padding-block:32px 64px; display:flex; flex-wrap:wrap; gap:32px; align-items:flex-start; }
+        .ad-results { flex:999 1 640px; min-width:0; display:flex; flex-direction:column; gap:16px; }
+        .ad-results-head { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:8px; }
+        .ad-results-head h2 { margin:0; font-size:1.4rem; font-weight:700; }
+        .ad-results-head p { margin:0; font-size:0.88rem; color:var(--ad-muted); }
+        .ad-empty { background:#fff; border:1px dashed #b9cdd6; border-radius:16px; padding:40px; text-align:center; color:var(--ad-muted); display:flex; flex-direction:column; align-items:center; gap:12px; }
+        .ad-empty[hidden] { display:none; }
+
+        .ad-card { background:#fff; border:1px solid var(--ad-line); border-radius:16px; padding:22px 24px; display:grid; grid-template-columns:minmax(0, 1fr) 200px; gap:20px 28px; }
+        .ad-card-main { display:flex; flex-direction:column; gap:12px; min-width:0; }
+        .ad-card-top { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; }
+        .ad-card-top h3 { margin:0; font-size:1.25rem; font-weight:700; color:var(--ad-ink); }
+        .ad-verified { display:inline-flex; align-items:center; gap:5px; font-size:0.75rem; font-weight:600; color:#166534; background:#e6f6ec; padding:3px 10px; border-radius:999px; }
+        .ad-addr { margin:0; display:flex; align-items:flex-start; gap:8px; color:var(--ad-body); font-size:0.94rem; }
+        .ad-addr i { color:var(--ad-muted); margin-top:3px; }
+        .ad-coach { display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--ad-ground); border-radius:12px; }
+        .ad-coach-avatar { width:40px; height:40px; border-radius:999px; background:var(--ad-deep); color:#fff; display:grid; place-items:center; font-weight:700; font-size:0.88rem; flex:none; }
+        .ad-coach-name { font-weight:600; font-size:0.94rem; }
+        .ad-coach-line { font-size:0.82rem; color:var(--ad-muted); }
+        .ad-card-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+        .ad-btn { padding:10px 16px; min-height:44px; box-sizing:border-box; border-radius:10px; border:0; background:var(--ad-deep); color:#fff; font:inherit; font-weight:600; font-size:0.88rem; cursor:pointer; display:inline-flex; align-items:center; gap:8px; text-decoration:none; }
+        .ad-btn:hover { background:#082c40; color:#fff; }
+        .ad-btn-ghost { background:#fff; color:var(--ad-deep); border:1px solid #b9dbe5; }
+        .ad-btn-ghost:hover { background:#e3f2f6; color:var(--ad-deep); }
+        .ad-contact { font-size:0.88rem; color:var(--ad-body); }
+        .ad-contact b { font-weight:600; font-variant-numeric:tabular-nums; user-select:all; }
+
+        .ad-pool { margin:0; display:flex; flex-direction:column; gap:8px; }
+        .ad-pool-lanes { height:128px; border-radius:10px; background:var(--ad-pool); padding:6px; display:flex; flex-direction:column; gap:3px; box-sizing:border-box; }
+        .ad-pool-lanes span { flex:1; background:var(--ad-lane); border-radius:2px; display:flex; align-items:center; padding-left:6px; font-size:0.56rem; font-weight:700; color:#e7f7fb; }
+        .ad-pool-none { height:128px; border-radius:10px; border:1px dashed #b9cdd6; display:grid; place-items:center; text-align:center; font-size:0.8rem; color:var(--ad-muted); padding:8px; box-sizing:border-box; }
+        .ad-pool figcaption { display:flex; justify-content:space-between; gap:8px; font-size:0.8rem; color:var(--ad-body); }
+        .ad-pool figcaption b { font-variant-numeric:tabular-nums; }
+
+        .ad-side { flex:1 1 280px; display:flex; flex-direction:column; gap:16px; }
+        .ad-side section { background:#fff; border:1px solid var(--ad-line); border-radius:16px; padding:22px; display:flex; flex-direction:column; gap:10px; }
+        .ad-side section.tint { background:#e3f2f6; border-color:#cfe6ee; }
+        .ad-side h2 { margin:0; font-size:1.05rem; color:var(--ad-deep); }
+        .ad-side p { margin:0; font-size:0.88rem; line-height:1.6; color:var(--ad-body); }
+
+        .ad-people { display:grid; grid-template-columns:repeat(auto-fill, minmax(17rem, 1fr)); gap:16px; }
+        .ad-people[hidden], #acdGrid[hidden], .ad-seg[hidden], .ad-chips[hidden] { display:none; }
+        .ad-person { background:#fff; border:1px solid var(--ad-line); border-radius:16px; padding:18px 20px; display:flex; flex-direction:column; gap:12px; }
+        .ad-person-top { display:flex; align-items:center; gap:12px; min-width:0; }
+        .ad-person-avatar { width:48px; height:48px; border-radius:999px; background:var(--ad-deep); color:#fff; display:grid; place-items:center; font-weight:700; flex:none; }
+        .ad-person-avatar.girl { background:#9d174d; }
+        .ad-person-name { margin:0; font-size:1.05rem; font-weight:700; color:var(--ad-ink); overflow-wrap:anywhere; }
+        .ad-person-sub { font-size:0.82rem; color:var(--ad-muted); }
+        .ad-tags { display:flex; flex-wrap:wrap; gap:6px; }
+        .ad-tag { font-size:0.75rem; font-weight:600; padding:3px 10px; border-radius:999px; background:#e3f2f6; color:var(--ad-deep); }
+        .ad-tag.plain { background:var(--ad-ground); color:var(--ad-body); }
+        .ad-person .ad-btn { align-self:flex-start; }
+        .ad-private { background:#fff; border:1px solid var(--ad-line); border-radius:16px; padding:28px; display:flex; gap:16px; align-items:flex-start; color:var(--ad-body); line-height:1.6; }
+        .ad-private[hidden] { display:none; }
+        .ad-private > i { font-size:1.8rem; color:var(--ad-pool); margin-top:4px; }
+        .ad-hist { width:100%; border-collapse:collapse; font-size:0.86rem; }
+        .ad-hist th { text-align:left; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--ad-muted); padding:8px; border-bottom:1px solid var(--ad-line); }
+        .ad-hist td { padding:8px; border-bottom:1px solid var(--ad-ground); font-variant-numeric:tabular-nums; }
+        .nav-links .nav-link[aria-current="page"] { background:#e3f2f6; color:var(--ad-deep); }
+
+        @media (max-width:700px) {
+            .ad-card { grid-template-columns:minmax(0, 1fr); }
+            .ad-pool-lanes, .ad-pool-none { height:96px; }
+        }
+        @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto !important; } }
+    </style>
 </head>
-<body>
+<body class="ad-page">
 
     <!-- Navbar -->
     <header class="navbar" id="navbar">
@@ -22,98 +127,101 @@
                 <span id="currentState">Tamil Nadu</span>
                 <i class="fas fa-caret-down"></i>
             </button>
-            <nav class="nav-links">
-                <a href="index.html" class="nav-link">Home</a>
-                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
-                <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
-                <a href="index.html#past-events-archives" class="nav-link">Past</a>
-                <a href="academy.html" class="nav-link active">Academy</a>
+            <nav class="nav-links" aria-label="Directory">
+                <a href="#academies" class="nav-link" data-tab="academies">Academies</a>
+                <a href="#coaches" class="nav-link" data-tab="coaches">Coaches</a>
+                <a href="#swimmers" class="nav-link" data-tab="swimmers">Swimmers</a>
             </nav>
-            <a href="profile.html" class="btn-profile"><i class="fas fa-user"></i> Profile</a>
-            <a href="login.html" class="btn-register-login">Register / Login</a>
-            <button class="mobile-menu-btn" id="mobileMenuBtn">
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
                 <i class="fas fa-bars"></i>
             </button>
         </div>
     </header>
 
     <!-- Mobile Menu -->
-    <div class="mobile-menu" id="mobileMenu">
-        <a href="index.html" class="nav-link">Home</a>
-        <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
-        <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
-        <a href="index.html#past-events-archives" class="nav-link">Past</a>
-        <a href="academy.html" class="nav-link">Academy</a>
-        <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> My Profile</a>
-        <a href="login.html" class="btn-register-login">Register / Login</a>
+    <div class="mobile-menu" id="mobileMenu" data-no-auth>
+        <a href="#academies" class="nav-link" data-tab="academies">Academies</a>
+        <a href="#coaches" class="nav-link" data-tab="coaches">Coaches</a>
+        <a href="#swimmers" class="nav-link" data-tab="swimmers">Swimmers</a>
     </div>
 
     <main>
+        <!-- Banner: search on the left, the numbers on the right -->
+        <section class="ad-hero" aria-labelledby="adTitle">
+            <div class="ad-wrap ad-hero-inner">
+                <div class="ad-hero-main">
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        <p class="ad-eyebrow">Tamil Nadu · verified by SwimFest</p>
+                        <h1 class="ad-title ad-display" id="adTitle">Find a swim academy near you</h1>
+                        <p class="ad-sub" id="adSub">Every academy here has been checked by our team: real pool, real coaches, real contact details.</p>
+                    </div>
 
-        <!-- Hero -->
-        <section class="acd-hero">
-            <div class="acd-hero-inner">
-                <div class="acd-hero-text">
-                    <p class="acd-hero-eyebrow"><i class="fas fa-map-marker-alt"></i> Tamil Nadu</p>
-                    <h1 class="acd-hero-title">Academy &amp; Coach Directory</h1>
-                    <p class="acd-hero-sub">Explore verified swimming academies, certified head coaches, and training pool infrastructure across Tamil Nadu.</p>
+                    <form class="ad-search-row" id="adSearchForm" role="search">
+                        <label for="acdSearch" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Search academies</label>
+                        <div class="ad-search">
+                            <i class="fas fa-search" aria-hidden="true"></i>
+                            <input type="search" id="acdSearch" placeholder="Academy, coach or area" autocomplete="off" aria-describedby="adTitle">
+                            <button type="button" class="ad-search-clear" id="acdSearchClear" aria-label="Clear search" hidden><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="ad-seg" role="group" aria-label="Pool length" id="poolSeg">
+                            <button type="button" data-pool="" aria-pressed="true">Any pool</button>
+                            <button type="button" data-pool="50m" aria-pressed="false">50 m pool</button>
+                            <button type="button" data-pool="25m" aria-pressed="false">25 m pool</button>
+                        </div>
+                    </form>
+
+                    <div class="ad-chips" role="group" aria-label="City" id="cityChips"></div>
                 </div>
-                <div class="acd-hero-stats" id="heroStats">
-                    <!-- filled by JS -->
-                </div>
+
+                <aside class="ad-glance" aria-label="At a glance">
+                    <p class="ad-eyebrow">At a glance</p>
+                    <dl>
+                        <div><dt id="g1l">Verified academies</dt><dd class="ad-display" id="g1">—</dd></div>
+                        <div><dt id="g2l">Head coaches</dt><dd class="ad-display" id="g2">—</dd></div>
+                        <div><dt id="g3l">50 m pools</dt><dd class="ad-display" id="g3">—</dd></div>
+                        <div><dt id="g4l">Cities</dt><dd class="ad-display" id="g4">—</dd></div>
+                    </dl>
+                    <div class="ad-pool-art" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                </aside>
             </div>
         </section>
 
-        <!-- Search & Filters -->
-        <section class="acd-filters-bar">
-            <div class="acd-filters-inner">
-                <div class="acd-search-wrap">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="acdSearch" class="acd-search-input"
-                           placeholder="Search academy name, coach name, or city…"
-                           aria-label="Search academies and coaches">
-                    <button class="acd-search-clear" id="acdSearchClear" style="display:none;" title="Clear">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="acd-filter-group">
-                    <select id="cityFilter" class="acd-select" aria-label="Filter by city">
-                        <option value="">All Cities</option>
-                    </select>
-                    <select id="poolFilter" class="acd-select" aria-label="Filter by pool type">
-                        <option value="">All Pool Types</option>
-                        <option value="50m">50m Olympic Pool</option>
-                        <option value="25m">25m Pool</option>
-                    </select>
-                    <select id="statusFilter" class="acd-select" aria-label="Filter by status">
-                        <option value="">All Statuses</option>
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                    </select>
-                </div>
-                <div class="acd-results-count" id="acdResultsCount">Showing — academies</div>
-            </div>
-        </section>
-
-        <!-- Directory Grid -->
-        <section class="acd-section">
-            <div class="acd-container">
-
-                <!-- Empty state -->
-                <div class="acd-empty" id="acdEmpty" style="display:none;">
-                    <i class="fas fa-search"></i>
-                    <p>No academies match your search. Try a different name or city.</p>
-                    <button class="acd-clear-btn" id="acdClearAll">Clear Filters</button>
+        <div class="ad-wrap ad-main">
+            <section class="ad-results" aria-labelledby="resultLine">
+                <div class="ad-results-head">
+                    <h2 class="ad-display" id="resultLine">Loading academies…</h2>
+                    <p>Sorted by name</p>
                 </div>
 
-                <!-- Cards grid -->
-                <div class="acd-grid" id="acdGrid">
-                    <!-- Rendered by JS -->
+                <div class="ad-empty" id="acdEmpty" hidden>
+                    <p style="margin:0;" id="acdEmptyText">No academy matches these filters. Try another city or pool length.</p>
+                    <button type="button" class="ad-btn ad-btn-ghost" id="acdClearAll">Clear filters</button>
                 </div>
 
-            </div>
-        </section>
+                <div id="acdGrid" style="display:flex;flex-direction:column;gap:16px;"></div>
+                <div id="coachGrid" class="ad-people" hidden></div>
+                <div id="swimmerGrid" class="ad-people" hidden></div>
+                <div class="ad-private" id="swimmerPrivate" hidden>
+                    <i class="fas fa-user-shield" aria-hidden="true"></i>
+                    <div>
+                        <h3 class="ad-display" style="margin:0 0 6px;">Swimmer profiles are private</h3>
+                        <p style="margin:0;">Swimmers are children, so their names and profiles are only shown to SwimFest staff. Parents see their own swimmers on their <a href="profile.html">profile</a>.</p>
+                    </div>
+                </div>
+            </section>
 
+            <aside class="ad-side">
+                <section>
+                    <h2 class="ad-display" id="side1Title">What "verified" means</h2>
+                    <p id="side1Text">The SwimFest team checked the academy's registration, its pool and its head coach's certificates before listing it.</p>
+                </section>
+                <section class="tint">
+                    <h2 class="ad-display" id="side2Title">Ready to race?</h2>
+                    <p id="side2Text">Pick a meet and register your swimmer. Their academy appears on the entry and in the results.</p>
+                    <a href="register.html" class="ad-btn ad-btn-ghost" id="side2Cta" style="align-self:flex-start;">Register a swimmer</a>
+                </section>
+            </aside>
+        </div>
     </main>
 
     <!-- Academy Profile Modal -->
@@ -121,11 +229,9 @@
         <div class="modal acd-modal">
             <div class="modal-header">
                 <h3 id="modalAcademyName">Academy Profile</h3>
-                <button class="modal-close" id="acdModalClose"><i class="fas fa-times"></i></button>
+                <button class="modal-close" id="acdModalClose" aria-label="Close"><i class="fas fa-times"></i></button>
             </div>
-            <div class="modal-body acd-modal-body" id="acdModalBody">
-                <!-- filled by JS -->
-            </div>
+            <div class="modal-body acd-modal-body" id="acdModalBody"></div>
         </div>
     </div>
 
@@ -133,18 +239,27 @@
     <div class="modal-overlay" id="acdSwimmersModal">
         <div class="modal acd-modal">
             <div class="modal-header">
-                <h3 id="modalSwimmersTitle">Associated Swimmers</h3>
-                <button class="modal-close" id="swimmersModalClose"><i class="fas fa-times"></i></button>
+                <h3 id="modalSwimmersTitle">Swimmers</h3>
+                <button class="modal-close" id="swimmersModalClose" aria-label="Close"><i class="fas fa-times"></i></button>
             </div>
-            <div class="modal-body" id="swimmersModalBody">
-                <!-- filled by JS -->
+            <div class="modal-body" id="swimmersModalBody"></div>
+        </div>
+    </div>
+
+    <!-- Coach / swimmer profile -->
+    <div class="modal-overlay" id="personModal">
+        <div class="modal acd-modal">
+            <div class="modal-header">
+                <h3 id="personName">Profile</h3>
+                <button class="modal-close" id="personModalClose" aria-label="Close"><i class="fas fa-times"></i></button>
             </div>
+            <div class="modal-body acd-modal-body" id="personBody"></div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=7"></script>
-    <script src="auth.js?v=11"></script>
-    <script src="academy.js"></script>
+    <script src="auth.js?v=14"></script>
+    <script src="academy.js?v=6"></script>
 </body>
 </html>

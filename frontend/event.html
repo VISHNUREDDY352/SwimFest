@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Golden Non-Medalist Swimming Championship 2026 | SwimFest</title>
-    <link rel="stylesheet" href="styles.css?v=23">
-    <link rel="stylesheet" href="event.css?v=4">
+    <link rel="stylesheet" href="styles.css?v=24">
+    <link rel="stylesheet" href="event.css?v=5">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -76,6 +76,7 @@
             <div class="tab-content active" id="tab-description">
                 <!-- Header & Status Block -->
                 <div class="event-header-block">
+                    <img id="evPoster" class="event-poster" alt="" hidden>
                     <div class="event-header-top">
                         <div>
                             <h1 class="event-main-title" id="evTitle">Loading tournament…</h1>
@@ -239,7 +240,7 @@
                     <h2 class="detail-card-title"><i class="fas fa-poll"></i> Results</h2>
                     <div class="schedule-placeholder">
                         <i class="fas fa-flag-checkered"></i>
-                        <p>Results will be published live during the event (15-16 Oct 2026).</p>
+                        <p id="evResultsNote">Results will be published live during the event.</p>
                     </div>
                 </div>
             </div>
@@ -321,7 +322,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=7"></script>
-    <script src="auth.js?v=11"></script>
-    <script src="event.js?v=4"></script>
+    <script src="auth.js?v=14"></script>
+    <script src="event.js?v=5"></script>
 </body>
 </html>

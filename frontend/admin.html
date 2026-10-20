@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Console — SwimFest</title>
     <script src="guard.js" data-roles="event_manager,super_admin"></script>
-    <link rel="stylesheet" href="styles.css?v=23">
+    <link rel="stylesheet" href="styles.css?v=24">
     <link rel="stylesheet" href="admin.css?v=2">
     <link rel="stylesheet" href="dashboard.css?v=2">
     <link rel="stylesheet" href="emdashboard.css?v=2">
@@ -17,12 +17,12 @@
 <div class="ac-shell" id="acShell">
 
     <!-- ── Sidebar ── -->
-    <aside class="ac-sidebar" id="acSidebar" aria-label="Event Manager navigation">
+    <aside class="ac-sidebar" id="acSidebar" aria-label="Admin navigation">
         <a href="admin.html" class="ac-brand" data-back-anchor>
             <span class="ac-brand-mark"><i class="fas fa-swimmer"></i></span>
             <span>
                 <span class="ac-brand-name">SwimFest</span>
-                <span class="ac-brand-sub">Event Manager Console</span>
+                <span class="ac-brand-sub">Admin Console</span>
             </span>
         </a>
 
@@ -35,23 +35,23 @@
         <nav class="ac-side-group" aria-label="Meets">
             <div class="ac-side-label">Meets</div>
             <a href="#myMeets" class="ac-side-link" data-nav="myMeets"><i class="fas fa-trophy"></i> My meets <span class="ac-side-mini" id="acMeetsCount">0</span></a>
-            <a href="playerlist.html" class="ac-side-link"><i class="fas fa-list-check"></i> Player list</a>
+            <a href="playerlist.html" class="ac-side-link"><i class="fas fa-list-check"></i> Master player list</a>
             <a href="heatgen.html" class="ac-side-link"><i class="fas fa-bolt"></i> Heat generation</a>
             <a href="results.html" class="ac-side-link"><i class="fas fa-broadcast-tower"></i> Live results</a>
-            <a href="racecontrol.html" class="ac-side-link"><i class="fas fa-flag-checkered"></i> Race control</a>
+            <a href="orgracecontrol.html" class="ac-side-link"><i class="fas fa-flag-checkered"></i> Race control</a>
         </nav>
 
         <nav class="ac-side-group" aria-label="Create">
             <div class="ac-side-label">Create</div>
-            <a href="addevent.html" class="ac-side-link"><i class="fas fa-plus"></i> Add event</a>
+            <a href="orgcreate.html" class="ac-side-link"><i class="fas fa-plus"></i> Add meet</a>
             <button type="button" class="ac-side-link" onclick="openAddAcademyModal()"><i class="fas fa-building"></i> Add academy</button>
             <button type="button" class="ac-side-link" onclick="openAddCoachModal()"><i class="fas fa-chalkboard-teacher"></i> Add coach</button>
         </nav>
 
         <div class="ac-side-user">
-            <span class="ac-avatar-lg" id="acUserInitials">EM</span>
+            <span class="ac-avatar-lg" id="acUserInitials">AD</span>
             <div class="ac-side-user-info">
-                <span class="ac-side-user-name" id="acUserName">Event Manager</span>
+                <span class="ac-side-user-name" id="acUserName">Admin</span>
                 <span class="ac-side-user-sub" id="emIdentity">Tamil Nadu Operations</span>
             </div>
             <a href="#" class="ac-icon-btn dash-logout" aria-label="Log out" title="Log out"><i class="fas fa-sign-out-alt"></i></a>
@@ -64,7 +64,7 @@
         <div class="ac-mobilebar">
             <button class="ac-icon-btn" id="acMenuBtn" aria-label="Open menu" aria-controls="acSidebar" aria-expanded="false"><i class="fas fa-bars"></i></button>
             <span style="font-weight:700;">SwimFest</span>
-            <span style="font-size:0.72rem;color:#94a3b8;">Event Manager</span>
+            <span style="font-size:0.72rem;color:#94a3b8;">Admin</span>
         </div>
 
         <main class="ac-container" id="top">
@@ -74,7 +74,7 @@
                     <p class="ac-page-sub">Your meets, entries and pending approvals</p>
                 </div>
                 <div class="ac-head-actions">
-                    <a href="addevent.html" class="ac-btn ac-btn-primary"><i class="fas fa-plus"></i> Add event</a>
+                    <a href="orgcreate.html" class="ac-btn ac-btn-primary"><i class="fas fa-plus"></i> Add meet</a>
                 </div>
             </div>
 
@@ -85,7 +85,7 @@
                 </div>
                 <div class="ac-metric">
                     <span class="ac-metric-icon" style="background:#dcfce7;color:#15803d;"><i class="fas fa-list"></i></span>
-                    <div><div class="ac-metric-label">Roster entries</div><div class="ac-metric-value" id="emStatEntries">—</div></div>
+                    <div><div class="ac-metric-label">Race entries</div><div class="ac-metric-value" id="emStatEntries">—</div></div>
                 </div>
                 <div class="ac-metric">
                     <span class="ac-metric-icon" style="background:#fef3c7;color:#b45309;"><i class="fas fa-swimmer"></i></span>
@@ -249,7 +249,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=7"></script>
-    <script src="auth.js?v=11"></script>
-    <script src="adminconsole.js?v=3"></script>
+    <script src="auth.js?v=14"></script>
+    <script src="adminconsole.js?v=6"></script>
 </body>
 </html>

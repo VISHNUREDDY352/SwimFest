@@ -4,12 +4,12 @@
    ============================================================ */
 'use strict';
 
-// ── Role → landing page + demo credential map ────────────────
+// ── Role → label + landing page ──────────────────────────────
 const ROLE_CONFIG = {
-  swimmer:       { label:'Swimmer / Parent',      landing:'index.html',       demoEmail:'arun.parent@gmail.com',   demoName:'Arun Kumar (Parent)',      demoPass:'demo1234' },
-  event_manager: { label:'Event Manager',         landing:'emdashboard.html', demoEmail:'thangavishnuvardhanreddy@gmail.com', demoName:'Event Manager', demoPass:'vishnu@123' },
-  organizer:     { label:'Tournament Organizer',  landing:'orgdashboard.html',demoEmail:'kovai@swimclub.org',      demoName:'Kovai Amateur Aquatic Club', demoPass:'demo1234' },
-  super_admin:   { label:'Super Admin',           landing:'superadmin.html',  demoEmail:'superadmin@swimfest.in',  demoName:'SwimFest Super Admin',     demoPass:'SwimFest@2026' },
+  swimmer:       { label:'Swimmer / Parent',     landing:'index.html' },
+  event_manager: { label:'Admin',        landing:'admin.html' },
+  organizer:     { label:'Tournament Organizer', landing:'orgdashboard.html' },
+  super_admin:   { label:'Super Admin',          landing:'superadmin.html' },
 };
 
 let selectedGender = 'Boy';

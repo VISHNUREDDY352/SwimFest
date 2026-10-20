@@ -82,7 +82,7 @@ function renderEmpty() {
     <div class="hs-empty">
       <i class="fas fa-calendar-times"></i>
       <p>Heat sheets for this tournament haven't been generated or published yet.</p>
-      <p style="font-size:0.82rem;margin-top:6px;">Once the Event Manager runs Heat Generation, the schedule will appear here.</p>
+      <p style="font-size:0.82rem;margin-top:6px;">Once the Admin runs Heat Generation, the schedule will appear here.</p>
       <a href="index.html" class="hs-btn hs-btn-primary" style="background:var(--primary);color:#fff;"><i class="fas fa-arrow-left"></i> Back to Home</a>
     </div>`;
 }

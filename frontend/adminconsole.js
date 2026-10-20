@@ -1,5 +1,5 @@
 /* ============================================================
-   SwimFest — Admin Console (Event Manager) JS   adminconsole.js
+   SwimFest — Admin Console (Admin) JS   adminconsole.js
    One script for admin.html: my meets, approval queues,
    add academy / coach, sidebar navigation.
    ============================================================ */
@@ -51,13 +51,16 @@ async function loadPipeline() {
   if (!window.sb) { $('pipelineBody').innerHTML = '<div class="ac-empty">Database not connected.</div>'; return; }
 
   // EM is the internal admin: this list shows the platform's own
-  // (internal) meets — Option A / platform-gateway — not third-party
-  // organizer meets (Option B), which live on the Organizer dashboard.
-  const { data, error } = await window.sb
-    .from('tournaments')
-    .select('tournament_id, title, venue_name, city, start_date, end_date, gateway_option, status')
-    .eq('gateway_option', 'OPTION_A_PLATFORM_GATEWAY')
-    .order('start_date', { ascending: false });
+  // (internal) meets — any meet not created by an organizer account.
+  // Organizer meets live on the Organizer dashboard.
+  const [{ data: all, error }, { data: orgs }] = await Promise.all([
+    window.sb.from('tournaments')
+      .select('tournament_id, title, venue_name, city, start_date, end_date, gateway_option, status, created_by')
+      .order('start_date', { ascending: false }),
+    window.sb.from('organizer_directory').select('owner_id'),
+  ]);
+  const organizerIds = new Set((orgs || []).map(o => o.owner_id));
+  const data = (all || []).filter(t => !organizerIds.has(t.created_by));
 
   if (error) {
     console.error('[SwimFest] pipeline:', error.message);
@@ -140,9 +143,11 @@ function actionsHtml(t) {
       <summary aria-label="More actions"><i class="fas fa-ellipsis"></i></summary>
       <div class="ac-more-menu">${links.map(l => `<a href="${l.href}"><i class="fas fa-${l.icon}"></i> ${l.label}</a>`).join('')}</div>
     </details>` : '';
-  const publicPage = { href: `event.html?tournament=${title}`, icon: 'globe', label: 'Public event page' };
-  const roster     = { href: 'playerlist.html', icon: 'list-check', label: 'Player list' };
-  const results    = { href: 'results.html', icon: 'broadcast-tower', label: 'Live results' };
+  const id         = encodeURIComponent(t.id);
+  const publicPage = { href: `event.html?id=${id}`, icon: 'globe', label: 'Public event page' };
+  const roster     = { href: `playerlist.html?t=${id}`, icon: 'list-check', label: 'Player list' };
+  const heats      = { href: `heatgen.html?t=${id}`, icon: 'bolt', label: 'Heat generation' };
+  const results    = { href: `results.html?t=${id}`, icon: 'broadcast-tower', label: 'Live results' };
   const sheets     = { href: `heatsheets.html?tournament=${title}`, icon: 'file-lines', label: 'Heat sheets' };
 
   switch (t.status) {
@@ -152,22 +157,23 @@ function actionsHtml(t) {
       return `<span class="ac-cta-note">Closure waiting for super admin sign-off</span>` + more([results, sheets]);
     case 'PUBLISHED':
     case 'CLOSED':
-      return `<a href="heatgen.html" class="ac-cta ac-cta-primary"><i class="fas fa-bolt"></i> Generate heats</a>` + more([roster, results, publicPage]);
+      // Heats can only be drawn once the player list is locked
+      return `<a href="playerlist.html?t=${id}" class="ac-cta ac-cta-primary"><i class="fas fa-list-check"></i> Check &amp; lock entries</a>` + more([results, publicPage]);
     case 'LOCKED':
-      return `<a href="racecontrol.html" class="ac-cta ac-cta-primary"><i class="fas fa-flag-checkered"></i> Race control</a>` + more([results, sheets, roster]);
+      return `<a href="orgracecontrol.html?t=${id}" class="ac-cta ac-cta-primary"><i class="fas fa-flag-checkered"></i> Race control</a>` + more([heats, results, sheets, roster]);
     case 'COMPLETED':
       return `<a href="heatsheets.html?tournament=${title}" class="ac-cta ac-cta-ghost"><i class="fas fa-box-archive"></i> View archive</a>` + more([results, publicPage]);
     case 'REJECTED_DRAFT':
-      return `<span class="ac-cta-note">Returned by super admin</span>`;
+      return `<a href="orgcreate.html?id=${id}" class="ac-cta ac-cta-primary"><i class="fas fa-pen"></i> Fix and resend</a>`;
     default:
-      return `<span class="ac-cta-note">Not submitted yet</span>`;
+      return `<a href="orgcreate.html?id=${id}" class="ac-cta ac-cta-ghost"><i class="fas fa-pen"></i> Continue editing</a>`;
   }
 }
 
 function renderPipeline() {
   const body = $('pipelineBody');
   if (!TOURNAMENTS.length) {
-    body.innerHTML = '<div class="ac-empty">No internal meets yet. Use <strong>Add event</strong> to create one.</div>';
+    body.innerHTML = '<div class="ac-empty">No internal meets yet. Use <strong>Add meet</strong> to create one.</div>';
     return;
   }
   const list = MEET_FILTER === 'all' ? TOURNAMENTS : TOURNAMENTS.filter(t => (MEET_GROUP[t.status] || 'attention') === MEET_FILTER);
@@ -631,9 +637,9 @@ function initNav() {
 function renderSidebarUser() {
   const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
   if (!session) return;
-  const name = session.name || (session.role === 'super_admin' ? 'Super Admin' : 'Event Manager');
+  const name = session.name || (session.role === 'super_admin' ? 'Super Admin' : 'Admin');
   $('acUserName').textContent = name;
-  $('acUserInitials').textContent = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'EM';
+  $('acUserInitials').textContent = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'AD';
 }
 
 // ── Toast styles ──────────────────────────────────────────────

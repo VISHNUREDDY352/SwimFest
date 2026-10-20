@@ -147,9 +147,10 @@ function actionsHtml(t) {
       <summary aria-label="More actions"><i class="fas fa-ellipsis"></i></summary>
       <div class="ac-more-menu">${links.map(l => `<a href="${l.href}"><i class="fas fa-${l.icon}"></i> ${l.label}</a>`).join('')}</div>
     </details>` : '';
-  const publicPage = { href: `event.html?tournament=${title}`, icon: 'globe', label: 'Public event page' };
-  const roster     = { href: 'playerlist.html', icon: 'list-check', label: 'Player list' };
-  const results    = { href: 'results.html', icon: 'broadcast-tower', label: 'Live results' };
+  const id         = encodeURIComponent(t.id);
+  const publicPage = { href: `event.html?id=${id}`, icon: 'globe', label: 'Public event page' };
+  const roster     = { href: `playerlist.html?t=${id}`, icon: 'list-check', label: 'Player list' };
+  const results    = { href: `results.html?t=${id}`, icon: 'broadcast-tower', label: 'Live results' };
   const sheets     = { href: `heatsheets.html?tournament=${title}`, icon: 'file-lines', label: 'Heat sheets' };
 
   switch (t.status) {
@@ -169,9 +170,9 @@ function actionsHtml(t) {
       return `<a href="heatsheets.html?tournament=${title}" class="ac-cta ac-cta-ghost"><i class="fas fa-box-archive"></i> View archive</a>${reopen}`;
     }
     case 'REJECTED_DRAFT':
-      return `<span class="ac-cta-note">Returned by super admin</span>`;
+      return `<a href="orgcreate.html?id=${id}" class="ac-cta ac-cta-primary"><i class="fas fa-pen"></i> Fix and resend</a>`;
     default:
-      return `<span class="ac-cta-note">Not submitted yet</span>`;
+      return `<a href="orgcreate.html?id=${id}" class="ac-cta ac-cta-ghost"><i class="fas fa-pen"></i> Continue editing</a>`;
   }
 }
 

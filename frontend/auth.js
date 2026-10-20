@@ -237,7 +237,7 @@ const SwimAuth = {
     // Each role's profile page (organizer has its own; EM/super_admin use dashboards)
     const profilePage = {
       swimmer:'profile.html', organizer:'orgprofile.html',
-      event_manager:'emdashboard.html', super_admin:'saprofile.html',
+      event_manager:'admin.html', super_admin:'saprofile.html',
     };
 
     document.querySelectorAll('.btn-profile').forEach(btn => {
@@ -269,7 +269,9 @@ const SwimAuth = {
     // Ensure EVERY mobile dropdown has a Login/Logout row at the bottom,
     // kept in sync with the session. Reuse an existing auth link if the
     // page already has one; otherwise inject a single one.
+    // A page can opt out with <div class="mobile-menu" data-no-auth>.
     document.querySelectorAll('.mobile-menu').forEach(menu => {
+      if (menu.hasAttribute('data-no-auth')) return;
       // Prefer an existing login/logout link already in the markup
       // (but never a navigation "My Profile" link).
       let auth = menu.querySelector('.mobile-auth-link')
@@ -351,8 +353,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const SKIP_PAGES = ['emdashboard', 'orgdashboard', 'saprofile', 'saoverride', 'admin'];
     if (page === 'index') return;
     if (!fromConsole && SKIP_PAGES.includes(page)) return;
-    // Console pages navigate with their sidebar, so Back would repeat it.
-    if (!fromConsole && document.querySelector('.ac-sidebar')) return;
+    // Console pages navigate with their sidebar (which already links back
+    // to the super admin console), so Back would only repeat it.
+    if (document.querySelector('.ac-sidebar')) return;
 
     // If the page already has a visible back control, don't add another.
     // Detect by: "back" in the text, a "back" class, or a left-arrow icon
@@ -440,5 +443,37 @@ document.addEventListener('DOMContentLoaded', () => {
     overlay.addEventListener('click', closeMenu);
     menu.querySelectorAll('a').forEach(a => a.addEventListener('click', closeMenu));
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+  })();
+
+  // ── Emergency notice banner (public pages) ──────────────────
+  // Shows the newest active, unexpired notice the super admin published.
+  // Staff console pages (with a sidebar) don't need it.
+  (function initEmergencyNotice() {
+    if (!window.sb || document.querySelector('.ac-sidebar, .sa-sidebar')) return;
+    const nowIso = new Date().toISOString();
+    window.sb.from('emergency_notices')
+      .select('notice_id, title, message, expired_at')
+      .eq('is_active', true)
+      .or(`expired_at.is.null,expired_at.gt.${nowIso}`)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .then(({ data, error }) => {
+        const n = !error && data && data[0];
+        if (!n) return;
+        let dismissed = null;
+        try { dismissed = sessionStorage.getItem('swimfest_notice_dismissed'); } catch (_) {}
+        if (dismissed === n.notice_id) return;
+        const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const bar = document.createElement('div');
+        bar.setAttribute('role', 'alert');
+        bar.style.cssText = 'background:#b91c1c;color:#fff;padding:10px 16px;display:flex;gap:12px;align-items:center;justify-content:center;font:500 0.88rem Inter,sans-serif;line-height:1.45;position:relative;z-index:1001;';
+        bar.innerHTML = `<i class="fas fa-triangle-exclamation" aria-hidden="true"></i><span><strong>${esc(n.title)}:</strong> ${esc(n.message)}</span>
+          <button type="button" aria-label="Dismiss notice" style="background:none;border:0;color:#fff;font-size:1.1rem;cursor:pointer;padding:0 4px;">&times;</button>`;
+        bar.querySelector('button').addEventListener('click', () => {
+          bar.remove();
+          try { sessionStorage.setItem('swimfest_notice_dismissed', n.notice_id); } catch (_) {}
+        });
+        document.body.insertAdjacentElement('afterbegin', bar);
+      });
   })();
 });

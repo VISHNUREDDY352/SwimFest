@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Super Admin Console — SwimFest</title>
     <script src="guard.js" data-roles="super_admin"></script>
-    <link rel="stylesheet" href="styles.css?v=23">
+    <link rel="stylesheet" href="styles.css?v=24">
     <link rel="stylesheet" href="admin.css?v=2">
     <link rel="stylesheet" href="dashboard.css?v=2">
     <link rel="stylesheet" href="emdashboard.css">
@@ -295,6 +295,7 @@
             <div class="sa-side-label">Tools</div>
             <a href="playerlist.html" class="sa-side-link"><i class="fas fa-list-check"></i> Master Player List</a>
             <a href="heatgen.html" class="sa-side-link"><i class="fas fa-bolt"></i> Heat Generation</a>
+            <a href="orgracecontrol.html" class="sa-side-link"><i class="fas fa-flag-checkered"></i> Race Control</a>
             <a href="results.html" class="sa-side-link"><i class="fas fa-broadcast-tower"></i> Live Results</a>
             <a href="academy.html" class="sa-side-link"><i class="fas fa-building-columns"></i> Academy Directory</a>
             <a href="admin.html" class="sa-side-link"><i class="fas fa-cogs"></i> Admin Console</a>
@@ -329,7 +330,7 @@
                 </div>
                 <div class="sa-head-actions">
                     <button class="sa-btn sa-btn-ghost" onclick="openNoticeModal()"><i class="fas fa-bell"></i> Emergency notice</button>
-                    <a href="addevent.html" class="sa-btn sa-btn-primary"><i class="fas fa-plus"></i> Create meet</a>
+                    <a href="orgcreate.html" class="sa-btn sa-btn-primary"><i class="fas fa-plus"></i> Create meet</a>
                 </div>
             </div>
 
@@ -349,7 +350,7 @@
                 </div>
                 <div class="sa-metric-card purple">
                     <span class="sa-metric-icon"><i class="fas fa-indian-rupee-sign"></i></span>
-                    <div><div class="sa-metric-label">Revenue (FY 2026)</div><div class="sa-metric-value">—</div></div>
+                    <div><div class="sa-metric-label">Entry fees paid</div><div class="sa-metric-value">—</div></div>
                 </div>
             </div>
 
@@ -366,7 +367,7 @@
                     <div class="sa-toolbar">
                         <div>
                             <div class="sa-toolbar-title" id="saQueueTitle">Swimmers, academies, coaches &amp; organizers</div>
-                            <div class="sa-toolbar-sub" id="saQueueSub">Submitted by swimmers, Event Managers and organizers</div>
+                            <div class="sa-toolbar-sub" id="saQueueSub">Submitted by swimmers, Admins and organizers</div>
                         </div>
                         <label class="sa-search-wrap">
                             <i class="fas fa-search" aria-hidden="true"></i>
@@ -475,16 +476,14 @@
                     </div>
                     <div class="sa-fin-row">
                         <span>Gateway status</span>
-                        <span class="gateway-online"><span class="gateway-dot"></span> Online — Razorpay active</span>
+                        <span style="color:#b45309;font-weight:600;"><i class="fas fa-clock"></i> Not connected — online payment coming soon</span>
                     </div>
-                    <div class="sa-fin-row"><span>Platform technology fee</span><span>₹50.00 / booking (incl. GST)</span></div>
-                    <div class="sa-fin-row"><span>Total transactions (FY 2026)</span><span id="saTotalTxns">0</span></div>
-                    <div class="sa-fin-row"><span>Gross revenue YTD</span><span id="saGrossRevenue" style="color:#15803d;">₹0</span></div>
-                    <div class="sa-fin-row"><span>Pending organizer payouts</span><span id="saPendingPayouts" style="color:#b45309;">0 meets · ₹0</span></div>
+                    <div class="sa-fin-row"><span>Platform fee</span><span>₹50 per online booking (incl. GST) · none for offline meets</span></div>
+                    <div class="sa-fin-row"><span>Registrations</span><span id="saTotalTxns">—</span></div>
+                    <div class="sa-fin-row"><span>Entry fees paid</span><span id="saGrossRevenue" style="color:#15803d;">—</span></div>
+                    <div class="sa-fin-row"><span>Entry fees not paid yet</span><span id="saPendingFees" style="color:#b45309;">—</span></div>
+                    <div class="sa-fin-row"><span>Software fees due (offline meets, ₹5,000 each)</span><span id="saPendingPayouts" style="color:#b45309;">—</span></div>
                     <div class="sa-actions-bar">
-                        <button class="sa-action-btn sa-btn-settings" onclick="showToast('Global Platform Settings — loading…','info')">
-                            <i class="fas fa-cog"></i> Global platform settings
-                        </button>
                         <button class="sa-action-btn sa-btn-export" onclick="exportAuditLog()">
                             <i class="fas fa-file-export"></i> Export audit logs
                         </button>
@@ -548,7 +547,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=7"></script>
-    <script src="auth.js?v=11"></script>
-    <script src="superadmin.js?v=4"></script>
+    <script src="auth.js?v=14"></script>
+    <script src="superadmin.js?v=8"></script>
 </body>
 </html>

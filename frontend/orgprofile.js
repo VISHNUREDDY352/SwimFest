@@ -7,11 +7,17 @@
 
 (function () {
   const $ = (id) => document.getElementById(id);
-  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   let session = null;
   let profile = null;    // profiles row
-  let org     = null;    // academies row for this organizer (if any)
+  let org     = null;    // organizers row owned by this account (if any)
+
+  const ORG_STATUS = {
+    APPROVED_ACTIVE:      ['Verified', 'ac-pill-live'],
+    PENDING_VERIFICATION: ['Waiting for verification', 'ac-pill-wait'],
+    REJECTED:             ['Not approved', 'ac-pill-bad'],
+  };
 
   function initials(name){
     const p = String(name||'').trim().split(/\s+/).filter(Boolean);
@@ -21,73 +27,78 @@
   async function load() {
     session = window.SwimAuth ? window.SwimAuth.getSession() : null;
     if (!session) return;
+    renderName();
 
-    const name = session.name || 'Organizer';
-    $('opName').textContent = name;
-    $('opAvatar').textContent = initials(name);
+    if (!window.sb || !session.userId) return;
+    const [{ data: p }, { data: o }] = await Promise.all([
+      window.sb.from('profiles').select('*').eq('id', session.userId).maybeSingle(),
+      window.sb.from('organizers').select('*').eq('owner_id', session.userId).maybeSingle(),
+    ]);
+    profile = p || null;
+    org = o || null;
 
-    if (!window.sb) return;
-
-    // Profile row
-    if (session.userId) {
-      const { data: p } = await window.sb.from('profiles').select('*').eq('id', session.userId).maybeSingle();
-      profile = p || null;
-    }
-
-    // Their organization — from the dedicated organizers table (own row via owner_id)
-    if (session.userId) {
-      const { data: o } = await window.sb.from('organizers').select('*').eq('owner_id', session.userId).maybeSingle();
-      org = o || null;
-    }
-
+    renderName();
     renderDetails();
     renderOrg();
     await renderStats();
   }
 
+  function renderName() {
+    const name = session.name || 'Organizer';
+    $('opName').textContent = name;
+    $('opAvatar').textContent = initials(name);
+    $('opOrgLine').textContent = org ? org.org_name : 'No organization on file yet';
+    const sideName = org && org.org_name ? org.org_name : name;
+    $('sideName').textContent = sideName;
+    $('sideInitials').textContent = initials(sideName);
+    $('sideRole').textContent = session.role === 'super_admin' ? 'Super Admin' : 'Organizer';
+  }
+
   function renderDetails() {
-    $('opOrgLine').textContent = org ? org.org_name : 'No organization on file';
-    $('opDetails').innerHTML = `
-      <div class="op-detail"><span class="op-detail-label">Contact Person</span><span class="op-detail-value">${esc(session.name || '—')}</span></div>
-      <div class="op-detail"><span class="op-detail-label">Email</span><span class="op-detail-value">${esc(session.email || (profile && profile.email) || '—')}</span></div>
-      <div class="op-detail"><span class="op-detail-label">Phone</span><span class="op-detail-value">${esc((profile && profile.phone) || '—')}</span></div>
-      <div class="op-detail"><span class="op-detail-label">Role</span><span class="op-detail-value">Event Organizer</span></div>`;
+    const rows = [
+      ['Name',  session.name || '—'],
+      ['Email', session.email || (profile && profile.email) || '—'],
+      ['Phone', (profile && profile.phone) || '—'],
+      ['Role',  session.role === 'super_admin' ? 'Super admin' : 'Event organizer'],
+    ];
+    $('opDetails').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
   }
 
   function renderOrg() {
+    const pill = $('orgStatus');
     if (!org) {
-      $('opOrg').innerHTML = `<div class="op-detail" style="grid-column:1/-1;"><span class="op-detail-value" style="color:var(--gray);font-weight:500;">No organization registered yet. It will appear here after you sign up as an organizer or an admin adds it.</span></div>`;
+      pill.hidden = true;
+      $('opOrg').innerHTML = `<p class="op-empty">No organization on file. Use <strong>Edit profile</strong> to add your club or organization. The super admin verifies it before it's shown as verified.</p>`;
       return;
     }
-    const statusCls = org.status === 'APPROVED_ACTIVE' ? 'active' : 'pending';
-    const statusLbl = org.status === 'APPROVED_ACTIVE' ? 'Verified' : (org.status === 'PENDING_VERIFICATION' ? 'Pending Verification' : org.status);
-    $('opOrg').innerHTML = `
-      <div class="op-detail"><span class="op-detail-label">Organization</span><span class="op-detail-value">${esc(org.org_name)}</span></div>
-      <div class="op-detail"><span class="op-detail-label">City</span><span class="op-detail-value">${esc(org.city || '—')}</span></div>
-      <div class="op-detail"><span class="op-detail-label">Registration No.</span><span class="op-detail-value">${esc(org.registration_no || '—')}</span></div>
-      <div class="op-detail"><span class="op-detail-label">Status</span><span class="op-detail-value"><span class="op-badge ${statusCls}">${esc(statusLbl)}</span></span></div>`;
+    const [label, cls] = ORG_STATUS[org.status] || [org.status, 'ac-pill-draft'];
+    pill.hidden = false;
+    pill.className = `ac-pill ${cls}`;
+    pill.textContent = label;
+    const rows = [
+      ['Organization',      org.org_name],
+      ['Contact person',    org.contact_person || '—'],
+      ['City',              org.city || '—'],
+      ['Registration no.',  org.registration_no || '—'],
+    ];
+    $('opOrg').innerHTML = `<dl class="op-list">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
   }
 
   async function renderStats() {
-    let total = 0, published = 0, completed = 0, entries = 0;
-    if (window.sb && session.userId) {
-      const { data: mine } = await window.sb.from('tournaments')
-        .select('tournament_id, status').eq('created_by', session.userId);
-      const rows = mine || [];
-      total = rows.length;
-      published = rows.filter(t => t.status === 'PUBLISHED' || t.status === 'LOCKED').length;
-      completed = rows.filter(t => t.status === 'COMPLETED').length;
-      const ids = rows.map(r => r.tournament_id);
-      if (ids.length) {
-        const { data: ent } = await window.sb.from('event_entries').select('entry_id, tournament_id').in('tournament_id', ids);
-        entries = (ent || []).length;
-      }
+    const { data: mine } = await window.sb.from('tournaments')
+      .select('tournament_id, status').eq('created_by', session.userId);
+    const rows = mine || [];
+    $('statTotal').textContent = rows.length;
+    $('statLive').textContent  = rows.filter(t => ['PUBLISHED', 'CLOSED', 'LOCKED'].includes(t.status)).length;
+    $('statDone').textContent  = rows.filter(t => t.status === 'COMPLETED').length;
+    let entries = 0;
+    const ids = rows.map(r => r.tournament_id);
+    if (ids.length) {
+      const { count } = await window.sb.from('event_entries')
+        .select('entry_id', { count: 'exact', head: true }).in('tournament_id', ids);
+      entries = count || 0;
     }
-    $('opStats').innerHTML = `
-      <div class="op-stat"><div class="op-stat-num">${total}</div><div class="op-stat-label">Events Created</div></div>
-      <div class="op-stat"><div class="op-stat-num">${published}</div><div class="op-stat-label">Live Now</div></div>
-      <div class="op-stat"><div class="op-stat-num">${completed}</div><div class="op-stat-label">Completed</div></div>
-      <div class="op-stat"><div class="op-stat-num">${entries}</div><div class="op-stat-label">Total Entries</div></div>`;
+    $('statEntries').textContent = entries;
   }
 
   // ── Edit modal ──
@@ -96,52 +107,69 @@
     $('editPhone').value   = (profile && profile.phone) || '';
     $('editOrgName').value = org ? org.org_name : '';
     $('editCity').value    = org ? (org.city || '') : '';
+    $('opEditError').textContent = '';
     $('opEditModal').classList.add('active');
+    $('opEditModal').style.display = 'flex';
+    $('editName').focus();
   }
-  function closeEdit() { $('opEditModal').classList.remove('active'); }
+  function closeEdit() {
+    $('opEditModal').classList.remove('active');
+    $('opEditModal').style.display = 'none';
+  }
 
   async function saveEdit() {
-    const name  = $('editName').value.trim();
-    const phone = $('editPhone').value.trim();
+    const name    = $('editName').value.trim();
+    const phone   = $('editPhone').value.trim();
     const orgName = $('editOrgName').value.trim();
-    const city  = $('editCity').value.trim();
-    if (!window.sb) { closeEdit(); return; }
+    const city    = $('editCity').value.trim();
+    const err = msg => { $('opEditError').textContent = msg; };
 
-    // Update profile (name + phone)
-    if (session.userId) {
-      await window.sb.from('profiles').update({ full_name: name, phone }).eq('id', session.userId);
-    }
-    // Update / mirror session name locally
+    if (!name) return err('Enter your name.');
+    if (phone && !/^[\d\s+\-]{8,15}$/.test(phone)) return err('Enter a valid phone number.');
+    if (!window.sb || !session.userId) return err('Not connected. Refresh the page and try again.');
+
+    const btn = $('opSaveBtn');
+    btn.disabled = true;
     try {
-      const key = 'swimfest_session';
-      const raw = localStorage.getItem(key) || sessionStorage.getItem(key);
-      if (raw) { const s = JSON.parse(raw); s.name = name; s.phone = phone;
-        (localStorage.getItem(key) ? localStorage : sessionStorage).setItem(key, JSON.stringify(s)); session = s; }
-    } catch (_) {}
+      const { error: pErr } = await window.sb.from('profiles').update({ full_name: name, phone }).eq('id', session.userId);
+      if (pErr) return err('Could not save your details: ' + pErr.message);
 
-    // Update organization if we have one, or create one if not yet present
-    if (org && orgName) {
-      await window.sb.from('organizers').update({ org_name: orgName, city, contact_person: name, phone_number: phone })
-        .eq('organizer_id', org.organizer_id);
-      org.org_name = orgName; org.city = city;
-    } else if (!org && orgName && session && session.userId) {
-      const { data: newOrg } = await window.sb.from('organizers').upsert({
-        owner_id: session.userId,
-        org_name: orgName,
-        city: city || 'Tamil Nadu',
-        contact_person: name,
-        phone_number: phone,
-        status: 'APPROVED_ACTIVE'
-      }, { onConflict: 'owner_id' }).select('*').maybeSingle();
-      if (newOrg) org = newOrg;
+      if (org && orgName) {
+        const { error: oErr } = await window.sb.from('organizers')
+          .update({ org_name: orgName, city, contact_person: name, phone_number: phone })
+          .eq('organizer_id', org.organizer_id);
+        if (oErr) return err('Could not save the organization: ' + oErr.message);
+        Object.assign(org, { org_name: orgName, city, contact_person: name, phone_number: phone });
+      } else if (!org && orgName) {
+        // A new organization waits for the super admin to verify it
+        const { data: newOrg, error: oErr } = await window.sb.from('organizers').insert({
+          owner_id: session.userId, org_name: orgName, city: city || null,
+          contact_person: name, phone_number: phone || null, status: 'PENDING_VERIFICATION',
+        }).select('*').maybeSingle();
+        if (oErr) return err('Could not add the organization: ' + oErr.message);
+        org = newOrg;
+      }
+
+      // Keep the stored session's name in step
+      try {
+        const key = 'swimfest_session';
+        const store = localStorage.getItem(key) ? localStorage : sessionStorage;
+        const raw = store.getItem(key);
+        if (raw) { const s = JSON.parse(raw); s.name = name; s.phone = phone; store.setItem(key, JSON.stringify(s)); session = s; }
+      } catch (_) { session.name = name; }
+
+      closeEdit();
+      renderName();
+      renderDetails();
+      renderOrg();
+    } finally {
+      btn.disabled = false;
     }
+  }
 
-    closeEdit();
-    // Re-render
-    $('opName').textContent = name;
-    $('opAvatar').textContent = initials(name);
-    renderDetails();
-    renderOrg();
+  function setNavOpen(open) {
+    $('acShell').classList.toggle('nav-open', open);
+    $('acMenuBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
   }
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -151,5 +179,8 @@
     $('opCancelBtn').addEventListener('click', closeEdit);
     $('opSaveBtn').addEventListener('click', saveEdit);
     $('opEditModal').addEventListener('click', (e) => { if (e.target === $('opEditModal')) closeEdit(); });
+    $('acMenuBtn').addEventListener('click', () => setNavOpen(!$('acShell').classList.contains('nav-open')));
+    $('acScrim').addEventListener('click', () => setNavOpen(false));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { setNavOpen(false); closeEdit(); } });
   });
 })();

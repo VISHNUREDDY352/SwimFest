@@ -616,3 +616,7 @@ html, body { overflow-x: hidden; max-width: 100%; }
         padding: 18px;
     }
 }
+
+/* Organizer-uploaded meet poster */
+.event-poster { display: block; width: 100%; max-height: 22rem; object-fit: cover; border-radius: 12px; margin-bottom: 1rem; }
+.event-poster[hidden] { display: none; }
