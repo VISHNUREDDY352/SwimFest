@@ -8,129 +8,136 @@
     <link rel="stylesheet" href="styles.css?v=23">
     <link rel="stylesheet" href="admin.css?v=2">
     <link rel="stylesheet" href="dashboard.css?v=2">
-    <link rel="stylesheet" href="emdashboard.css?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="console.css?v=2">
 </head>
-<body class="dash-body">
+<body class="ac-body">
+<div class="ac-shell" id="acShell">
 
-    <!-- Main Navbar -->
-    <header class="navbar" id="navbar">
-        <div class="nav-container">
-            <a href="orgdashboard.html" class="logo"><i class="fas fa-swimmer"></i> SwimFest <span style="font-size:0.7rem;font-weight:600;color:var(--gray);">Organizer</span></a>
-            <nav class="nav-links">
-                <a href="orgdashboard.html" class="nav-link">Dashboard</a>
-                <a href="orgcreate.html" class="nav-link">Create Event</a>
-                <a href="orgracecontrol.html" class="nav-link">Race Control</a>
-                <a href="results.html" class="nav-link">Results</a>
-            </nav>
-            <div style="display:flex;align-items:center;gap:10px;margin-left:auto;">
-                <a href="orgprofile.html" class="btn-profile"><i class="fas fa-user"></i> Profile</a>
-                <a href="#" class="btn-register-login dash-logout" style="background:var(--primary);color:var(--white);">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
+    <!-- ── Sidebar ── -->
+    <aside class="ac-sidebar" id="acSidebar" aria-label="Organizer navigation">
+        <a href="orgdashboard.html" class="ac-brand" data-back-anchor>
+            <span class="ac-brand-mark"><i class="fas fa-swimmer"></i></span>
+            <span>
+                <span class="ac-brand-name">SwimFest</span>
+                <span class="ac-brand-sub">Organizer Dashboard</span>
+            </span>
+        </a>
+
+        <nav class="ac-side-group">
+            <a href="#top" class="ac-side-link active" data-nav="top"><i class="fas fa-table-columns"></i> Overview</a>
+            <a href="#myMeets" class="ac-side-link" data-nav="myMeets"><i class="fas fa-trophy"></i> My meets <span class="ac-side-mini" id="orgMeetsCount">0</span></a>
+        </nav>
+
+        <nav class="ac-side-group" aria-label="Run a meet">
+            <div class="ac-side-label">Run a meet</div>
+            <a href="orgracecontrol.html" class="ac-side-link"><i class="fas fa-flag-checkered"></i> Race control</a>
+            <a href="playerlist.html" class="ac-side-link"><i class="fas fa-list-check"></i> Player list</a>
+            <a href="results.html" class="ac-side-link"><i class="fas fa-broadcast-tower"></i> Live results</a>
+        </nav>
+
+        <nav class="ac-side-group" aria-label="Create">
+            <div class="ac-side-label">Create</div>
+            <a href="orgcreate.html" class="ac-side-link"><i class="fas fa-plus"></i> Create event</a>
+        </nav>
+
+        <div class="ac-side-user">
+            <a href="orgprofile.html" class="ac-side-user-link" title="Organization profile">
+                <span class="ac-avatar-lg" id="orgInitials">OR</span>
+            <div class="ac-side-user-info">
+                <span class="ac-side-user-name" id="orgName">My Organization</span>
+                <span class="ac-side-user-sub" id="orgIdBadge">Organizer</span>
             </div>
+            </a>
+            <a href="#" class="ac-icon-btn dash-logout" aria-label="Log out" title="Log out"><i class="fas fa-sign-out-alt"></i></a>
         </div>
-    </header>
+    </aside>
+    <div class="ac-scrim" id="acScrim"></div>
 
-    <!-- Sticky Organizer Control Bar -->
-    <div class="em-control-bar" style="background:var(--dark);">
-        <div class="em-control-inner">
-            <span class="em-control-label">ORGANIZER CONTROLS</span>
-            <a href="orgcreate.html" class="em-ctrl-btn em-ctrl-primary">
-                <i class="fas fa-plus"></i> Create Event
-            </a>
-            <a href="#myMeets" class="em-ctrl-btn em-ctrl-secondary">
-                <i class="fas fa-calendar-check"></i> My Hosted Meets
-            </a>
-            <a href="#" class="em-ctrl-btn em-ctrl-secondary" onclick="showToast('Past archives coming soon','info');return false;">
-                <i class="fas fa-archive"></i> Past Archives
-            </a>
-            <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
-                <span id="orgIdBadge" style="font-size:0.72rem;color:rgba(255,255,255,0.4);"></span>
+    <!-- ── Main ── -->
+    <div class="ac-main">
+        <div class="ac-mobilebar">
+            <button class="ac-icon-btn" id="acMenuBtn" aria-label="Open menu" aria-controls="acSidebar" aria-expanded="false"><i class="fas fa-bars"></i></button>
+            <span style="font-weight:700;">SwimFest</span>
+            <span style="font-size:0.72rem;color:#94a3b8;">Organizer</span>
+        </div>
+
+        <main class="ac-container" id="top">
+            <div class="ac-page-head">
+                <div>
+                    <h1 class="ac-page-title">Overview</h1>
+                    <p class="ac-page-sub" id="orgIdentity">Your hosted meets and their progress</p>
+                </div>
+                <div class="ac-head-actions">
+                    <a href="orgcreate.html" class="ac-btn ac-btn-primary"><i class="fas fa-plus"></i> Create event</a>
+                </div>
+            </div>
+
+            <div class="ac-metrics">
+                <div class="ac-metric">
+                    <span class="ac-metric-icon" style="background:#e0f2fe;color:#0369a1;"><i class="fas fa-trophy"></i></span>
+                    <div><div class="ac-metric-label">Meets hosted</div><div class="ac-metric-value" id="orgStatEvents">—</div></div>
+                </div>
+                <div class="ac-metric">
+                    <span class="ac-metric-icon" style="background:#dcfce7;color:#15803d;"><i class="fas fa-users"></i></span>
+                    <div><div class="ac-metric-label">Athletes hosted</div><div class="ac-metric-value" id="orgStatAthletes">—</div></div>
+                </div>
+                <div class="ac-metric">
+                    <span class="ac-metric-icon" style="background:#fef3c7;color:#b45309;"><i class="fas fa-fire"></i></span>
+                    <div><div class="ac-metric-label">Active meets</div><div class="ac-metric-value" id="orgStatActive">—</div></div>
+                </div>
+                <div class="ac-metric">
+                    <span class="ac-metric-icon" style="background:#ede9fe;color:#6d28d9;"><i class="fas fa-indian-rupee-sign"></i></span>
+                    <div><div class="ac-metric-label">Software fees (Option B)</div><div class="ac-metric-value" id="orgStatFees">—</div></div>
+                </div>
+            </div>
+
+            <!-- My meets -->
+            <section class="ac-card" id="myMeets" aria-labelledby="myMeetsTitle">
+                <div class="ac-card-head">
+                    <div>
+                        <h2 class="ac-card-title" id="myMeetsTitle">My meets</h2>
+                        <p class="ac-card-sub">Each meet shows where it is and what to do next</p>
+                    </div>
+                    <div class="ac-seg" role="group" aria-label="Filter meets" id="acMeetFilters">
+                        <button type="button" class="active" data-filter="all">All</button>
+                        <button type="button" data-filter="active">Active</button>
+                        <button type="button" data-filter="attention">Needs attention</button>
+                        <button type="button" data-filter="done">Completed</button>
+                    </div>
+                </div>
+                <div id="orgPipelineBody">
+                    <div class="ac-empty">Loading meets…</div>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+    <!-- Request reopen (completed meet → super admin approval) -->
+    <div class="modal-overlay" id="reopenModal">
+        <div class="modal" style="max-width:480px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-unlock-alt"></i> Request to reopen</h3>
+                <button class="modal-close" onclick="closeReopenModal()" aria-label="Close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding:20px 24px;display:flex;flex-direction:column;gap:12px;">
+                <p style="margin:0;font-size:0.9rem;color:var(--ac-muted);">Tell the super admin why <strong id="reopenMeetTitle"></strong> needs to be reopened. It stays locked until they approve.</p>
+                <label class="mc-label" for="reopenReason">Reason *</label>
+                <textarea class="mc-input" id="reopenReason" rows="4" style="resize:vertical;" placeholder="e.g. A timing error in the 50m Freestyle U-12 final needs correcting"></textarea>
+                <div class="login-error" id="reopenReasonErr" style="color:#b91c1c;font-size:0.8rem;"></div>
+            </div>
+            <div class="modal-footer admin-modal-footer">
+                <button class="admin-btn admin-btn-outline" onclick="closeReopenModal()">Cancel</button>
+                <button class="admin-btn admin-btn-primary" onclick="submitReopen()"><i class="fas fa-paper-plane"></i> Send request</button>
             </div>
         </div>
     </div>
 
-    <main class="em-main">
-        <div class="em-container">
-
-            <!-- Organizer Host Metrics Summary -->
-            <div class="em-welcome-card" style="background:linear-gradient(135deg,var(--primary),var(--primary-dark),var(--dark-secondary));">
-                <div class="em-welcome-left">
-                    <div class="em-welcome-icon" style="background:rgba(255,255,255,0.1);">
-                        <i class="fas fa-building" style="color:var(--accent-light);"></i>
-                    </div>
-                    <div>
-                        <h1 class="em-welcome-title">Organizer Host Metrics &amp; Summary</h1>
-                        <p class="em-welcome-id" id="orgIdentity">Organization: —</p>
-                        <p class="em-welcome-sub">Third-party host portal — manage your swimming competitions, view financial analytics, and run poolside race operations for your owned meets.</p>
-                    </div>
-                </div>
-                <div class="em-stats-row">
-                    <div class="em-stat-pill">
-                        <i class="fas fa-trophy" style="color:var(--accent-light);"></i>
-                        <div class="em-stat-val" id="orgStatEvents">0</div>
-                        <div class="em-stat-label">Events Conducted</div>
-                    </div>
-                    <div class="em-stat-pill">
-                        <i class="fas fa-users" style="color:var(--accent-light);"></i>
-                        <div class="em-stat-val" id="orgStatAthletes">0</div>
-                        <div class="em-stat-label">Athletes Hosted</div>
-                    </div>
-                    <div class="em-stat-pill orange">
-                        <i class="fas fa-rupee-sign"></i>
-                        <div class="em-stat-val" id="orgStatFees">₹0</div>
-                        <div class="em-stat-label">Software Fees Paid</div>
-                    </div>
-                    <div class="em-stat-pill">
-                        <i class="fas fa-fire" style="color:var(--accent-light);"></i>
-                        <div class="em-stat-val" id="orgStatActive">0</div>
-                        <div class="em-stat-label">Active Meet Running</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- My Hosted Tournaments Pipeline -->
-            <div class="em-section" id="myMeets">
-                <div class="em-section-header">
-                    <span class="em-section-title">
-                        <i class="fas fa-project-diagram"></i> My Hosted Tournaments Pipeline
-                    </span>
-                    <a href="orgcreate.html" class="dash-review-btn" style="background:var(--primary);color:var(--white);border:none;">
-                        <i class="fas fa-plus"></i> Create New Event
-                    </a>
-                </div>
-                <div style="overflow-x:auto;">
-                    <table class="em-pipeline-table" id="orgPipelineTable">
-                        <thead>
-                            <tr>
-                                <th>Tournament Title</th>
-                                <th>Dates</th>
-                                <th>Payment Type</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="orgPipelineBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Lifecycle State Machine -->
-            <div class="em-section">
-                <div class="em-section-header">
-                    <span class="em-section-title"><i class="fas fa-stream"></i> Third-Party Event Creation &amp; Lifecycle State Machine</span>
-                </div>
-                <div class="em-lifecycle" id="orgLifecycle"></div>
-            </div>
-
-        </div>
-    </main>
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=7"></script>
-    <script src="auth.js?v=9"></script>
-    <script src="orgdashboard.js"></script>
+    <script src="auth.js?v=11"></script>
+    <script src="orgdashboard.js?v=3"></script>
 </body>
 </html>

@@ -4,24 +4,27 @@
 'use strict';
 
 let ORG_TOURNAMENTS = [];
+let MEET_FILTER = 'all';
 
 const $ = id => document.getElementById(id);
 
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
 function fmtDates(s, e) {
-  const f = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short' }) : '';
+  const f = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '';
   return s ? `${f(s)}${e ? ' – ' + f(e) : ''}` : '—';
 }
 
 // Load only THIS organizer's tournaments (created_by = current user)
 async function loadOrgPipeline() {
   const body = $('orgPipelineBody');
-  if (!window.sb) { body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray);">Database not connected.</td></tr>'; return; }
+  if (!window.sb) { body.innerHTML = '<div class="ac-empty">Database not connected.</div>'; return; }
 
   const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
   const userId = session ? session.userId : null;
 
   if (!userId) {
-    body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray);">Please sign in as an organizer.</td></tr>';
+    body.innerHTML = '<div class="ac-empty">Please sign in as an organizer.</div>';
     return;
   }
 
@@ -33,7 +36,7 @@ async function loadOrgPipeline() {
     .order('start_date', { ascending: false });
   if (error) {
     console.error('[SwimFest] org pipeline:', error.message);
-    body.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--danger);"><i class="fas fa-exclamation-triangle"></i> Unable to load meets: ${escHtml(error.message)}</td></tr>`;
+    body.innerHTML = `<div class="ac-empty">Unable to load meets: ${escHtml(error.message)}</div>`;
     return;
   }
 
@@ -56,7 +59,7 @@ async function loadOrgPipeline() {
 
   // Which of this organizer's meets already have a PENDING reopen request?
   const pendingReopen = new Set();
-  if (myIds && myIds.length) {
+  if (myIds.length) {
     try {
       const { data: reqs } = await window.sb.from('reopen_requests')
         .select('tournament_id, status').in('tournament_id', myIds).eq('status', 'PENDING');
@@ -67,150 +70,215 @@ async function loadOrgPipeline() {
   ORG_TOURNAMENTS = rows.map(t => ({
     id: t.tournament_id,
     title: t.title,
-    sub: `${t.venue_name || ''}${t.city ? ', ' + t.city : ''} · ${counts[t.tournament_id] || 0} entries`,
+    venue: `${t.venue_name || ''}${t.city ? ', ' + t.city : ''}`,
     dates: fmtDates(t.start_date, t.end_date),
-    payType: t.gateway_option === 'OPTION_A_PLATFORM_GATEWAY' ? 'A' : 'B',
+    optionB: t.gateway_option !== 'OPTION_A_PLATFORM_GATEWAY',
     status: t.status,
-    upfront: t.gateway_option !== 'OPTION_A_PLATFORM_GATEWAY',
+    entries: counts[t.tournament_id] || 0,
     reopenPending: pendingReopen.has(t.tournament_id),
   }));
 
-  // ── Real header metrics ── (reuse `session` from above)
-  const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  // ── Header metrics ──
   let orgName = (session && session.name) ? session.name : 'My Organization';
   try {
     const { data: orgRow } = await window.sb.from('organizers').select('org_name').eq('owner_id', userId).maybeSingle();
     if (orgRow && orgRow.org_name) orgName = orgRow.org_name;
   } catch (_) {}
-  setTxt('orgIdentity', `Organization: ${orgName}`);
-  setTxt('orgStatEvents', rows.length);
-  setTxt('orgStatAthletes', athleteSet.size.toLocaleString('en-IN'));
-  // Option B meets carry the ₹5,000 upfront software fee
-  const optionBCount = rows.filter(t => t.gateway_option !== 'OPTION_A_PLATFORM_GATEWAY').length;
-  setTxt('orgStatFees', '₹' + (optionBCount * 5000).toLocaleString('en-IN'));
-  setTxt('orgStatActive', rows.filter(t => t.status === 'LOCKED' || t.status === 'PUBLISHED').length);
+  $('orgName').textContent = orgName;
+  $('orgInitials').textContent = orgName.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'OR';
+  $('orgIdentity').textContent = `${orgName} · your hosted meets and their progress`;
+  $('orgStatEvents').textContent = rows.length;
+  $('orgMeetsCount').textContent = rows.length;
+  $('orgStatAthletes').textContent = athleteSet.size.toLocaleString('en-IN');
+  $('orgStatActive').textContent = rows.filter(t => ['PUBLISHED', 'CLOSED', 'LOCKED'].includes(t.status)).length;
+  // Option B meets carry the ₹5,000 upfront software fee (payment status isn't stored yet)
+  const optionBCount = ORG_TOURNAMENTS.filter(t => t.optionB).length;
+  $('orgStatFees').textContent = '₹' + (optionBCount * 5000).toLocaleString('en-IN');
 
-  if (!ORG_TOURNAMENTS.length) {
-    body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray);">No meets yet. Click “Create Event” to host your first meet.</td></tr>';
-    return;
-  }
   renderPipeline();
 }
-function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-function payChip(t){
-  return t === 'A'
-    ? `<span class="em-reg-mode reg-mode-a"><i class="fas fa-credit-card"></i> Option A (Platform GW)</span>`
-    : `<span class="em-reg-mode reg-mode-b"><i class="fas fa-file-excel"></i> Option B (No Gateway)</span>`;
-}
+const MEET_GROUP = {
+  PENDING_APPROVAL: 'active', PUBLISHED: 'active', CLOSED: 'active', LOCKED: 'active', CLOSURE_REQUESTED: 'active',
+  REJECTED_DRAFT: 'attention', DRAFT: 'attention',
+  COMPLETED: 'done',
+};
 
-function statusChip(s){
-  const map = {
-    PENDING_APPROVAL: { cls:'chip-pending',   dot:'warning',   label:'Pending Approval' },
-    PUBLISHED:        { cls:'chip-published',  dot:'success',   label:'Published (Live)' },
-    LOCKED:           { cls:'chip-published',  dot:'success',   label:'Locked (Heats Set)' },
-    CLOSED:           { cls:'chip-pending',    dot:'warning',   label:'Registration Closed' },
-    COMPLETED:        { cls:'chip-completed',  dot:'dark',      label:'Completed (Archived)' },
-    REJECTED_DRAFT:   { cls:'chip-draft',      dot:'gray',      label:'Rejected' },
-    DRAFT:            { cls:'chip-draft',      dot:'gray',      label:'Draft' },
-  };
-  const c = map[s] || map.DRAFT;
-  return `<span class="em-status-chip ${c.cls}"><span class="status-dot"></span> ${c.label}</span>`;
-}
+const STATUS_PILL = {
+  PENDING_APPROVAL: { cls: 'ac-pill-wait',  label: 'Pending approval' },
+  PUBLISHED:        { cls: 'ac-pill-live',  label: 'Published' },
+  CLOSED:           { cls: 'ac-pill-wait',  label: 'Registration closed' },
+  LOCKED:           { cls: 'ac-pill-live',  label: 'Heats locked' },
+  CLOSURE_REQUESTED:{ cls: 'ac-pill-wait',  label: 'Closure requested' },
+  COMPLETED:        { cls: 'ac-pill-done',  label: 'Completed' },
+  REJECTED_DRAFT:   { cls: 'ac-pill-bad',   label: 'Rejected' },
+  DRAFT:            { cls: 'ac-pill-draft', label: 'Draft' },
+};
 
-function actionBtns(t){
-  if (t.status === 'PENDING_APPROVAL' || t.status === 'DRAFT' || t.status === 'REJECTED_DRAFT') return `
-    <div class="em-action-group">
-      <a href="orgcreate.html"     class="em-action-btn em-btn-view"><i class="fas fa-eye"></i> View Summary</a>
-      <a href="orgcreate.html"     class="em-action-btn em-btn-edit"><i class="fas fa-pen"></i> Edit Draft</a>
-    </div>`;
-  if (t.status === 'PUBLISHED' || t.status === 'LOCKED' || t.status === 'CLOSED') return `
-    <div class="em-action-group">
-      <a href="orgracecontrol.html" class="em-action-btn em-btn-manage"><i class="fas fa-cogs"></i> Manage</a>
-      <a href="results.html" class="em-action-btn em-btn-race"><i class="fas fa-broadcast-tower"></i> Results</a>
-    </div>`;
-  if (t.status === 'COMPLETED') {
-    const reopenBtn = t.reopenPending
-      ? `<button class="em-action-btn em-btn-view" disabled title="Awaiting Super Admin approval"><i class="fas fa-clock"></i> Reopen Requested</button>`
-      : `<button class="em-action-btn em-btn-edit" onclick="requestReopen('${t.id}')"><i class="fas fa-unlock-alt"></i> Request Reopen</button>`;
-    return `
-    <div class="em-action-group">
-      <a href="heatsheets.html?tournament=${encodeURIComponent(t.title)}" class="em-action-btn em-btn-archive"><i class="fas fa-archive"></i> View Archive</a>
-      ${reopenBtn}
-    </div>`;
+// Progress track: Approved → Entries → Heats → Live → Completed
+function trackState(t) {
+  switch (t.status) {
+    case 'PENDING_APPROVAL': return { done: 0, now: 0 };
+    case 'PUBLISHED':        return t.entries > 0 ? { done: 2, now: 2 } : { done: 1, now: 1 };
+    case 'CLOSED':           return { done: 2, now: 2 };
+    case 'LOCKED':           return { done: 3, now: 3 };
+    case 'CLOSURE_REQUESTED':return { done: 4, now: 4 };
+    case 'COMPLETED':        return { done: 5, now: -1 };
+    case 'REJECTED_DRAFT':   return { done: 0, now: -1, bad: true };
+    default:                 return { done: 0, now: -1 };
   }
-  return '';
+}
+
+function trackHtml(t) {
+  const st = trackState(t);
+  const steps = ['Approved', 'Entries', 'Heats', 'Live', 'Completed'];
+  const cls = i => st.bad && i === 0 ? 'bad' : i < st.done ? 'done' : i === st.now ? 'now' : '';
+  return `<div class="ac-track" aria-label="Progress">
+    <div class="ac-track-bars">${steps.map((_, i) => `<span class="${cls(i)}"></span>`).join('')}</div>
+    <div class="ac-track-labels">${steps.map((s, i) => `<span class="${cls(i)}">${s}</span>`).join('')}</div>
+  </div>`;
+}
+
+// One clear next step per meet, plus a "more" menu for the rest
+function actionsHtml(t) {
+  const title = encodeURIComponent(t.title || '');
+  const more = (links) => links.length ? `
+    <details class="ac-more">
+      <summary aria-label="More actions"><i class="fas fa-ellipsis"></i></summary>
+      <div class="ac-more-menu">${links.map(l => `<a href="${l.href}"><i class="fas fa-${l.icon}"></i> ${l.label}</a>`).join('')}</div>
+    </details>` : '';
+  const publicPage = { href: `event.html?tournament=${title}`, icon: 'globe', label: 'Public event page' };
+  const roster     = { href: 'playerlist.html', icon: 'list-check', label: 'Player list' };
+  const results    = { href: 'results.html', icon: 'broadcast-tower', label: 'Live results' };
+  const sheets     = { href: `heatsheets.html?tournament=${title}`, icon: 'file-lines', label: 'Heat sheets' };
+
+  switch (t.status) {
+    case 'PENDING_APPROVAL':
+      return `<span class="ac-cta-note">Waiting for super admin approval</span>`;
+    case 'CLOSURE_REQUESTED':
+      return `<span class="ac-cta-note">Closure waiting for super admin sign-off</span>` + more([results, sheets]);
+    case 'PUBLISHED':
+    case 'CLOSED':
+    case 'LOCKED':
+      return `<a href="orgracecontrol.html?t=${encodeURIComponent(t.id)}" class="ac-cta ac-cta-primary"><i class="fas fa-flag-checkered"></i> Race control</a>`
+        + more(t.status === 'LOCKED' ? [results, sheets, roster] : [roster, results, publicPage]);
+    case 'COMPLETED': {
+      const reopen = t.reopenPending
+        ? `<span class="ac-cta-note"><i class="fas fa-clock"></i> Reopen requested</span>`
+        : `<button type="button" class="ac-cta ac-cta-ghost" onclick="openReopenModal('${t.id}')"><i class="fas fa-unlock-alt"></i> Request reopen</button>`;
+      return `<a href="heatsheets.html?tournament=${title}" class="ac-cta ac-cta-ghost"><i class="fas fa-box-archive"></i> View archive</a>${reopen}`;
+    }
+    case 'REJECTED_DRAFT':
+      return `<span class="ac-cta-note">Returned by super admin</span>`;
+    default:
+      return `<span class="ac-cta-note">Not submitted yet</span>`;
+  }
+}
+
+function renderPipeline() {
+  const body = $('orgPipelineBody');
+  if (!ORG_TOURNAMENTS.length) {
+    body.innerHTML = '<div class="ac-empty">No meets yet. Use <strong>Create event</strong> to host your first meet.</div>';
+    return;
+  }
+  const list = MEET_FILTER === 'all' ? ORG_TOURNAMENTS : ORG_TOURNAMENTS.filter(t => (MEET_GROUP[t.status] || 'attention') === MEET_FILTER);
+  if (!list.length) {
+    body.innerHTML = '<div class="ac-empty">No meets in this view.</div>';
+    return;
+  }
+  body.innerHTML = list.map(t => {
+    const pill = STATUS_PILL[t.status] || STATUS_PILL.DRAFT;
+    const payment = t.optionB ? 'Option B · offline payments, ₹5,000 software fee' : 'Option A · online gateway';
+    return `
+    <article class="ac-meet">
+      <div class="ac-meet-info">
+        <div class="ac-meet-top">
+          <h3 class="ac-meet-title">${escHtml(t.title)}</h3>
+          <span class="ac-pill ${pill.cls}">${pill.label}</span>
+        </div>
+        <span class="ac-meet-meta">${escHtml(t.dates)}${t.venue ? ' · ' + escHtml(t.venue) : ''}</span>
+        <span class="ac-meet-meta-2">${t.entries} ${t.entries === 1 ? 'entry' : 'entries'} · ${payment}</span>
+      </div>
+      ${trackHtml(t)}
+      <div class="ac-meet-actions">${actionsHtml(t)}</div>
+    </article>`;
+  }).join('');
 }
 
 // ── Request to reopen a completed meet (needs Super Admin approval) ──
-window.requestReopen = async function(tournamentId) {
+let REOPEN_ID = null;
+
+window.openReopenModal = function(tournamentId) {
   const meet = ORG_TOURNAMENTS.find(m => m.id === tournamentId);
-  const title = meet ? meet.title : 'this meet';
-  const reason = prompt(`Request to reopen "${title}"\n\nWhy do you need this meet reopened? (sent to Super Admin for approval)`);
-  if (reason === null) return;                 // cancelled
-  if (!reason.trim()) { showToast('A reason is required to request a reopen.', 'warn'); return; }
+  REOPEN_ID = tournamentId;
+  $('reopenMeetTitle').textContent = meet ? meet.title : 'this meet';
+  $('reopenReason').value = '';
+  $('reopenReasonErr').textContent = '';
+  const m = $('reopenModal'); m.classList.add('active'); m.style.display = 'flex';
+  $('reopenReason').focus();
+};
+
+window.closeReopenModal = function() {
+  const m = $('reopenModal'); m.classList.remove('active'); m.style.display = 'none';
+};
+
+window.submitReopen = async function() {
+  const reason = $('reopenReason').value.trim();
+  if (!reason) { $('reopenReasonErr').textContent = 'Add a reason so the super admin can review the request.'; return; }
   if (!window.sb) { showToast('Database not connected.', 'warn'); return; }
 
   const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
   const { error } = await window.sb.from('reopen_requests').insert({
-    tournament_id: tournamentId,
+    tournament_id: REOPEN_ID,
     requested_by: session ? session.userId : null,
-    reason: reason.trim(),
+    reason,
     status: 'PENDING',
   });
   if (error) { console.error('[SwimFest] reopen request:', error.message); showToast('Request failed: ' + error.message, 'warn'); return; }
+  closeReopenModal();
   showToast('Reopen request sent to Super Admin for approval.', 'success');
-  loadOrgPipeline();  // refresh so the button shows "Reopen Requested"
+  loadOrgPipeline();  // refresh so the meet shows "Reopen requested"
 };
 
-function renderPipeline(){
-  $('orgPipelineBody').innerHTML = ORG_TOURNAMENTS.map(t => `
-    <tr>
-      <td>
-        <div class="em-meet-title">${escHtml(t.title)}</div>
-        <div class="em-meet-sub">${escHtml(t.sub)}</div>
-        ${t.upfront ? `<div class="em-meet-sub" style="color:var(--warning);margin-top:3px;"><i class="fas fa-rupee-sign"></i> ₹5,000 upfront fee paid</div>` : ''}
-      </td>
-      <td>${escHtml(t.dates)}</td>
-      <td>${payChip(t.payType)}</td>
-      <td>${statusChip(t.status)}</td>
-      <td>${actionBtns(t)}</td>
-    </tr>`).join('');
+// ── Sidebar navigation ────────────────────────────────────────
+function setNavOpen(open) {
+  $('acShell').classList.toggle('nav-open', open);
+  $('acMenuBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
-function renderLifecycle(){
-  $('orgLifecycle').innerHTML = `
-    <div class="em-lifecycle-grid">
-      <div class="em-lc-box start"><i class="fas fa-building"></i> Organizer Dashboard</div>
-      <div class="em-lc-arrow"><i class="fas fa-arrow-right"></i></div>
-      <div class="em-lc-box action">Click "+ Create Event"<br><small>Draft Creation Canvas</small></div>
-      <div class="em-lc-arrow"><i class="fas fa-arrow-right"></i></div>
+function initNav() {
+  document.querySelectorAll('.ac-side-link[data-nav]').forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      const target = link.getAttribute('data-nav');
+      document.querySelectorAll('.ac-side-link[data-nav]').forEach(l => l.classList.toggle('active', l === link));
+      if (target === 'top') window.scrollTo({ top: 0, behavior: 'smooth' });
+      else $(target).scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setNavOpen(false);
+    });
+  });
 
-      <div class="em-lc-box action">Option A: Platform GW<br><small>Online swimmer checkout</small></div>
-      <div class="em-lc-arrow" style="font-size:0.8rem;color:var(--gray);">OR</div>
-      <div class="em-lc-box action">Option B: No GW<br><small>Pay ₹5,000 Upfront Fee</small></div>
-      <div class="em-lc-arrow"><i class="fas fa-arrow-right"></i></div>
+  $('acMenuBtn').addEventListener('click', () => setNavOpen(!$('acShell').classList.contains('nav-open')));
+  $('acScrim').addEventListener('click', () => setNavOpen(false));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { setNavOpen(false); closeReopenModal(); }
+  });
 
-      <div class="em-lc-box action" style="grid-column:1/3;">STATE: PENDING_SUPER_ADMIN_APPROVAL<br><small>Hidden from public directory</small></div>
-      <div class="em-lc-arrow"><i class="fas fa-arrow-right"></i></div>
-      <div></div>
+  document.querySelectorAll('#acMeetFilters [data-filter]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      MEET_FILTER = btn.getAttribute('data-filter');
+      document.querySelectorAll('#acMeetFilters [data-filter]').forEach(b => b.classList.toggle('active', b === btn));
+      renderPipeline();
+    });
+  });
 
-      <div class="em-lc-box state-published"><i class="fas fa-check-circle"></i> PUBLISHED<br><small>Live — accepts bookings / roster import</small></div>
-      <div class="em-lc-arrow" style="color:var(--gray);">↔</div>
-      <div class="em-lc-box state-rejected"><i class="fas fa-times-circle"></i> REJECTED_DRAFT<br><small>Returned with Super Admin notes</small></div>
-      <div></div>
-
-      <div class="em-lc-box action">LIVE_OPERATIONS<br><small>Import rosters, heat sheets, results</small></div>
-      <div class="em-lc-arrow"><i class="fas fa-arrow-right"></i></div>
-      <div class="em-lc-box action">Request Meet Closure<br><small>Super Admin final sign-off</small></div>
-      <div class="em-lc-arrow"><i class="fas fa-arrow-right"></i></div>
-    </div>
-    <div class="em-lc-box state-completed" style="margin-top:8px;max-width:400px;">
-      <i class="fas fa-lock"></i> STATE: COMPLETED_ARCHIVED — 100% Immutable Data Lock<br>
-      <small>Links to public archive · Organizer edit access permanently revoked</small>
-    </div>`;
+  // Close an open "more" menu when clicking elsewhere
+  document.addEventListener('click', e => {
+    document.querySelectorAll('.ac-more[open]').forEach(d => { if (!d.contains(e.target)) d.removeAttribute('open'); });
+  });
 }
 
+// ── Toast ─────────────────────────────────────────────────────
 function showToast(msg, type='info'){
   const e = document.querySelector('.admin-toast'); if(e) e.remove();
   const t = document.createElement('div');
@@ -239,9 +307,8 @@ window.showToast = showToast;
 })();
 
 document.addEventListener('DOMContentLoaded', ()=>{
-  renderLifecycle();
-  loadOrgPipeline();
-  const badge = $('orgIdBadge');
+  initNav();
   const sess = window.SwimAuth ? window.SwimAuth.getSession() : null;
-  if (badge && sess && sess.userId) badge.textContent = 'ID: ' + String(sess.userId).slice(0, 8).toUpperCase();
+  if (sess && sess.userId) $('orgIdBadge').textContent = 'Organizer · ID ' + String(sess.userId).slice(0, 8).toUpperCase();
+  loadOrgPipeline();
 });

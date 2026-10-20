@@ -71,7 +71,7 @@
                         <label class="login-remember">
                             <input type="checkbox" id="rememberMe" checked> Remember me
                         </label>
-                        <a href="#" class="login-forgot" onclick="showToast('Password reset link sent to your email.','info');return false;">Forgot password?</a>
+                        <a href="#" class="login-forgot" onclick="switchTab('forgot');return false;">Forgot password?</a>
                     </div>
 
                     <button type="submit" class="login-submit-btn">
@@ -85,6 +85,63 @@
                             Sign in with your account. Staff, organizers, and swimmers all use this same login — you'll be routed to your dashboard automatically.
                         </div>
                     </div>
+                </form>
+
+                <!-- FORGOT PASSWORD: request a reset link -->
+                <form class="login-form" id="forgotForm" style="display:none;" onsubmit="handleForgot(event)">
+                    <h2 class="login-form-title">Reset your password</h2>
+                    <p class="login-form-sub">Enter your account email and we'll send you a link to set a new password.</p>
+
+                    <div class="login-field">
+                        <label class="login-label" for="forgotEmail">Email</label>
+                        <div class="login-input-wrap">
+                            <i class="fas fa-envelope"></i>
+                            <input type="email" id="forgotEmail" class="login-input" placeholder="you@example.com" autocomplete="email">
+                        </div>
+                        <div class="login-error" id="forgotEmailErr"></div>
+                    </div>
+
+                    <button type="submit" class="login-submit-btn">
+                        <i class="fas fa-paper-plane"></i> Send reset link
+                    </button>
+
+                    <div class="login-demo-hint" id="forgotSent" style="display:none;">
+                        <i class="fas fa-envelope-open-text"></i>
+                        <div id="forgotSentText"></div>
+                    </div>
+
+                    <p style="text-align:center;margin:4px 0 0;">
+                        <a href="#" class="login-forgot" onclick="switchTab('login');return false;"><i class="fas fa-arrow-left"></i> Back to sign in</a>
+                    </p>
+                </form>
+
+                <!-- RESET PASSWORD: opened from the emailed link -->
+                <form class="login-form" id="resetForm" style="display:none;" onsubmit="handleResetPassword(event)">
+                    <h2 class="login-form-title">Set a new password</h2>
+                    <p class="login-form-sub">Choose a new password for your account. You'll sign in with it next.</p>
+
+                    <div class="login-field">
+                        <label class="login-label" for="resetPassword">New password</label>
+                        <div class="login-input-wrap">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="resetPassword" class="login-input" placeholder="At least 6 characters" autocomplete="new-password">
+                            <button type="button" class="login-eye" onclick="togglePassword('resetPassword', this)"><i class="fas fa-eye"></i></button>
+                        </div>
+                        <div class="login-error" id="resetPasswordErr"></div>
+                    </div>
+
+                    <div class="login-field">
+                        <label class="login-label" for="resetConfirm">Confirm new password</label>
+                        <div class="login-input-wrap">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="resetConfirm" class="login-input" placeholder="Type it again" autocomplete="new-password">
+                        </div>
+                        <div class="login-error" id="resetConfirmErr"></div>
+                    </div>
+
+                    <button type="submit" class="login-submit-btn">
+                        <i class="fas fa-check"></i> Save new password
+                    </button>
                 </form>
 
                 <!-- SIGNUP FORM -->
@@ -191,7 +248,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=7"></script>
-    <script src="auth.js?v=9"></script>
-    <script src="login.js?v=4"></script>
+    <script src="auth.js?v=11"></script>
+    <script src="login.js?v=5"></script>
 </body>
 </html>

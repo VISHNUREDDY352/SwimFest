@@ -594,6 +594,20 @@ window.openAllMeetSites = function(title, tid) {
   showToast(`Opening all sites/portals for: ${title}`, 'success');
 };
 
+// Organizer asked to close a finished meet → mark it COMPLETED (read-only)
+window.approveClosure = async function(tid, title) {
+  if (!window.sb) return;
+  const { error } = await window.sb.from('tournaments')
+    .update({ status: 'COMPLETED' }).eq('tournament_id', tid);
+  if (error) {
+    showToast('Closure failed: ' + error.message, 'warn');
+    return;
+  }
+  await writeAudit('MEET_CLOSED', 'TOURNAMENT', tid, `Closure approved: ${title}`);
+  showToast(`Meet closed: ${title}`, 'success');
+  refreshLiveData();
+};
+
 window.approveMeetDirect = async function(tid, title) {
   if (!window.sb) return;
   const { error } = await window.sb.from('tournaments')
@@ -648,6 +662,7 @@ function renderAllMeets() {
       LOCKED:           { cls: 'chip-published', label: 'Locked (Roster Set)' },
       COMPLETED:        { cls: 'chip-completed', label: 'Completed' },
       PENDING_APPROVAL: { cls: 'chip-pending',   label: 'Pending Approval' },
+      CLOSURE_REQUESTED:{ cls: 'chip-pending',   label: 'Closure Requested' },
       REJECTED_DRAFT:   { cls: 'chip-draft',     label: 'Rejected' },
       DRAFT:            { cls: 'chip-draft',     label: 'Draft' },
     };
@@ -655,6 +670,7 @@ function renderAllMeets() {
     const dateRange = fmtDateRange(t.start_date, t.end_date);
     const regClose = t.registration_deadline ? new Date(t.registration_deadline).toLocaleDateString('en-IN', { day:'2-digit', month:'short' }) : '—';
     const isPending = t.status === 'PENDING_APPROVAL';
+    const isClosureRequested = t.status === 'CLOSURE_REQUESTED';
 
     return `
       <tr>
@@ -714,6 +730,9 @@ function renderAllMeets() {
             </button>
             ${isPending ? `
               <button class="sa-btn-approve" onclick="approveMeetDirect('${tid}', '${escHtml(t.title.replace(/'/g, "\\'"))}')" style="padding:4px 10px;font-size:0.7rem;"><i class="fas fa-check"></i> Approve</button>
+            ` : ''}
+            ${isClosureRequested ? `
+              <button class="sa-btn-approve" onclick="approveClosure('${tid}', '${escHtml(t.title.replace(/'/g, "\\'"))}')" style="padding:4px 10px;font-size:0.7rem;"><i class="fas fa-flag-checkered"></i> Approve closure</button>
             ` : ''}
           </div>
         </td>

@@ -351,6 +351,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const SKIP_PAGES = ['emdashboard', 'orgdashboard', 'saprofile', 'saoverride', 'admin'];
     if (page === 'index') return;
     if (!fromConsole && SKIP_PAGES.includes(page)) return;
+    // Console pages navigate with their sidebar, so Back would repeat it.
+    if (!fromConsole && document.querySelector('.ac-sidebar')) return;
 
     // If the page already has a visible back control, don't add another.
     // Detect by: "back" in the text, a "back" class, or a left-arrow icon
@@ -395,8 +397,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Place it inside the page header, just left of the SwimFest logo.
     // Pages without a header logo get it in its own bar at the top.
+    // A page with a sidebar marks its brand with [data-back-anchor].
     const header = document.querySelector('body > header, body > .navbar, body > [class*="topbar"]');
-    const logo = header && header.querySelector('[class*="logo"]:not([class*="logout"])');
+    const logo = document.querySelector('[data-back-anchor]')
+      || (header && header.querySelector('[class*="logo"]:not([class*="logout"])'));
     if (logo) {
       btn.classList.add('in-header');
       logo.insertAdjacentElement('beforebegin', btn);

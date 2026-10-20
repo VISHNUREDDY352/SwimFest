@@ -3,244 +3,268 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Result Entry Console — SwimFest</title>
+    <title>Live Results — SwimFest</title>
     <script src="guard.js" data-roles="event_manager,organizer,super_admin"></script>
     <link rel="stylesheet" href="styles.css?v=23">
     <link rel="stylesheet" href="admin.css?v=2">
-    <link rel="stylesheet" href="results.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="console.css?v=2">
+    <style>
+        /* ── Live results: page-specific pieces on top of console.css ── */
+        .lr-head-row { display:flex; flex-wrap:wrap; align-items:center; gap:0.625rem; }
+        .lr-label { display:flex; align-items:center; gap:0.5rem; font-size:0.8rem; font-weight:600; color:var(--ac-muted); flex-wrap:wrap; }
+        .lr-select { height:2.625rem; max-width:100%; padding:0 0.75rem; border:1px solid #cbd5e1; border-radius:0.625rem; background:#fff;
+            font:inherit; font-size:0.86rem; font-weight:600; color:var(--ac-ink); }
+        .lr-select.wide { min-width:22rem; }
+
+        .lr-eventbar { display:flex; flex-wrap:wrap; align-items:center; gap:0.625rem; padding:1rem 1.25rem; border-bottom:1px solid var(--ac-line); }
+        .lr-eventbar .lr-select { flex:1 1 18rem; }
+        .lr-nav-btn { height:2.625rem; width:2.625rem; border-radius:0.625rem; border:1px solid var(--ac-line); background:#fff; color:#334155;
+            cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
+        .lr-nav-btn:hover:not(:disabled) { border-color:var(--ac-blue); color:var(--ac-blue); }
+        .lr-nav-btn:disabled { opacity:0.4; cursor:not-allowed; }
+        .lr-heats { display:flex; flex-wrap:wrap; align-items:center; gap:0.5rem; padding:0.875rem 1.25rem; border-bottom:1px solid var(--ac-line); }
+        .lr-heats-label { font-size:0.78rem; font-weight:600; color:var(--ac-muted); margin-right:0.25rem; }
+        .lr-heat { height:2.25rem; padding:0 0.875rem; border-radius:999px; border:1px solid var(--ac-line); background:#fff; font:inherit;
+            font-size:0.8rem; font-weight:600; color:#334155; cursor:pointer; display:inline-flex; align-items:center; gap:0.375rem; }
+        .lr-heat:hover { border-color:var(--ac-blue); }
+        .lr-heat.done { background:#dcfce7; border-color:#bbf7d0; color:#166534; }
+        .lr-heat.active { background:var(--ac-navy); border-color:var(--ac-navy); color:#fff; }
+        .lr-heat .dirty { width:0.45rem; height:0.45rem; border-radius:999px; background:#f59e0b; }
+
+        .lr-lane { display:inline-flex; align-items:center; justify-content:center; min-width:2.25rem; height:1.75rem; border-radius:0.5rem;
+            background:var(--ac-line-soft); font-weight:700; font-size:0.78rem; color:#334155; }
+        .lr-name { font-weight:700; }
+        .lr-sub { font-size:0.72rem; color:var(--ac-muted); margin-top:2px; }
+        .lr-input, .lr-pick { height:2.25rem; padding:0 0.625rem; border:1px solid #cbd5e1; border-radius:0.5rem; background:#fff; font:inherit; font-size:0.84rem; }
+        .lr-input { width:7.5rem; font-variant-numeric:tabular-nums; font-weight:600; }
+        .lr-input.ok { border-color:#86efac; background:#f0fdf4; }
+        .lr-input.bad { border-color:#f87171; background:#fef2f2; }
+        .lr-input:disabled, .lr-pick:disabled { background:var(--ac-line-soft); color:#94a3b8; }
+        .ac-table tr.lr-empty-lane td { color:#94a3b8; font-style:italic; background:#fafafa; }
+        .ac-table tr.lr-row-dq td { background:#fef2f2; }
+        .ac-table tr.lr-row-out td { background:#f8fafc; }
+        .ac-table tr.lr-row-dirty td:first-child { box-shadow:inset 3px 0 0 #f59e0b; }
+
+        .lr-foot { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:0.75rem; padding:1rem 1.25rem; border-top:1px solid var(--ac-line); }
+        .lr-foot-note { font-size:0.8rem; color:var(--ac-muted); display:flex; align-items:center; gap:0.5rem; }
+        .lr-foot-note.dirty { color:#b45309; font-weight:600; }
+        .lr-foot-actions { display:flex; flex-wrap:wrap; gap:0.5rem; }
+        .lr-publish { background:#16a34a; color:#fff; }
+        .lr-publish:hover:not(:disabled) { background:#15803d; color:#fff; }
+        .ac-btn:disabled { opacity:0.5; cursor:not-allowed; }
+
+        .lr-upload { padding:1.125rem 1.25rem; display:flex; flex-direction:column; gap:0.75rem; border-bottom:1px solid var(--ac-line); }
+        .lr-drop { border:2px dashed #cbd5e1; border-radius:0.75rem; padding:1.25rem; text-align:center; color:var(--ac-muted); cursor:pointer; font-size:0.86rem; }
+        .lr-drop:hover, .lr-drop.over { border-color:var(--ac-blue); color:var(--ac-blue); background:#f0f9ff; }
+        .lr-drop i { font-size:1.4rem; display:block; margin-bottom:0.375rem; }
+        .lr-msg { font-size:0.82rem; padding:0.625rem 0.875rem; border-radius:0.5rem; background:#f8fafc; }
+        .lr-msg.ok { background:#f0fdf4; color:#166534; } .lr-msg.warn { background:#fffbeb; color:#92400e; } .lr-msg.bad { background:#fef2f2; color:#b91c1c; }
+        .lr-msg ul { margin:0.375rem 0 0 1.1rem; padding:0; }
+
+        .lr-banner { display:flex; align-items:flex-start; gap:0.625rem; padding:0.875rem 1.25rem; background:#fffbeb; color:#92400e; font-size:0.84rem; border-bottom:1px solid #fde68a; }
+
+        .lr-rank { font-weight:800; font-variant-numeric:tabular-nums; }
+        .lr-time { font-variant-numeric:tabular-nums; font-weight:700; }
+        .lr-pts { display:inline-block; min-width:1.75rem; text-align:center; padding:2px 0.5rem; border-radius:999px; background:#e0f2fe; color:var(--ac-blue-dark); font-weight:700; font-size:0.78rem; }
+        .lr-pts.none { background:transparent; color:#94a3b8; }
+        .lr-dq { display:inline-block; margin-left:0.375rem; padding:1px 0.375rem; border-radius:0.375rem; background:#fee2e2; color:#b91c1c; font-size:0.68rem; font-weight:700; }
+
+        .lr-modal-table { width:100%; border-collapse:collapse; font-size:0.86rem; }
+        .lr-modal-table th { text-align:left; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--ac-muted); padding:0.5rem 0.625rem; border-bottom:1px solid var(--ac-line); }
+        .lr-modal-table td { padding:0.625rem; border-bottom:1px solid var(--ac-line-soft); }
+
+        @media (max-width:900px) { .lr-select.wide { min-width:0; width:100%; } .lr-label { width:100%; } }
+        @media print {
+            .ac-sidebar, .ac-mobilebar, .ac-page-head, .ac-metrics, #entryCard, .lr-foot, .global-back-bar, .global-back-btn { display:none !important; }
+            .ac-card { border:none; }
+        }
+    </style>
 </head>
-<body class="admin-body">
+<body class="ac-body">
+<div class="ac-shell" id="acShell">
 
-    <!-- Topbar -->
-    <header class="admin-topbar">
-        <div class="admin-topbar-inner">
-            <div class="admin-topbar-left">
-                <a href="index.html" class="admin-logo"><i class="fas fa-swimmer"></i> SwimFest</a>
-                <span class="admin-role-tag"><i class="fas fa-broadcast-tower"></i> Event Manager Console | Live Race Control</span>
-            </div>
-            <div class="admin-topbar-right">
-                <a href="heatgen.html" class="admin-ghost-btn" style="color:rgba(255,255,255,0.6);border-color:rgba(255,255,255,0.15);">
-                    <i class="fas fa-arrow-left"></i> Heat Sheets
-                </a>
-                <a href="racecontrol.html" class="admin-ghost-btn" style="color:rgba(255,255,255,0.6);border-color:rgba(255,255,255,0.15);">
-                    <i class="fas fa-flag-checkered"></i> Race Control
-                </a>
-                <a href="emdashboard.html" class="admin-ghost-btn" style="color:rgba(255,255,255,0.6);border-color:rgba(255,255,255,0.15);">
-                    <i class="fas fa-cogs"></i> EM Console
-                </a>
-                <a href="index.html" class="admin-logout-btn"><i class="fas fa-sign-out-alt"></i> Logout (Admin)</a>
-            </div>
+    <!-- ── Sidebar: links depend on the signed-in role (filled by results.js) ── -->
+    <aside class="ac-sidebar" id="acSidebar" aria-label="Navigation">
+        <a href="admin.html" class="ac-brand" id="lrBrand" data-back-anchor>
+            <span class="ac-brand-mark"><i class="fas fa-swimmer"></i></span>
+            <span>
+                <span class="ac-brand-name">SwimFest</span>
+                <span class="ac-brand-sub" id="lrBrandSub">Event Manager Console</span>
+            </span>
+        </a>
+        <div id="lrNav" style="display:flex;flex-direction:column;gap:1.1rem;"></div>
+        <div class="ac-side-user">
+            <a class="ac-side-user-link" id="lrUserLink">
+                <span class="ac-avatar-lg" id="lrInitials">SF</span>
+                <div class="ac-side-user-info">
+                    <span class="ac-side-user-name" id="lrUserName">Signed in</span>
+                    <span class="ac-side-user-sub" id="lrUserRole"></span>
+                </div>
+            </a>
+            <a href="#" class="ac-icon-btn dash-logout" aria-label="Log out" title="Log out"><i class="fas fa-sign-out-alt"></i></a>
         </div>
-    </header>
+    </aside>
+    <div class="ac-scrim" id="acScrim"></div>
 
-    <main class="admin-main">
-
-        <!-- Tournament + Live Event Banner -->
-        <div class="admin-tournament-banner">
-            <div class="admin-tournament-inner">
-                <div class="admin-t-info">
-                    <div class="admin-t-name" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                        <span>Tournament:</span>
-                        <select id="resTournamentSelect" style="font:inherit;font-weight:700;padding:6px 10px;border-radius:6px;border:1px solid var(--gray-light);max-width:420px;">
-                            <option value="">Loading tournaments…</option>
-                        </select>
-                    </div>
-                    <div class="admin-t-meta">
-                        <span class="res-live-chip"><span class="res-live-dot"></span> Live Race Control</span>
-                        <span class="admin-t-meta-item" id="liveEventLabel">
-                            <i class="fas fa-flag-checkered"></i>
-                            Live Event: <strong id="liveEventName">Event 3 — Boys U-12 50m Freestyle (Pool 1 — 8 Lanes)</strong>
-                        </span>
-                        <span class="admin-t-meta-item" id="liveHeatLabel">
-                            <i class="fas fa-fire"></i> Heat: <strong id="liveHeatName">Heat 3 of 3</strong>
-                        </span>
-                    </div>
-                </div>
-                <div class="res-event-nav">
-                    <button class="admin-btn admin-btn-outline res-nav-btn" id="prevEventBtn"><i class="fas fa-chevron-left"></i> Prev Event</button>
-                    <select id="eventSelector" class="admin-select res-event-select"></select>
-                    <select id="heatSelector" class="admin-select res-heat-select"></select>
-                    <button class="admin-btn admin-btn-outline res-nav-btn" id="nextEventBtn">Next Event <i class="fas fa-chevron-right"></i></button>
-                </div>
-            </div>
+    <!-- ── Main ── -->
+    <div class="ac-main">
+        <div class="ac-mobilebar">
+            <button class="ac-icon-btn" id="acMenuBtn" aria-label="Open menu" aria-controls="acSidebar" aria-expanded="false"><i class="fas fa-bars"></i></button>
+            <span style="font-weight:700;">SwimFest</span>
+            <span style="font-size:0.72rem;color:#94a3b8;">Live results</span>
         </div>
 
-        <div class="res-container">
-
-            <!-- ── Mode Selection ── -->
-            <div class="res-card">
-                <div class="res-card-header">
-                    <i class="fas fa-sliders-h"></i> Result Entry Mode Selection
-                </div>
-                <div class="res-mode-grid">
-                    <label class="res-mode-opt" id="mode1Label">
-                        <input type="radio" name="entryMode" value="1" id="mode1Radio" checked>
-                        <div class="res-mode-icon"><i class="fas fa-keyboard"></i></div>
-                        <div class="res-mode-text">
-                            <strong>Mode 1: Direct Digital Heat Sheet Entry</strong>
-                            <span>Timekeepers type recorded finish times directly into lane rows</span>
-                        </div>
-                        <span class="res-mode-selected-dot"></span>
-                    </label>
-                    <label class="res-mode-opt" id="mode2Label">
-                        <input type="radio" name="entryMode" value="2" id="mode2Radio">
-                        <div class="res-mode-icon"><i class="fas fa-file-upload"></i></div>
-                        <div class="res-mode-text">
-                            <strong>Mode 2: Bulk Excel Upload from Touch-Pad System</strong>
-                            <span>Upload completed timing file from Colorado Time Systems / Meet Manager</span>
-                        </div>
-                        <span class="res-mode-selected-dot"></span>
-                    </label>
-                </div>
-            </div>
-
-            <!-- ── Mode 2: File Upload Block ── -->
-            <div class="res-card" id="mode2Block" style="display:none;">
-                <div class="res-card-header">
-                    <i class="fas fa-file-upload"></i> Mode 2 Control: Touch-Pad Excel Upload
-                </div>
-                <div class="res-upload-body">
-                    <p class="res-upload-desc">Select completed Timing File (.xlsx / .csv) exported from your touch-pad timing system:</p>
-                    <div class="res-upload-row">
-                        <div class="res-file-drop-zone" id="dropZone">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                            <span id="dropZoneText">Choose File or drag &amp; drop here</span>
-                            <input type="file" id="ctxFileInput" accept=".xlsx,.csv,.xls" style="display:none;">
-                        </div>
-                        <button class="admin-btn res-upload-btn" id="uploadFileBtn">
-                            <i class="fas fa-upload"></i> Upload &amp; Parse
-                        </button>
-                    </div>
-                    <div class="res-upload-status" id="uploadStatus" style="display:none;"></div>
-                    <div class="res-upload-preview" id="uploadPreview" style="display:none;"></div>
-                </div>
-            </div>
-
-            <!-- ── Mode 1: Direct Heat Entry Grid ── -->
-            <div class="res-card" id="mode1Block">
-                <div class="res-card-header">
-                    <i class="fas fa-table"></i>
-                    <span id="mode1Title">Mode 1 Control: Direct Heat Entry</span>
-                    <span class="res-heat-info-tag" id="heatInfoTag">Pool 1 — Event 3 — Heat 3 of 3</span>
-                    <div class="res-card-header-actions">
-                        <span class="res-entries-count" id="entriesCount">0 / 8 times entered</span>
+        <main class="ac-container" id="top">
+            <div class="ac-page-head" style="align-items:flex-end;">
+                <div style="display:flex;flex-direction:column;gap:0.625rem;min-width:0;">
+                    <h1 class="ac-page-title">Live results</h1>
+                    <div class="lr-head-row">
+                        <label class="lr-label" for="resTournamentSelect">Meet
+                            <select id="resTournamentSelect" class="lr-select wide"><option value="">Loading meets…</option></select>
+                        </label>
+                        <span class="ac-pill ac-pill-draft" id="meetStatusChip">—</span>
                     </div>
                 </div>
-                <div class="res-grid-wrap">
-                    <table class="res-grid" id="resultGrid">
-                        <thead>
-                            <tr>
-                                <th class="rg-lane">Lane</th>
-                                <th class="rg-swimmer">Swimmer Name</th>
-                                <th class="rg-academy">Academy</th>
-                                <th class="rg-time">Finish Time</th>
-                                <th class="rg-status">Status</th>
-                                <th class="rg-dq">DQ Code</th>
-                            </tr>
-                        </thead>
-                        <tbody id="resultGridBody">
-                            <!-- Rendered by JS -->
-                        </tbody>
-                    </table>
-                </div>
-                <div class="res-grid-actions">
-                    <button class="admin-btn admin-btn-outline" id="saveDraftBtn">
-                        <i class="fas fa-save"></i> Save Heat Results
-                    </button>
-                    <button class="admin-btn res-publish-btn" id="publishResultsBtn">
-                        <i class="fas fa-paper-plane"></i> Convert &amp; Publish Results
-                    </button>
+                <div class="ac-head-actions">
+                    <button type="button" class="ac-btn ac-btn-ghost" id="refreshBtn"><i class="fas fa-rotate"></i> Reload</button>
+                    <button type="button" class="ac-btn ac-btn-ghost" id="viewLeaderboardBtn"><i class="fas fa-chart-bar"></i> Academy leaderboard</button>
                 </div>
             </div>
 
-            <!-- ── Official Result Sheet Preview ── -->
-            <div class="res-card" id="resultSheetCard" style="display:none;">
-                <div class="res-card-header">
-                    <i class="fas fa-medal"></i>
-                    Official Event Result Sheet — <span id="resultSheetEventName">Boys U-12 50m Freestyle</span>
-                    <span class="res-published-chip"><i class="fas fa-check-circle"></i> Published</span>
+            <div class="ac-metrics">
+                <div class="ac-metric">
+                    <span class="ac-metric-icon" style="background:#e0f2fe;color:#0369a1;"><i class="fas fa-flag-checkered"></i></span>
+                    <div><div class="ac-metric-label">Events</div><div class="ac-metric-value" id="statEvents">—</div></div>
                 </div>
-                <div class="res-sheet-wrap">
-                    <table class="res-sheet-table" id="resultSheetTable">
-                        <thead>
-                            <tr>
-                                <th>Rank</th>
-                                <th>Lane</th>
-                                <th>Swimmer Name</th>
-                                <th>Academy</th>
-                                <th>Time</th>
-                                <th>Status</th>
-                                <th>Pts</th>
-                            </tr>
-                        </thead>
-                        <tbody id="resultSheetBody">
-                            <!-- Rendered by JS -->
-                        </tbody>
-                    </table>
+                <div class="ac-metric">
+                    <span class="ac-metric-icon" style="background:#fef3c7;color:#b45309;"><i class="fas fa-water"></i></span>
+                    <div><div class="ac-metric-label">Heats with times</div><div class="ac-metric-value" id="statHeats">—</div></div>
                 </div>
-                <div class="res-sheet-actions">
-                    <button class="admin-btn admin-btn-outline" id="printResultBtn">
-                        <i class="fas fa-print"></i> Print Result Book (PDF)
-                    </button>
-                    <button class="admin-btn res-leaderboard-btn" id="viewLeaderboardBtn">
-                        <i class="fas fa-chart-bar"></i> View Academy Leaderboard
-                    </button>
+                <div class="ac-metric">
+                    <span class="ac-metric-icon" style="background:#dcfce7;color:#15803d;"><i class="fas fa-medal"></i></span>
+                    <div><div class="ac-metric-label">Events published</div><div class="ac-metric-value" id="statPublished">—</div></div>
+                </div>
+                <div class="ac-metric">
+                    <span class="ac-metric-icon" style="background:#ede9fe;color:#6d28d9;"><i class="fas fa-users"></i></span>
+                    <div><div class="ac-metric-label">Swims</div><div class="ac-metric-value" id="statSwims">—</div></div>
                 </div>
             </div>
 
-        </div><!-- /res-container -->
-    </main>
+            <!-- Result entry -->
+            <section class="ac-card" id="entryCard" aria-labelledby="entryTitle">
+                <div class="ac-card-head">
+                    <div>
+                        <h2 class="ac-card-title" id="entryTitle">Enter times</h2>
+                        <p class="ac-card-sub" id="entrySub">Pick an event and heat, then type each lane's finish time</p>
+                    </div>
+                    <div class="ac-seg" role="group" aria-label="How to enter times" id="modeSeg">
+                        <button type="button" class="active" data-mode="type"><i class="fas fa-keyboard"></i> Type times</button>
+                        <button type="button" data-mode="upload"><i class="fas fa-file-csv"></i> Upload result sheet</button>
+                    </div>
+                </div>
 
-    <!-- Academy Leaderboard Modal -->
+                <div class="lr-banner" id="readOnlyBanner" style="display:none;"><i class="fas fa-lock" style="margin-top:2px;"></i><span id="readOnlyText"></span></div>
+
+                <div class="lr-eventbar">
+                    <button type="button" class="lr-nav-btn" id="prevEventBtn" aria-label="Previous event"><i class="fas fa-chevron-left"></i></button>
+                    <select id="eventSelector" class="lr-select" aria-label="Event"></select>
+                    <button type="button" class="lr-nav-btn" id="nextEventBtn" aria-label="Next event"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="lr-heats" id="heatChips"></div>
+
+                <!-- Upload (CSV result sheet from Race control) -->
+                <div class="lr-upload" id="uploadBlock" style="display:none;">
+                    <p class="ac-card-sub" style="margin:0;">Upload the <strong>result sheet CSV</strong> downloaded from Race control (manual timing), with the Finish time, Status and DQ code columns filled in. Times load into the table below so you can check them, then <strong>Save</strong>. Excel files: save as CSV first.</p>
+                    <div class="lr-drop" id="dropZone" role="button" tabindex="0">
+                        <i class="fas fa-cloud-arrow-up"></i>
+                        <span id="dropZoneText">Choose a .csv file or drop it here</span>
+                        <input type="file" id="ctxFileInput" accept=".csv,text/csv" style="display:none;">
+                    </div>
+                    <div class="lr-msg" id="uploadStatus" style="display:none;"></div>
+                </div>
+
+                <div class="ac-table-wrap">
+                    <table class="ac-table">
+                        <thead>
+                            <tr><th>Lane</th><th>Swimmer</th><th>Seed</th><th>Finish time</th><th>Status</th><th>DQ code</th></tr>
+                        </thead>
+                        <tbody id="resultGridBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="lr-foot">
+                    <span class="lr-foot-note" id="entriesCount">—</span>
+                    <div class="lr-foot-actions">
+                        <button type="button" class="ac-btn ac-btn-ghost" id="saveHeatBtn"><i class="fas fa-floppy-disk"></i> Save heat</button>
+                        <button type="button" class="ac-btn lr-publish" id="publishResultsBtn"><i class="fas fa-paper-plane"></i> Publish event results</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Official result sheet (published events) -->
+            <section class="ac-card" id="resultSheetCard" style="display:none;" aria-labelledby="resultSheetTitle">
+                <div class="ac-card-head">
+                    <div>
+                        <h2 class="ac-card-title" id="resultSheetTitle">Official results</h2>
+                        <p class="ac-card-sub" id="resultSheetEventName"></p>
+                    </div>
+                    <div class="lr-foot-actions">
+                        <span class="ac-pill ac-pill-live"><i class="fas fa-check-circle"></i> Published</span>
+                        <button type="button" class="ac-btn ac-btn-ghost" id="printResultBtn"><i class="fas fa-print"></i> Print</button>
+                    </div>
+                </div>
+                <div class="ac-table-wrap">
+                    <table class="ac-table">
+                        <thead>
+                            <tr><th>Rank</th><th>Swimmer</th><th>Heat / lane</th><th>Time</th><th>Status</th><th>Points</th></tr>
+                        </thead>
+                        <tbody id="resultSheetBody"></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+    <!-- Academy leaderboard -->
     <div class="modal-overlay" id="leaderboardModal">
-        <div class="modal res-modal">
+        <div class="modal" style="max-width:640px;">
             <div class="modal-header">
-                <h3><i class="fas fa-chart-bar"></i> Academy Championship Leaderboard</h3>
-                <button class="modal-close" id="leaderboardClose"><i class="fas fa-times"></i></button>
+                <h3><i class="fas fa-chart-bar"></i> Academy leaderboard</h3>
+                <button class="modal-close" id="leaderboardClose" aria-label="Close"><i class="fas fa-times"></i></button>
             </div>
-            <div class="modal-body res-modal-body">
-                <div class="res-lb-meta" id="lbMeta"></div>
-                <table class="res-lb-table" id="leaderboardTable">
-                    <thead>
-                        <tr>
-                            <th>Rank</th>
-                            <th>Academy</th>
-                            <th>Gold</th>
-                            <th>Silver</th>
-                            <th>Bronze</th>
-                            <th>Total Points</th>
-                        </tr>
-                    </thead>
+            <div class="modal-body" style="padding:16px 24px 24px;">
+                <p class="ac-card-sub" id="lbMeta" style="margin:0 0 12px;"></p>
+                <table class="lr-modal-table">
+                    <thead><tr><th>#</th><th>Academy</th><th>🥇</th><th>🥈</th><th>🥉</th><th>Points</th></tr></thead>
                     <tbody id="leaderboardBody"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- Publish Confirm Modal -->
+    <!-- Publish confirm -->
     <div class="modal-overlay" id="publishConfirmModal">
-        <div class="modal" style="max-width:460px;">
+        <div class="modal" style="max-width:480px;">
             <div class="modal-header">
-                <h3><i class="fas fa-paper-plane" style="color:var(--success)"></i> Publish Official Results</h3>
-                <button class="modal-close" id="publishConfirmClose"><i class="fas fa-times"></i></button>
+                <h3><i class="fas fa-paper-plane" style="color:#16a34a"></i> Publish event results</h3>
+                <button class="modal-close" id="publishConfirmClose" aria-label="Close"><i class="fas fa-times"></i></button>
             </div>
-            <div class="modal-body" style="padding:20px 24px;">
+            <div class="modal-body" style="padding:20px 24px;font-size:0.9rem;line-height:1.55;">
                 <div id="publishConfirmBody"></div>
             </div>
             <div class="modal-footer admin-modal-footer">
                 <button class="admin-btn admin-btn-outline" id="publishConfirmCancel">Cancel</button>
-                <button class="admin-btn" style="background:var(--success);color:white;" id="publishConfirmGo">
-                    <i class="fas fa-check"></i> Confirm &amp; Publish
-                </button>
+                <button class="admin-btn" style="background:#16a34a;color:#fff;" id="publishConfirmGo"><i class="fas fa-check"></i> Publish</button>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=7"></script>
-    <script src="auth.js?v=9"></script>
-    <script src="results.js"></script>
+    <script src="auth.js?v=11"></script>
+    <script src="results.js?v=3"></script>
 </body>
 </html>

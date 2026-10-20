@@ -52,13 +52,109 @@ function clearAllErrors() {
 }
 
 // ── Tab switching ─────────────────────────────────────────────
+// Views: 'login' | 'signup' | 'forgot' (request reset link) | 'reset' (set new password)
 window.switchTab = function(tab) {
-  const isLogin = tab === 'login';
-  $('tabLogin').classList.toggle('active', isLogin);
-  $('tabSignup').classList.toggle('active', !isLogin);
-  $('loginForm').style.display  = isLogin ? '' : 'none';
-  $('signupForm').style.display = isLogin ? 'none' : '';
+  const forms = { login: 'loginForm', signup: 'signupForm', forgot: 'forgotForm', reset: 'resetForm' };
+  Object.entries(forms).forEach(([key, id]) => { $(id).style.display = key === tab ? '' : 'none'; });
+  $('tabLogin').classList.toggle('active', tab === 'login');
+  $('tabSignup').classList.toggle('active', tab === 'signup');
+  // The Login / Sign Up tabs only make sense on those two views
+  document.querySelector('.login-tabs').style.display = (tab === 'login' || tab === 'signup') ? '' : 'none';
+  if (tab === 'forgot') {
+    const typed = $('loginEmail').value.trim();
+    if (typed.includes('@') && !$('forgotEmail').value) $('forgotEmail').value = typed;
+    $('forgotSent').style.display = 'none';
+  }
   clearAllErrors();
+};
+
+// ── Forgot password: email a reset link ───────────────────────
+window.handleForgot = async function(e) {
+  e.preventDefault();
+  clearAllErrors();
+  const email = $('forgotEmail').value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('forgotEmail', 'Enter the email you signed up with.'); return; }
+  if (!window.sb) { showError('forgotEmail', 'Could not reach the server — refresh the page.'); return; }
+
+  const btn = e.target.querySelector('.login-submit-btn');
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Sending…';
+  btn.disabled = true;
+
+  // The link brings the user back to this page in "reset" mode
+  const redirectTo = `${window.location.origin}${window.location.pathname}?mode=reset`;
+  const { error } = await window.sb.auth.resetPasswordForEmail(email, { redirectTo });
+
+  btn.innerHTML = orig; btn.disabled = false;
+  if (error) { showError('forgotEmail', error.message || 'Could not send the reset link. Try again.'); return; }
+
+  // Same message whether or not the account exists, so emails can't be probed
+  $('forgotSentText').textContent = `If an account exists for ${email}, a reset link is on its way. Check your inbox and spam folder.`;
+  $('forgotSent').style.display = '';
+};
+
+// ── Reset password: opened from the emailed link ──────────────
+function isRecoveryLink() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('mode') === 'reset' || /type=recovery/.test(window.location.hash);
+}
+
+// The emailed link can also come back with an error (expired / already used)
+function recoveryLinkError() {
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const query = new URLSearchParams(window.location.search);
+  const msg = hash.get('error_description') || query.get('error_description');
+  return msg ? msg.replace(/\+/g, ' ') : null;
+}
+
+function initPasswordRecovery() {
+  const linkError = recoveryLinkError();
+  if (linkError) {
+    switchTab('forgot');
+    showError('forgotEmail', `${linkError}. Request a new link below.`);
+    history.replaceState(null, '', window.location.pathname);
+    return;
+  }
+  if (isRecoveryLink()) switchTab('reset');
+  // Supabase signals a recovery sign-in once it has read the link
+  if (window.sb) {
+    window.sb.auth.onAuthStateChange(event => {
+      if (event === 'PASSWORD_RECOVERY') switchTab('reset');
+    });
+  }
+}
+
+window.handleResetPassword = async function(e) {
+  e.preventDefault();
+  clearAllErrors();
+  const pass = $('resetPassword').value;
+  const confirm = $('resetConfirm').value;
+  if (pass.length < 6) { showError('resetPassword', 'Use at least 6 characters.'); return; }
+  if (pass !== confirm) { showError('resetConfirm', 'The two passwords do not match.'); return; }
+  if (!window.sb) { showError('resetPassword', 'Could not reach the server — refresh the page.'); return; }
+
+  const { data } = await window.sb.auth.getSession();
+  if (!data || !data.session) {
+    switchTab('forgot');
+    showError('forgotEmail', 'This reset link has expired or was already used. Request a new one.');
+    return;
+  }
+
+  const btn = e.target.querySelector('.login-submit-btn');
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Saving…';
+  btn.disabled = true;
+  const { error } = await window.sb.auth.updateUser({ password: pass });
+  btn.innerHTML = orig; btn.disabled = false;
+  if (error) { showError('resetPassword', error.message || 'Could not save the new password.'); return; }
+
+  // Sign out of the recovery session so the user logs in normally
+  await window.sb.auth.signOut();
+  history.replaceState(null, '', window.location.pathname);
+  $('resetPassword').value = '';
+  $('resetConfirm').value = '';
+  switchTab('login');
+  showToast('Password updated. Sign in with your new password.', 'success');
 };
 
 // ── Password toggle ───────────────────────────────────────────
@@ -444,5 +540,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initSignupExtras();
   showReasonBanner();
   applyPreselectFromUrl();
+  initPasswordRecovery();
   checkExistingSession();
 });
