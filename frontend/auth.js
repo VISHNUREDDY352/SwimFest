@@ -7,6 +7,8 @@
 'use strict';
 
 const SESSION_KEY = 'swimfest_session';
+// Super admin console section to return to (written by superadmin.js)
+const SA_RETURN_KEY = 'swimfest_sa_return';
 
 const SwimAuth = {
   // ── Local session mirror (fast, synchronous) ──────────────
@@ -311,35 +313,69 @@ document.addEventListener('DOMContentLoaded', () => {
     SwimAuth.logoutAndRedirect();
   });
 
-  // ── Universal floating "Back" button ────────────────────────
-  // Adds a top-left Back button to any page that doesn't already
+  // ── Universal "Back" button ─────────────────────────────────
+  // Adds a Back button to the header of any page that doesn't already
   // have back navigation. Skips the home page and role landing
   // dashboards (where "back" has no meaning). History-aware.
+  // Super admins always return to the super admin console, on the
+  // section they last had open there.
   (function initBackButton() {
     const rawPage = (window.location.pathname.split('/').pop() || 'index.html');
     const page = rawPage.split('?')[0].split('#')[0].toLowerCase();
 
+    const session = SwimAuth.getSession();
+    const isSuperAdmin = !!session && session.role === 'super_admin';
+    if (page === 'superadmin.html') return;
+
+    let saReturn = 'superadmin.html';
+    try { saReturn = localStorage.getItem(SA_RETURN_KEY) || saReturn; } catch (_) {}
+    const goBack = () => {
+      if (isSuperAdmin) window.location.href = saReturn;
+      else if (window.history.length > 1) window.history.back();
+      else window.location.href = 'index.html';
+    };
+
     // Pages that should NOT get an injected back button:
     //  - the home page itself
     //  - role landing pages / dashboards (their own nav returns elsewhere)
+    // A super admin still gets one on the dashboards, to return to the console.
     const SKIP_PAGES = [
       '', 'index.html',
-      'superadmin.html', 'emdashboard.html', 'orgdashboard.html',
+      'emdashboard.html', 'orgdashboard.html',
       'saprofile.html', 'saoverride.html', 'admin.html',
     ];
-    if (SKIP_PAGES.includes(page)) return;
+    if (page === '' || page === 'index.html') return;
+    if (!isSuperAdmin && SKIP_PAGES.includes(page)) return;
 
     // If the page already has a visible back control, don't add another.
     // Detect by: "back" in the text, a "back" class, or a left-arrow icon
     // inside a link/button (covers "Master Player List", "EM Dashboard", etc.).
-    const hasBack = Array.from(document.querySelectorAll('a, button')).some(el => {
+    const backControls = Array.from(document.querySelectorAll('a, button')).filter(el => {
       const t = (el.textContent || '').trim().toLowerCase();
       if (/(^|\s)back(\s|$)/.test(t)) return true;
-      if (el.className.toLowerCase().includes('back')) return true;
+      if (String(el.className).toLowerCase().includes('back')) return true;
       if (el.querySelector && el.querySelector('.fa-arrow-left')) return true;
       return false;
     });
-    if (hasBack) return;
+    if (isSuperAdmin) {
+      // A page's own "back to dashboard" links also lead to the console.
+      // Only links to a dashboard/home page are redirected — in-page
+      // buttons (wizard steps, modal "Go back") keep their behaviour.
+      const DASHBOARD_PAGES = ['index.html', 'emdashboard.html', 'admin.html', 'orgdashboard.html', 'superadmin.html'];
+      backControls.forEach(el => {
+        if (el.tagName !== 'A') return;
+        const target = (el.getAttribute('href') || '').split(/[?#]/)[0].split('/').pop().toLowerCase();
+        if (!DASHBOARD_PAGES.includes(target)) return;
+        el.setAttribute('href', saReturn);
+        el.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          goBack();
+        }, true);
+      });
+    } else if (backControls.length) {
+      return;
+    }
 
     // Opt-out via <body data-no-back> if ever needed
     if (document.body.hasAttribute('data-no-back')) return;
@@ -348,12 +384,25 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.type = 'button';
     btn.id = 'globalBackBtn';
     btn.className = 'global-back-btn';
-    btn.innerHTML = '<i class="fas fa-arrow-left"></i> Back';
-    btn.addEventListener('click', () => {
-      if (window.history.length > 1) window.history.back();
-      else window.location.href = 'index.html';
-    });
-    document.body.appendChild(btn);
+    btn.innerHTML = '<i class="fas fa-arrow-left"></i><span>Back</span>';
+    btn.setAttribute('aria-label', 'Go back');
+    if (isSuperAdmin) btn.title = 'Back to Super Admin console';
+    btn.addEventListener('click', goBack);
+
+    // Place it inside the page header, just left of the SwimFest logo.
+    // Pages without a header logo get it in its own bar at the top.
+    const header = document.querySelector('body > header, body > .navbar, body > [class*="topbar"]');
+    const logo = header && header.querySelector('[class*="logo"]:not([class*="logout"])');
+    if (logo) {
+      btn.classList.add('in-header');
+      logo.insertAdjacentElement('beforebegin', btn);
+    } else {
+      const bar = document.createElement('div');
+      bar.className = 'global-back-bar';
+      bar.appendChild(btn);
+      if (header) header.insertAdjacentElement('afterend', bar);
+      else document.body.insertAdjacentElement('afterbegin', bar);
+    }
   })();
 
   // ── Universal mobile menu (compact top-right dropdown) ──────

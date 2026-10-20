@@ -5,572 +5,498 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Super Admin Console — SwimFest</title>
     <script src="guard.js" data-roles="super_admin"></script>
-    <link rel="stylesheet" href="styles.css?v=21">
+    <link rel="stylesheet" href="styles.css?v=23">
     <link rel="stylesheet" href="admin.css?v=2">
     <link rel="stylesheet" href="dashboard.css?v=2">
     <link rel="stylesheet" href="emdashboard.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* ── Super Admin specific overrides ── */
-        .sa-body { background:#f0f2f5; }
+        /* ── Super Admin layout tokens ── */
+        :root {
+            --sa-navy: #0b1b33;
+            --sa-navy-2: #13345c;
+            --sa-navy-line: #1b3358;
+            --sa-blue: #0369a1;
+            --sa-blue-dark: #075985;
+            --sa-ink: #0f172a;
+            --sa-muted: #475569;
+            --sa-line: #e2e8f0;
+            --sa-line-soft: #f1f5f9;
+            --sa-bg: #f4f6f9;
+            --sa-sidebar-w: 256px;
+        }
+        .sa-body { background:var(--sa-bg); color:var(--sa-ink); font-family:'Inter',sans-serif; margin:0; }
 
-        /* Sticky Master Header */
-        .sa-master-header {
-            background: var(--dark);
-            position: sticky;
-            top: 0;
-            z-index: 9999;
-            border-bottom: 1px solid rgba(255,255,255,0.07);
-        }
-        .sa-topbar-inner {
-            max-width:1400px; margin:0 auto; padding:0 24px;
-            height:56px; display:flex; align-items:center; gap:16px;
-        }
-        .sa-logo { font-size:1.1rem; font-weight:800; color:var(--white);
-            text-decoration:none; display:flex; align-items:center; gap:8px; }
-        .sa-logo i { color:var(--accent); }
-        .sa-role-tag { font-size:0.68rem; font-weight:700; text-transform:uppercase;
-            letter-spacing:0.8px; color:rgba(255,255,255,0.35);
-            border-left:1px solid rgba(255,255,255,0.12); padding-left:16px; }
-        .sa-topbar-right { margin-left:auto; display:flex; align-items:center; gap:10px; }
-        .sa-user-btn { display:flex; align-items:center; gap:7px; padding:7px 14px;
-            border:1px solid rgba(255,255,255,0.18); border-radius:var(--radius-sm);
-            background:transparent; color:rgba(255,255,255,0.8); font-size:0.8rem;
-            font-weight:600; font-family:inherit; cursor:pointer; transition:var(--transition); }
-        .sa-user-btn:hover { border-color:rgba(255,255,255,0.4); }
-        .sa-logout { display:flex; align-items:center; gap:6px; padding:7px 12px;
-            border:1px solid rgba(255,255,255,0.12); border-radius:var(--radius-sm);
-            color:rgba(255,255,255,0.5); font-size:0.78rem; font-weight:600;
-            text-decoration:none; transition:var(--transition); }
-        .sa-logout:hover { color:var(--danger); border-color:var(--danger); }
+        /* ── Shell: sidebar + main ── */
+        .sa-shell { display:flex; min-height:100vh; }
 
-        /* Sticky Sub-nav */
-        .sa-subnav {
-            background: var(--dark-secondary);
-            border-bottom:1px solid rgba(255,255,255,0.08);
-            position:sticky; top:56px; z-index:998;
+        .sa-sidebar {
+            width:var(--sa-sidebar-w); flex:none; background:var(--sa-navy); color:#cbd5e1;
+            position:sticky; top:0; height:100vh; overflow-y:auto;
+            display:flex; flex-direction:column; gap:18px; padding:20px 14px; box-sizing:border-box;
+            z-index:1000;
         }
-        .sa-subnav-inner {
-            max-width:1400px; margin:0 auto; padding:0 24px;
-            display:flex; gap:4px; height:48px; align-items:center; overflow-x:auto;
-        }
-        .sa-nav-tab {
-            display:inline-flex; align-items:center; gap:7px;
-            padding:10px 16px; color:rgba(255,255,255,0.5);
-            font-size:0.8rem; font-weight:600; text-decoration:none;
-            border-radius:var(--radius-sm); white-space:nowrap;
-            transition:var(--transition); cursor:pointer;
-            border:none; background:none; font-family:inherit;
-        }
-        .sa-nav-tab:hover { background:rgba(255,255,255,0.07); color:var(--white); }
-        .sa-nav-tab.active { background:var(--primary); color:var(--white); }
-        .sa-nav-tab i { font-size:0.85rem; }
+        .sa-sidebar::-webkit-scrollbar { width:6px; }
+        .sa-sidebar::-webkit-scrollbar-thumb { background:var(--sa-navy-line); border-radius:3px; }
 
-        /* Container */
-        .sa-container { max-width:1400px; margin:0 auto; padding:24px 24px 80px; }
+        .sa-brand { display:flex; align-items:center; gap:10px; padding:0 8px; text-decoration:none; }
+        .sa-brand-mark { width:36px; height:36px; border-radius:10px; background:var(--sa-blue);
+            display:flex; align-items:center; justify-content:center; color:#fff; font-size:1rem; }
+        .sa-brand-name { display:block; font-weight:700; font-size:1.05rem; color:#fff; }
+        .sa-brand-sub { display:block; font-size:0.7rem; color:#94a3b8; font-weight:500; }
 
-        /* Metrics grid */
-        .sa-metrics-grid {
-            display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px;
-        }
-        .sa-metric-card {
-            background:var(--white); border:1px solid var(--gray-light);
-            border-radius:var(--radius); padding:20px 22px;
-            box-shadow:var(--shadow); position:relative; overflow:hidden;
-        }
-        .sa-metric-card::before { content:''; position:absolute; top:0; left:0; right:0;
-            height:3px; background:var(--primary); }
-        .sa-metric-card.green::before { background:var(--success); }
-        .sa-metric-card.orange::before { background:var(--warning); }
-        .sa-metric-card.red::before { background:var(--danger); }
-        .sa-metric-icon { font-size:1.1rem; color:var(--primary); margin-bottom:8px; }
-        .sa-metric-card.green .sa-metric-icon { color:var(--success); }
-        .sa-metric-card.orange .sa-metric-icon { color:var(--warning); }
-        .sa-metric-label { font-size:0.68rem; font-weight:700; text-transform:uppercase;
-            letter-spacing:0.6px; color:var(--gray); }
-        .sa-metric-value { font-size:2rem; font-weight:800; color:var(--dark);
-            letter-spacing:-1px; line-height:1; margin:6px 0 4px; }
-        .sa-metric-sub { font-size:0.72rem; color:var(--gray); }
+        .sa-side-group { display:flex; flex-direction:column; gap:2px; }
+        .sa-side-label { font-size:0.66rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px;
+            color:#64748b; padding:0 10px; margin:6px 0 4px; }
 
-        /* Section cards */
-        .sa-section {
-            background:var(--white); border:1px solid var(--gray-light);
-            border-radius:var(--radius); overflow:hidden;
-            margin-bottom:20px; box-shadow:var(--shadow);
+        .sa-side-link {
+            display:flex; align-items:center; gap:12px; min-height:40px; padding:0 10px;
+            border-radius:8px; border:0; background:none; width:100%; box-sizing:border-box;
+            color:#cbd5e1; font:inherit; font-size:0.86rem; font-weight:500; text-align:left;
+            text-decoration:none; cursor:pointer; transition:background 0.15s, color 0.15s;
         }
-        .sa-section-header {
-            display:flex; align-items:center; justify-content:space-between;
-            padding:13px 20px; background:var(--light);
-            border-bottom:1px solid var(--gray-light); gap:12px; flex-wrap:wrap;
-        }
-        .sa-section-title {
-            font-size:0.78rem; font-weight:800; text-transform:uppercase;
-            letter-spacing:0.8px; color:var(--dark);
-            display:flex; align-items:center; gap:8px;
-        }
-        .sa-section-title i { color:var(--primary); }
-        .sa-badge { font-size:0.68rem; font-weight:700; padding:3px 10px;
-            border-radius:20px; background:var(--warning); color:var(--white); }
-        .sa-badge.green { background:var(--success); }
-        .sa-badge.red   { background:var(--danger); }
+        .sa-side-link i { width:18px; text-align:center; font-size:0.9rem; color:#94a3b8; }
+        .sa-side-link:hover { background:rgba(255,255,255,0.06); color:#fff; }
+        .sa-side-link:hover i { color:#fff; }
+        .sa-side-link.active { background:var(--sa-navy-2); color:#fff; font-weight:600; }
+        .sa-side-link.active i { color:#38bdf8; }
+        .sa-side-link.warn, .sa-side-link.warn i { color:#fcd34d; }
+        .sa-side-count { margin-left:auto; font-size:0.68rem; font-weight:700; background:#f59e0b; color:#1c1917;
+            padding:2px 8px; border-radius:999px; }
+        .sa-side-count.is-zero { background:#1e3a5f; color:#94a3b8; }
 
-        /* Queue table */
-        .sa-queue-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
-        .sa-queue-table th { padding:9px 16px; text-align:left; font-size:0.65rem;
-            font-weight:700; text-transform:uppercase; letter-spacing:0.6px;
-            color:var(--gray); background:var(--light);
-            border-bottom:2px solid var(--gray-light); white-space:nowrap; }
-        .sa-queue-table td { padding:12px 16px; border-bottom:1px solid var(--gray-light);
-            color:var(--dark); vertical-align:middle; }
+        .sa-side-sub { display:flex; flex-direction:column; gap:1px; padding-left:30px; }
+        .sa-side-sub .sa-side-link { min-height:34px; font-size:0.8rem; color:#94a3b8; }
+        .sa-side-sub .sa-side-link.active { background:none; color:#fff; font-weight:600; }
+        .sa-side-sub .sa-side-link .sa-mini { margin-left:auto; font-size:0.7rem; color:#64748b; font-weight:600; }
+
+        .sa-side-user { margin-top:auto; border-top:1px solid var(--sa-navy-line); padding:14px 6px 0;
+            display:flex; align-items:center; gap:10px; }
+        .sa-avatar-lg { width:36px; height:36px; flex:none; border-radius:999px; background:var(--sa-blue); color:#fff;
+            display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:700; }
+        .sa-side-user-info { min-width:0; display:flex; flex-direction:column; }
+        .sa-side-user-name { font-size:0.82rem; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .sa-side-user-mail { font-size:0.72rem; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .sa-icon-btn { width:40px; height:40px; flex:none; border-radius:8px; border:0; background:none; color:#cbd5e1;
+            display:flex; align-items:center; justify-content:center; cursor:pointer; text-decoration:none; }
+        .sa-icon-btn:hover { background:rgba(255,255,255,0.08); color:#fff; }
+        .sa-side-user .sa-logout:hover { color:#fca5a5; }
+
+        .sa-main { flex:1; min-width:0; display:flex; flex-direction:column; }
+
+        /* Mobile top bar (hidden on desktop) */
+        .sa-mobilebar { display:none; position:sticky; top:0; z-index:900; background:var(--sa-navy); color:#fff;
+            align-items:center; gap:10px; padding:8px 12px; }
+        .sa-mobilebar .sa-icon-btn { width:44px; height:44px; color:#fff; font-size:1.1rem; }
+        .sa-scrim { display:none; }
+
+        .sa-container { width:100%; max-width:1400px; margin:0 auto; padding:24px 28px 64px; box-sizing:border-box; }
+
+        /* ── Page header ── */
+        .sa-page-head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:20px; }
+        .sa-page-title { margin:0; font-size:1.5rem; font-weight:700; letter-spacing:-0.3px; }
+        .sa-page-sub { margin:4px 0 0; font-size:0.84rem; color:var(--sa-muted); display:flex; align-items:center; gap:8px; }
+        .sa-live-dot { width:8px; height:8px; border-radius:999px; background:#16a34a; animation:livePulse 2s ease-in-out infinite; }
+        .sa-head-actions { display:flex; gap:10px; flex-wrap:wrap; }
+        .sa-btn { display:inline-flex; align-items:center; gap:8px; height:42px; padding:0 16px; border-radius:10px;
+            font:inherit; font-size:0.86rem; font-weight:600; cursor:pointer; text-decoration:none; border:1px solid transparent; }
+        .sa-btn-primary { background:var(--sa-blue); color:#fff; }
+        .sa-btn-primary:hover { background:var(--sa-blue-dark); }
+        .sa-btn-ghost { background:#fff; color:#334155; border-color:#cbd5e1; }
+        .sa-btn-ghost:hover { border-color:var(--sa-blue); color:var(--sa-blue); }
+
+        /* ── KPI strip ── */
+        .sa-metrics-grid { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:14px; margin-bottom:20px; }
+        .sa-metric-card { background:#fff; border:1px solid var(--sa-line); border-radius:12px; padding:16px 18px;
+            display:flex; align-items:center; gap:14px; }
+        .sa-metric-icon { width:40px; height:40px; flex:none; border-radius:10px; display:flex; align-items:center; justify-content:center;
+            background:#e0f2fe; color:var(--sa-blue); font-size:1rem; }
+        .sa-metric-card.green .sa-metric-icon { background:#dcfce7; color:#15803d; }
+        .sa-metric-card.orange .sa-metric-icon { background:#fef3c7; color:#b45309; }
+        .sa-metric-card.purple .sa-metric-icon { background:#ede9fe; color:#6d28d9; }
+        .sa-metric-label { font-size:0.78rem; font-weight:600; color:var(--sa-muted); }
+        .sa-metric-value { font-size:1.5rem; font-weight:700; color:var(--sa-ink); letter-spacing:-0.5px; line-height:1.2; }
+
+        /* ── Cards ── */
+        .sa-section { background:#fff; border:1px solid var(--sa-line); border-radius:14px; overflow:hidden; margin-bottom:20px; }
+        .sa-section-header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+            padding:14px 18px; border-bottom:1px solid var(--sa-line); }
+        .sa-section-title { font-size:0.95rem; font-weight:700; color:var(--sa-ink); display:flex; align-items:center; gap:8px; }
+        .sa-section-title i { color:var(--sa-blue); }
+        .sa-badge { font-size:0.7rem; font-weight:700; padding:3px 10px; border-radius:999px; background:#fef3c7; color:#92400e; }
+        .sa-badge.green { background:#dcfce7; color:#166534; }
+        .sa-badge.red   { background:#fee2e2; color:#b91c1c; }
+
+        /* Queue tabs inside the approvals card */
+        .sa-qtabs { display:flex; gap:4px; padding:6px 14px 0; border-bottom:1px solid var(--sa-line); overflow-x:auto; scrollbar-width:none; }
+        .sa-qtabs::-webkit-scrollbar { display:none; }
+        .sa-qtab { flex:none; height:46px; padding:0 14px; border:0; background:none; font:inherit; font-size:0.86rem; font-weight:600;
+            color:var(--sa-muted); border-bottom:3px solid transparent; cursor:pointer; display:flex; align-items:center; gap:8px; }
+        .sa-qtab:hover { color:var(--sa-ink); }
+        .sa-qtab.active { color:var(--sa-blue); border-bottom-color:var(--sa-blue); }
+        .sa-qcount { font-size:0.7rem; min-width:22px; height:22px; padding:0 6px; box-sizing:border-box; border-radius:999px;
+            background:var(--sa-line-soft); color:#334155; display:inline-flex; align-items:center; justify-content:center; }
+        .sa-qtab.active .sa-qcount { background:#e0f2fe; color:var(--sa-blue-dark); }
+        .sa-qcount.has-items { background:#fef3c7; color:#92400e; }
+
+        .sa-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:14px 18px; }
+        .sa-toolbar-title { font-size:0.95rem; font-weight:700; }
+        .sa-toolbar-sub { font-size:0.78rem; color:var(--sa-muted); margin-top:2px; }
+        .sa-search-wrap { display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #cbd5e1; border-radius:10px;
+            padding:0 12px; height:42px; min-width:240px; max-width:360px; flex:1; box-sizing:border-box; }
+        .sa-search-wrap:focus-within { border-color:var(--sa-blue); box-shadow:0 0 0 3px rgba(3,105,161,0.12); }
+        .sa-search-wrap i { color:#64748b; font-size:0.85rem; }
+        .sa-search-wrap input { border:none; outline:none; font-size:0.86rem; font-family:inherit; width:100%; color:var(--sa-ink); background:transparent; }
+
+        .sa-qpanel { display:none; }
+        .sa-qpanel.active { display:block; }
+
+        /* ── Tables ── */
+        .sa-table-wrap { overflow-x:auto; }
+        .sa-queue-table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+        .sa-queue-table th { padding:10px 16px; text-align:left; font-size:0.74rem; font-weight:600; color:var(--sa-muted);
+            background:#f8fafc; border-top:1px solid var(--sa-line); border-bottom:1px solid var(--sa-line); white-space:nowrap; }
+        .sa-queue-table td { padding:12px 16px; border-bottom:1px solid var(--sa-line-soft); color:var(--sa-ink); vertical-align:middle; }
         .sa-queue-table tr:last-child td { border-bottom:none; }
-        .sa-queue-table tr:hover td { background:#fafafa; }
+        .sa-queue-table tbody tr:hover td { background:#f8fafc; }
+        .sa-queue-table td.sa-empty-cell { text-align:center; padding:48px 16px; color:var(--sa-muted); }
+        .sa-empty-icon { width:48px; height:48px; border-radius:14px; background:#dcfce7; color:#15803d;
+            display:flex; align-items:center; justify-content:center; margin:0 auto 10px; font-size:1.1rem; }
 
-        .sa-meet-title { font-weight:700; font-size:0.87rem; }
-        .sa-meet-sub { font-size:0.72rem; color:var(--gray); margin-top:3px; display:flex; gap:6px; flex-wrap:wrap; }
-        .sa-cat-pill { display:inline-block; padding:1px 7px; border-radius:20px;
-            font-size:0.65rem; font-weight:700; background:var(--primary); color:var(--white); }
+        .sa-person { display:flex; align-items:center; gap:10px; }
+        .sa-avatar { width:32px; height:32px; flex:none; border-radius:999px; display:flex; align-items:center; justify-content:center;
+            font-size:0.72rem; font-weight:700; }
+        .sa-av-0 { background:#e0f2fe; color:#075985; }
+        .sa-av-1 { background:#dcfce7; color:#166534; }
+        .sa-av-2 { background:#fef3c7; color:#92400e; }
+        .sa-av-3 { background:#ede9fe; color:#5b21b6; }
 
-        /* Upfront fee status chips */
-        .sa-fee-chip { display:inline-flex; align-items:center; gap:5px;
-            padding:4px 10px; border-radius:20px; font-size:0.72rem; font-weight:700; }
-        .fee-paid { background:#d4edda; color:#155724; }
-        .fee-paid i { color:var(--success); }
-        .fee-pending { background:#fde8e8; color:var(--danger); }
-        .fee-na { background:var(--gray-light); color:var(--gray); }
+        .sa-meet-title { font-weight:600; font-size:0.87rem; }
+        .sa-meet-sub { font-size:0.74rem; color:var(--sa-muted); margin-top:3px; display:flex; gap:6px; flex-wrap:wrap; }
+        .sa-cat-pill { display:inline-block; padding:1px 7px; border-radius:999px; font-size:0.66rem; font-weight:700; background:#e0f2fe; color:var(--sa-blue-dark); }
 
-        /* Approve / Reject buttons */
-        .sa-btn-approve {
-            padding:6px 14px; background:var(--success); color:var(--white);
-            border:none; border-radius:var(--radius-sm); font-size:0.75rem;
-            font-weight:700; font-family:inherit; cursor:pointer; transition:var(--transition);
-        }
-        .sa-btn-approve:hover { background:#219a52; }
-        .sa-btn-approve:disabled { background:var(--gray-light); color:var(--gray); cursor:default; }
+        .sa-fee-chip { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; font-size:0.72rem; font-weight:700; }
+        .fee-paid { background:#dcfce7; color:#166534; }
+        .fee-pending { background:#fee2e2; color:#b91c1c; }
+        .fee-na { background:var(--sa-line-soft); color:var(--sa-muted); }
 
-        .sa-btn-reject {
-            padding:6px 12px; background:transparent; color:var(--danger);
-            border:1.5px solid var(--danger); border-radius:var(--radius-sm);
-            font-size:0.75rem; font-weight:700; font-family:inherit;
-            cursor:pointer; transition:var(--transition); margin-left:6px;
-        }
-        .sa-btn-reject:hover { background:var(--danger); color:var(--white); }
-        .sa-btn-reject:disabled { border-color:var(--gray-light); color:var(--gray); cursor:default; }
+        .sa-btn-approve { height:34px; padding:0 12px; background:#dcfce7; color:#166534; border:none; border-radius:8px;
+            font-size:0.78rem; font-weight:600; font-family:inherit; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+        .sa-btn-approve:hover { background:#bbf7d0; }
+        .sa-btn-approve:disabled { background:var(--sa-line-soft); color:#94a3b8; cursor:not-allowed; }
+        .sa-btn-reject { height:34px; padding:0 12px; background:#fff; color:#b91c1c; border:1px solid #fecaca; border-radius:8px;
+            font-size:0.78rem; font-weight:600; font-family:inherit; cursor:pointer; margin-left:6px; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+        .sa-btn-reject:hover { background:#fef2f2; border-color:#f87171; }
+        .sa-action-done { font-size:0.75rem; font-weight:700; padding:5px 12px; border-radius:999px; display:inline-flex; align-items:center; gap:6px; }
+        .approved-tag { background:#dcfce7; color:#166534; }
+        .rejected-tag { background:#fee2e2; color:#b91c1c; }
 
-        .sa-action-done { font-size:0.75rem; font-weight:700; padding:5px 12px;
-            border-radius:20px; }
-        .approved-tag { background:#d4edda; color:#155724; }
-        .rejected-tag { background:#fde8e8; color:var(--danger); }
-
-        /* Entity type badge */
-        .entity-badge { display:inline-flex; align-items:center; gap:4px;
-            padding:3px 9px; border-radius:20px; font-size:0.7rem; font-weight:700; }
+        .entity-badge { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:999px; font-size:0.72rem; font-weight:600; }
         .entity-academy { background:#dbeafe; color:#1e40af; }
-        .entity-coach   { background:#f0fdf4; color:#166534; }
-
-        /* Payment type */
+        .entity-coach   { background:#dcfce7; color:#166534; }
+        .pay-chip { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:999px; font-size:0.72rem; font-weight:600; }
         .pay-chip-a { background:#dbeafe; color:#1e40af; }
         .pay-chip-b { background:#fef3c7; color:#92400e; }
-        .pay-chip { display:inline-flex; align-items:center; gap:5px;
-            padding:3px 10px; border-radius:20px; font-size:0.7rem; font-weight:700; }
-
-        /* Section 3: Financials & Overrides */
-        .sa-fin-row { display:flex; justify-content:space-between; align-items:center;
-            padding:11px 20px; border-bottom:1px solid var(--gray-light); font-size:0.85rem; }
-        .sa-fin-row:last-child { border-bottom:none; }
-        .sa-fin-row span:first-child { color:var(--gray); }
-        .sa-fin-row span:last-child { font-weight:700; color:var(--dark); }
-        .gateway-online { color:var(--success); font-weight:700; display:flex;
-            align-items:center; gap:6px; }
-        .gateway-dot { width:9px; height:9px; border-radius:50%;
-            background:var(--success); animation:livePulse 2s ease-in-out infinite; }
-
-        /* Action buttons bar */
-        .sa-actions-bar { display:flex; gap:10px; padding:16px 20px;
-            border-top:1px solid var(--gray-light); flex-wrap:wrap; }
-        .sa-action-btn { display:inline-flex; align-items:center; gap:7px;
-            padding:9px 18px; border-radius:var(--radius-sm); font-size:0.8rem;
-            font-weight:700; font-family:inherit; cursor:pointer; border:none;
-            transition:var(--transition); text-decoration:none; }
-        .sa-btn-settings { background:var(--primary); color:var(--white); }
-        .sa-btn-settings:hover { background:var(--primary-dark); }
-        .sa-btn-export   { background:#1d6f42; color:var(--white); }
-        .sa-btn-export:hover { background:#155733; }
-        .sa-btn-notice   { background:var(--danger); color:var(--white); }
-        .sa-btn-notice:hover { background:#c0392b; }
-        .sa-btn-override { background:var(--warning); color:var(--white); }
-        .sa-btn-override:hover { background:#e67e22; }
-
-        /* Emergency notice modal */
-        .sa-notice-preview { background:#fde8e8; border:1.5px solid var(--danger);
-            border-radius:var(--radius-sm); padding:12px 16px; margin-top:12px;
-            font-size:0.85rem; color:var(--danger); display:flex; gap:8px;
-            align-items:flex-start; }
-
-        /* Permission matrix (kept on this admin page) */
-        .perm-overview { font-size:0.85rem; color:var(--dark); line-height:1.7;
-            padding:16px 20px; border-bottom:1px solid var(--gray-light); }
-        .perm-overview strong { color:var(--primary); }
-
-        /* State machine visual */
-        .sa-state-machine { padding:20px; }
-        .sa-sm-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:16px; }
-        .sa-sm-queue { background:var(--light); border:1.5px solid var(--gray-light);
-            border-radius:var(--radius-sm); padding:14px 16px; }
-        .sa-sm-queue-title { font-size:0.72rem; font-weight:800; text-transform:uppercase;
-            letter-spacing:0.6px; color:var(--primary); margin-bottom:4px; }
-        .sa-sm-queue-sub { font-size:0.78rem; color:var(--gray); }
-        .sa-sm-outcome-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-        .sa-sm-outcome { border-radius:var(--radius-sm); padding:12px 14px; font-size:0.8rem; }
-        .sa-sm-approve { background:#d4edda; border:1px solid #a3d9a5; color:#155724; }
-        .sa-sm-reject  { background:#fde8e8; border:1px solid #fca5a5; color:var(--danger); }
-        .sa-sm-outcome strong { display:block; font-size:0.82rem; margin-bottom:4px; }
-        .sa-sm-outcome ul { padding-left:14px; margin:0; }
-        .sa-sm-outcome li { margin-bottom:3px; font-size:0.78rem; }
-
-        @keyframes livePulse {
-            0%,100% { box-shadow:0 0 0 0 rgba(46,204,113,0.3); }
-            50%      { box-shadow:0 0 0 6px rgba(46,204,113,0); }
-        }
-
-        .sa-subnav-inner::-webkit-scrollbar { display: none; }
-        .sa-subnav-inner { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-
-        @media (max-width:1024px) { .sa-metrics-grid { grid-template-columns:repeat(2,1fr); } }
-        @media (max-width:768px) {
-            .sa-topbar-inner { padding:0 12px; height:50px; }
-            .sa-role-tag { display:none !important; }
-            .sa-logo { font-size:0.95rem; }
-            .sa-topbar-right { gap:6px; }
-            .sa-user-btn, .sa-logout { padding:5px 8px; font-size:0.72rem; }
-
-            .sa-subnav { top:50px; }
-            .sa-subnav-inner { height:44px; padding:0 10px; gap:4px; overflow-x:auto; flex-wrap:nowrap; }
-            .sa-nav-tab { padding:6px 12px; font-size:0.72rem; flex-shrink:0; white-space:nowrap; }
-
-            .sa-container { padding:14px 12px 60px; }
-            .sa-metrics-grid { grid-template-columns:1fr 1fr; gap:10px; }
-            .sa-metric-card { padding:14px 16px; }
-            .sa-metric-value { font-size:1.6rem; }
-
-            .sa-queue-table th, .sa-queue-table td { padding:8px 10px; font-size:0.75rem; }
-            .sa-sm-grid { grid-template-columns:1fr; }
-            .sa-sm-outcome-row { grid-template-columns:1fr; }
-        }
-        @media (max-width:480px) {
-            .sa-container { padding:12px 10px 60px; }
-            .sa-metrics-grid { grid-template-columns:1fr; }
-        }
-
-        /* ── Tab panel toggling ── */
-        .sa-tab-panel { display: none; }
-        .sa-tab-panel.active { display: block; animation: fadeInTab 0.2s ease; }
-        @keyframes fadeInTab { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
         /* ── All Meets toolbar & filters ── */
-        .sa-meets-toolbar {
-            display: flex; align-items: center; justify-content: space-between;
-            gap: 12px; padding: 14px 20px; background: #fafbfc;
-            border-bottom: 1px solid var(--gray-light); flex-wrap: wrap;
+        .sa-meets-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; flex-wrap:wrap; }
+        .sa-status-filters { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+        .sa-filter-btn { border:1px solid var(--sa-line); background:#fff; color:var(--sa-muted); font-size:0.76rem; font-weight:600;
+            padding:0 12px; height:32px; border-radius:999px; cursor:pointer; font-family:inherit; }
+        .sa-filter-btn:hover { border-color:var(--sa-blue); color:var(--sa-blue); }
+        .sa-filter-btn.active { background:var(--sa-blue); color:#fff; border-color:var(--sa-blue); }
+
+        /* ── Financials ── */
+        .sa-fin-row { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:13px 18px;
+            border-bottom:1px solid var(--sa-line-soft); font-size:0.86rem; }
+        .sa-fin-row:last-of-type { border-bottom:none; }
+        .sa-fin-row span:first-child { color:var(--sa-muted); }
+        .sa-fin-row span:last-child { font-weight:700; color:var(--sa-ink); text-align:right; }
+        .gateway-online { color:#15803d !important; display:flex; align-items:center; gap:6px; }
+        .gateway-dot { width:9px; height:9px; border-radius:50%; background:#16a34a; animation:livePulse 2s ease-in-out infinite; }
+        .sa-actions-bar { display:flex; gap:10px; padding:16px 18px; border-top:1px solid var(--sa-line); flex-wrap:wrap; }
+        .sa-action-btn { display:inline-flex; align-items:center; gap:8px; height:42px; padding:0 16px; border-radius:10px;
+            font-size:0.84rem; font-weight:600; font-family:inherit; cursor:pointer; border:none; text-decoration:none; }
+        .sa-btn-settings { background:var(--sa-blue); color:#fff; }
+        .sa-btn-settings:hover { background:var(--sa-blue-dark); }
+        .sa-btn-export { background:#15803d; color:#fff; }
+        .sa-btn-export:hover { background:#166534; }
+        .sa-btn-notice { background:#dc2626; color:#fff; }
+        .sa-btn-notice:hover { background:#b91c1c; }
+        .sa-btn-override { background:#fef3c7; color:#92400e; }
+        .sa-btn-override:hover { background:#fde68a; }
+
+        .sa-notice-preview { background:#fef2f2; border:1px solid #fca5a5; border-radius:10px; padding:12px 16px; margin-top:12px;
+            font-size:0.85rem; color:#b91c1c; display:flex; gap:8px; align-items:flex-start; }
+
+        @keyframes livePulse {
+            0%,100% { box-shadow:0 0 0 0 rgba(22,163,74,0.35); }
+            50%      { box-shadow:0 0 0 6px rgba(22,163,74,0); }
         }
-        .sa-search-wrap {
-            display: flex; align-items: center; gap: 8px; background: var(--white);
-            border: 1px solid var(--gray-light); border-radius: var(--radius-sm);
-            padding: 7px 14px; flex: 1; min-width: 240px; max-width: 380px;
+
+        /* ── Tab panels ── */
+        .sa-tab-panel { display:none; }
+        .sa-tab-panel.active { display:block; animation:fadeInTab 0.2s ease; }
+        @keyframes fadeInTab { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+
+        /* ── Responsive ── */
+        @media (max-width:1100px) { .sa-metrics-grid { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+        @media (max-width:900px) {
+            .sa-sidebar { position:fixed; left:0; top:0; bottom:0; transform:translateX(-100%); transition:transform 0.25s ease; }
+            .sa-shell.nav-open .sa-sidebar { transform:none; box-shadow:0 0 40px rgba(0,0,0,0.35); }
+            .sa-shell.nav-open .sa-scrim { display:block; position:fixed; inset:0; background:rgba(15,23,42,0.5); z-index:999; }
+            .sa-mobilebar { display:flex; }
+            .sa-container { padding:16px 16px 48px; }
+            .sa-page-title { font-size:1.25rem; }
+            .sa-search-wrap { max-width:none; min-width:0; }
         }
-        .sa-search-wrap input {
-            border: none; outline: none; font-size: 0.82rem; font-family: inherit; width: 100%; color: var(--dark);
+        @media (max-width:520px) {
+            .sa-metrics-grid { gap:10px; }
+            .sa-metric-card { padding:12px; gap:10px; }
+            .sa-metric-icon { width:34px; height:34px; }
+            .sa-metric-value { font-size:1.25rem; }
+            .sa-head-actions { width:100%; }
+            .sa-head-actions .sa-btn { flex:1; justify-content:center; }
+            .sa-queue-table th, .sa-queue-table td { padding:10px 12px; }
         }
-        .sa-status-filters { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-        .sa-filter-btn {
-            border: 1px solid var(--gray-light); background: var(--white); color: var(--gray);
-            font-size: 0.72rem; font-weight: 700; padding: 5px 12px; border-radius: 20px;
-            cursor: pointer; transition: var(--transition); font-family: inherit;
-        }
-        .sa-filter-btn:hover { border-color: var(--primary); color: var(--primary); }
-        .sa-filter-btn.active { background: var(--primary); color: var(--white); border-color: var(--primary); }
     </style>
 </head>
 <body class="sa-body" data-no-back>
+<div class="sa-shell" id="saShell">
 
-    <!-- Master Topbar -->
-    <header class="sa-master-header">
-        <div class="sa-topbar-inner">
-            <a href="index.html" class="sa-logo"><i class="fas fa-swimmer"></i> SwimFest</a>
-            <span class="sa-role-tag">Super Admin Console | Platform Governance</span>
-            <div class="sa-topbar-right">
-                <a href="saprofile.html" class="sa-user-btn" style="text-decoration:none;">
-                    <i class="fas fa-user-shield"></i> Profile
-                </a>
-                <a href="#" class="sa-logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    <!-- ── Sidebar ── -->
+    <aside class="sa-sidebar" id="saSidebar" aria-label="Super admin navigation">
+        <a href="index.html" class="sa-brand">
+            <span class="sa-brand-mark"><i class="fas fa-swimmer"></i></span>
+            <span>
+                <span class="sa-brand-name">SwimFest</span>
+                <span class="sa-brand-sub">Super Admin Console</span>
+            </span>
+        </a>
+
+        <nav class="sa-side-group">
+            <button class="sa-side-link sa-nav-tab" data-tab="dashboard"><i class="fas fa-clipboard-check"></i> Approvals
+                <span class="sa-side-count" id="saTotalPending">0</span></button>
+            <div class="sa-side-sub">
+                <button class="sa-side-link" data-queue="s2">Verifications <span class="sa-mini" data-count-for="s2">0</span></button>
+                <button class="sa-side-link" data-queue="s1a">Internal meets <span class="sa-mini" data-count-for="s1a">0</span></button>
+                <button class="sa-side-link" data-queue="s1b">Third-party meets <span class="sa-mini" data-count-for="s1b">0</span></button>
+                <button class="sa-side-link" data-queue="reopen">Reopen requests <span class="sa-mini" data-count-for="reopen">0</span></button>
             </div>
+            <button class="sa-side-link sa-nav-tab" data-tab="meets"><i class="fas fa-trophy"></i> All Meets</button>
+            <button class="sa-side-link sa-nav-tab" data-tab="academies"><i class="fas fa-building"></i> Academies &amp; Coaches</button>
+            <button class="sa-side-link sa-nav-tab" data-tab="financials"><i class="fas fa-indian-rupee-sign"></i> Financials</button>
+        </nav>
+
+        <nav class="sa-side-group" aria-label="Tools">
+            <div class="sa-side-label">Tools</div>
+            <a href="playerlist.html" class="sa-side-link"><i class="fas fa-list-check"></i> Master Player List</a>
+            <a href="heatgen.html" class="sa-side-link"><i class="fas fa-bolt"></i> Heat Generation</a>
+            <a href="results.html" class="sa-side-link"><i class="fas fa-broadcast-tower"></i> Live Results</a>
+            <a href="academy.html" class="sa-side-link"><i class="fas fa-building-columns"></i> Academy Directory</a>
+            <a href="admin.html" class="sa-side-link"><i class="fas fa-cogs"></i> Admin Console</a>
+            <a href="orgdashboard.html" class="sa-side-link"><i class="fas fa-user-tie"></i> Organizer Dashboard</a>
+            <a href="saoverride.html" class="sa-side-link warn"><i class="fas fa-unlock-alt"></i> Universal Override</a>        </nav>
+
+        <div class="sa-side-user">
+            <span class="sa-avatar-lg" id="saUserInitials">SA</span>
+            <div class="sa-side-user-info">
+                <span class="sa-side-user-name" id="saUserName">Super Admin</span>
+                <span class="sa-side-user-mail" id="saUserEmail"></span>
+            </div>
+            <a href="saprofile.html" class="sa-icon-btn" aria-label="Profile" title="Profile"><i class="fas fa-user-shield"></i></a>
+            <a href="#" class="sa-icon-btn sa-logout" aria-label="Log out" title="Log out"><i class="fas fa-sign-out-alt"></i></a>
         </div>
-    </header>
+    </aside>
+    <div class="sa-scrim" id="saScrim"></div>
 
-    <!-- Sticky Sub-nav -->
-    <nav class="sa-subnav">
-        <div class="sa-subnav-inner">
-            <button class="sa-nav-tab active" data-tab="dashboard"><i class="fas fa-chart-bar"></i> Dashboard</button>
-            <button class="sa-nav-tab" data-tab="meets"><i class="fas fa-trophy"></i> All Meets</button>
-            <button class="sa-nav-tab" data-tab="academies"><i class="fas fa-building"></i> Academies / Coaches</button>
-            <button class="sa-nav-tab" data-tab="financials"><i class="fas fa-rupee-sign"></i> Financials</button>
-            <a href="saoverride.html" class="sa-nav-tab" style="color:var(--warning);"><i class="fas fa-unlock-alt"></i> Universal Override</a>
-            <a href="apiref.html"     class="sa-nav-tab" style="margin-left:auto;"><i class="fas fa-code"></i> API Docs</a>
+    <!-- ── Main ── -->
+    <div class="sa-main">
+        <div class="sa-mobilebar">
+            <button class="sa-icon-btn" id="saMenuBtn" aria-label="Open menu" aria-controls="saSidebar" aria-expanded="false"><i class="fas fa-bars"></i></button>
+            <span style="font-weight:700;">SwimFest</span>
+            <span style="font-size:0.72rem;color:#94a3b8;">Super Admin</span>
         </div>
-    </nav>
 
-    <main>
-        <div class="sa-container">
-
-            <!-- TAB 1: DASHBOARD -->
-            <div class="sa-tab-panel active" id="panel-dashboard" data-tab-panel="dashboard">
-                <!-- System Overview Metrics -->
-                <div class="sa-metrics-grid">
-                    <div class="sa-metric-card">
-                        <i class="fas fa-trophy sa-metric-icon"></i>
-                        <div class="sa-metric-label">Active Meets</div>
-                        <div class="sa-metric-value">12</div>
-                        <div class="sa-metric-sub">Statewide, in progress</div>
-                    </div>
-                    <div class="sa-metric-card green">
-                        <i class="fas fa-users sa-metric-icon"></i>
-                        <div class="sa-metric-label">Total Athletes</div>
-                        <div class="sa-metric-value">4,820</div>
-                        <div class="sa-metric-sub">Registered profiles</div>
-                    </div>
-                    <div class="sa-metric-card orange">
-                        <i class="fas fa-building sa-metric-icon"></i>
-                        <div class="sa-metric-label">Academies</div>
-                        <div class="sa-metric-value">84</div>
-                        <div class="sa-metric-sub">Verified clubs</div>
-                    </div>
-                    <div class="sa-metric-card">
-                        <i class="fas fa-rupee-sign sa-metric-icon"></i>
-                        <div class="sa-metric-label">Gross Revenue</div>
-                        <div class="sa-metric-value" style="font-size:1.6rem;">₹38.4L</div>
-                        <div class="sa-metric-sub">FY 2026 to-date</div>
-                    </div>
+        <main class="sa-container">
+            <div class="sa-page-head">
+                <div>
+                    <h1 class="sa-page-title" id="saPageTitle">Approvals</h1>
+                    <p class="sa-page-sub"><span class="sa-live-dot"></span> <span id="saPageSub">Live — updates as submissions arrive</span></p>
                 </div>
-
-                <!-- Section 2: Swimmer, Academy & Coach Verification Queue -->
-                <div class="sa-section">
-                    <div class="sa-section-header">
-                        <span class="sa-section-title"><i class="fas fa-id-badge"></i> Section 2 — Swimmer, Academy &amp; Coach Verification Queue <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Swimmers / EMs)</span></span>
-                        <span class="sa-badge" id="s2Badge">Loading…</span>
-                    </div>
-                    <div style="overflow-x:auto;">
-                        <table class="sa-queue-table">
-                            <thead>
-                                <tr>
-                                    <th>Submitted By</th>
-                                    <th>Entity Type</th>
-                                    <th>Name / Club Title</th>
-                                    <th>Credential / Tax ID</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="s2Body"></tbody>
-                        </table>
-                    </div>
+                <div class="sa-head-actions">
+                    <button class="sa-btn sa-btn-ghost" onclick="openNoticeModal()"><i class="fas fa-bell"></i> Emergency notice</button>
+                    <a href="addevent.html" class="sa-btn sa-btn-primary"><i class="fas fa-plus"></i> Create meet</a>
                 </div>
+            </div>
 
-                <!-- Section 1A: Internal Meets Approval Queue -->
-                <div class="sa-section">
-                    <div class="sa-section-header">
-                        <span class="sa-section-title"><i class="fas fa-clipboard-check"></i> Section 1A — Internal Meets Approval Queue <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Event Managers)</span></span>
-                        <span class="sa-badge" id="s1aBadge">Loading…</span>
-                    </div>
-                    <div style="overflow-x:auto;">
-                        <table class="sa-queue-table">
-                            <thead>
-                                <tr>
-                                    <th>Created By</th>
-                                    <th>Tournament Title</th>
-                                    <th>Dates</th>
-                                    <th>Venue / City</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="s1aBody"></tbody>
-                        </table>
-                    </div>
+            <!-- KPI strip (values filled by loadMetrics in this order) -->
+            <div class="sa-metrics-grid">
+                <div class="sa-metric-card">
+                    <span class="sa-metric-icon"><i class="fas fa-trophy"></i></span>
+                    <div><div class="sa-metric-label">Active meets</div><div class="sa-metric-value">—</div></div>
                 </div>
-
-                <!-- Section 1B: Third-Party Meets Approval Queue -->
-                <div class="sa-section">
-                    <div class="sa-section-header">
-                        <span class="sa-section-title"><i class="fas fa-user-tie"></i> Section 1B — Third-Party Meets Approval Queue <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Organizers)</span></span>
-                        <span class="sa-badge" id="s1bBadge">Loading…</span>
-                    </div>
-                    <div style="overflow-x:auto;">
-                        <table class="sa-queue-table">
-                            <thead>
-                                <tr>
-                                    <th>Organizer</th>
-                                    <th>Tournament Title</th>
-                                    <th>Payment Type</th>
-                                    <th>Upfront Fee Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="s1bBody"></tbody>
-                        </table>
-                    </div>
+                <div class="sa-metric-card green">
+                    <span class="sa-metric-icon"><i class="fas fa-users"></i></span>
+                    <div><div class="sa-metric-label">Athletes</div><div class="sa-metric-value">—</div></div>
                 </div>
-
-                <!-- Section 2B: Meet Reopen Requests (from Organizers) -->
-                <div class="sa-section">
-                    <div class="sa-section-header">
-                        <span class="sa-section-title"><i class="fas fa-unlock-alt"></i> Meet Reopen Requests <span style="font-weight:400;color:var(--gray);font-size:0.68rem;">(Submitted by Organizers)</span></span>
-                        <span class="sa-badge" id="reopenBadge">Loading…</span>
-                    </div>
-                    <div style="overflow-x:auto;">
-                        <table class="sa-queue-table">
-                            <thead>
-                                <tr>
-                                    <th>Organizer</th>
-                                    <th>Tournament</th>
-                                    <th>Reason</th>
-                                    <th>Requested</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="reopenBody"></tbody>
-                        </table>
-                    </div>
+                <div class="sa-metric-card orange">
+                    <span class="sa-metric-icon"><i class="fas fa-building"></i></span>
+                    <div><div class="sa-metric-label">Academies</div><div class="sa-metric-value">—</div></div>
                 </div>
-
-                <!-- Approval State Machine (overview) -->
-                <div class="sa-section">
-                    <div class="sa-section-header">
-                        <span class="sa-section-title"><i class="fas fa-project-diagram"></i> Approval Workflow Overview</span>
-                    </div>
-                    <div class="sa-state-machine">
-                        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--gray);margin-bottom:12px;">System Architecture &amp; Approval State Machine</div>
-                        <div class="sa-sm-grid" id="saSmGrid"></div>
-                        <div class="sa-sm-outcome-row" id="saSmOutcomes"></div>
-                    </div>
+                <div class="sa-metric-card purple">
+                    <span class="sa-metric-icon"><i class="fas fa-indian-rupee-sign"></i></span>
+                    <div><div class="sa-metric-label">Revenue (FY 2026)</div><div class="sa-metric-value">—</div></div>
                 </div>
+            </div>
 
-                <!-- Quick Nav -->
-                <div class="sa-section">
-                    <div class="sa-section-header">
-                        <span class="sa-section-title"><i class="fas fa-rocket"></i> Quick Navigation</span>
+            <!-- TAB 1: APPROVALS -->
+            <div class="sa-tab-panel active" id="panel-dashboard" data-tab-panel="dashboard" data-title="Approvals">
+                <section class="sa-section" aria-label="Approval queues">
+                    <div class="sa-qtabs" role="tablist" aria-label="Queues">
+                        <button class="sa-qtab active" role="tab" data-queue="s2">Verifications <span class="sa-qcount" id="s2Badge">…</span></button>
+                        <button class="sa-qtab" role="tab" data-queue="s1a">Internal meets <span class="sa-qcount" id="s1aBadge">…</span></button>
+                        <button class="sa-qtab" role="tab" data-queue="s1b">Third-party meets <span class="sa-qcount" id="s1bBadge">…</span></button>
+                        <button class="sa-qtab" role="tab" data-queue="reopen">Reopen requests <span class="sa-qcount" id="reopenBadge">…</span></button>
                     </div>
-                    <div class="dash-section-body" style="padding:16px 20px;">
-                        <div class="dash-launchpad-grid">
-                            <a href="playerlist.html"      class="dash-launch-btn"><i class="fas fa-list-check"></i> Master Player List</a>
-                            <a href="admin.html"           class="dash-launch-btn"><i class="fas fa-cogs"></i> Admin Console</a>
-                            <a href="heatgen.html"         class="dash-launch-btn"><i class="fas fa-bolt"></i> Heat Generation</a>
-                            <a href="results.html"         class="dash-launch-btn"><i class="fas fa-broadcast-tower"></i> Live Results</a>
-                            <a href="academy.html"         class="dash-launch-btn"><i class="fas fa-building"></i> Academy Directory</a>
-                            <a href="emdashboard.html"     class="dash-launch-btn"><i class="fas fa-cogs"></i> EM Dashboard</a>
-                            <a href="orgdashboard.html"    class="dash-launch-btn"><i class="fas fa-building"></i> Organizer Dashboard</a>
-                            <a href="saoverride.html"      class="dash-launch-btn" style="color:var(--warning);border-color:var(--warning);"><i class="fas fa-unlock-alt"></i> Universal Override</a>
-                            <a href="apiref.html"          class="dash-launch-btn"><i class="fas fa-code"></i> API Reference</a>
-                            <a href="orgcreate.html"       class="dash-launch-btn"><i class="fas fa-plus-circle"></i> Create Event</a>
+
+                    <div class="sa-toolbar">
+                        <div>
+                            <div class="sa-toolbar-title" id="saQueueTitle">Swimmers, academies, coaches &amp; organizers</div>
+                            <div class="sa-toolbar-sub" id="saQueueSub">Submitted by swimmers, Event Managers and organizers</div>
+                        </div>
+                        <label class="sa-search-wrap">
+                            <i class="fas fa-search" aria-hidden="true"></i>
+                            <input type="search" id="saQueueSearch" placeholder="Search this queue…" aria-label="Search this queue">
+                        </label>
+                    </div>
+
+                    <!-- Verifications -->
+                    <div class="sa-qpanel active" data-qpanel="s2">
+                        <div class="sa-table-wrap">
+                            <table class="sa-queue-table">
+                                <thead><tr><th>Submitted by</th><th>Type</th><th>Name / club</th><th>Credential / tax ID</th><th>Actions</th></tr></thead>
+                                <tbody id="s2Body"></tbody>
+                            </table>
                         </div>
                     </div>
-                </div>
+
+                    <!-- Internal meets -->
+                    <div class="sa-qpanel" data-qpanel="s1a">
+                        <div class="sa-table-wrap">
+                            <table class="sa-queue-table">
+                                <thead><tr><th>Created by</th><th>Tournament</th><th>Dates</th><th>Venue / city</th><th>Actions</th></tr></thead>
+                                <tbody id="s1aBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Third-party meets -->
+                    <div class="sa-qpanel" data-qpanel="s1b">
+                        <div class="sa-table-wrap">
+                            <table class="sa-queue-table">
+                                <thead><tr><th>Organizer</th><th>Tournament</th><th>Payment type</th><th>Upfront fee</th><th>Actions</th></tr></thead>
+                                <tbody id="s1bBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Reopen requests -->
+                    <div class="sa-qpanel" data-qpanel="reopen">
+                        <div class="sa-table-wrap">
+                            <table class="sa-queue-table">
+                                <thead><tr><th>Organizer</th><th>Tournament</th><th>Reason</th><th>Requested</th><th>Actions</th></tr></thead>
+                                <tbody id="reopenBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
             </div>
 
             <!-- TAB 2: ALL MEETS -->
-            <div class="sa-tab-panel" id="panel-meets" data-tab-panel="meets">
-                <!-- Section: All Tournaments & Meets Management -->
-                <div class="sa-section" id="allMeetsSection">
+            <div class="sa-tab-panel" id="panel-meets" data-tab-panel="meets" data-title="All Meets">
+                <section class="sa-section" id="allMeetsSection">
                     <div class="sa-section-header">
-                        <span class="sa-section-title"><i class="fas fa-trophy"></i> All Meets &amp; Tournaments Directory</span>
-                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                            <span class="sa-badge green" id="allMeetsCountBadge">0 Meets</span>
-                            <a href="addevent.html" class="em-ctrl-btn em-ctrl-primary" style="padding:5px 12px;font-size:0.75rem;">
-                                <i class="fas fa-plus"></i> Create Meet
-                            </a>
-                        </div>
+                        <span class="sa-section-title"><i class="fas fa-trophy"></i> Meets &amp; tournaments</span>
+                        <span class="sa-badge green" id="allMeetsCountBadge">0 Meets</span>
                     </div>
-                    <!-- Controls Toolbar -->
                     <div class="sa-meets-toolbar">
-                        <div class="sa-search-wrap">
-                            <i class="fas fa-search" style="color:var(--gray);font-size:0.8rem;"></i>
-                            <input type="text" id="allMeetsSearch" placeholder="Search by title, host, city, venue…" oninput="handleMeetsSearch(this.value)">
-                        </div>
+                        <label class="sa-search-wrap">
+                            <i class="fas fa-search" aria-hidden="true"></i>
+                            <input type="search" id="allMeetsSearch" placeholder="Search by title, host, city, venue…" aria-label="Search meets" oninput="handleMeetsSearch(this.value)">
+                        </label>
                         <div class="sa-status-filters" id="meetsStatusFilters">
                             <button class="sa-filter-btn active" onclick="filterMeetsByStatus('ALL', this)">All</button>
-                            <button class="sa-filter-btn" onclick="filterMeetsByStatus('PUBLISHED', this)">Published (Live)</button>
+                            <button class="sa-filter-btn" onclick="filterMeetsByStatus('PUBLISHED', this)">Published</button>
                             <button class="sa-filter-btn" onclick="filterMeetsByStatus('LOCKED', this)">Locked</button>
-                            <button class="sa-filter-btn" onclick="filterMeetsByStatus('PENDING_APPROVAL', this)">Pending Approval</button>
+                            <button class="sa-filter-btn" onclick="filterMeetsByStatus('PENDING_APPROVAL', this)">Pending</button>
                             <button class="sa-filter-btn" onclick="filterMeetsByStatus('COMPLETED', this)">Completed</button>
                             <button class="sa-filter-btn" onclick="filterMeetsByStatus('DRAFT', this)">Draft / Rejected</button>
                         </div>
                     </div>
-                    <div style="overflow-x:auto;">
+                    <div class="sa-table-wrap">
                         <table class="sa-queue-table" id="allMeetsTable">
                             <thead>
-                                <tr>
-                                    <th>Tournament / Meet</th>
-                                    <th>Host &amp; Venue</th>
-                                    <th>Dates</th>
-                                    <th>Status</th>
-                                    <th style="min-width:320px;">Open Sites &amp; Operations</th>
-                                </tr>
+                                <tr><th>Tournament / meet</th><th>Host &amp; venue</th><th>Dates</th><th>Status</th><th style="min-width:320px;">Sites &amp; operations</th></tr>
                             </thead>
                             <tbody id="allMeetsBody">
-                                <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--gray);">Loading tournaments…</td></tr>
+                                <tr><td colspan="5" class="sa-empty-cell">Loading tournaments…</td></tr>
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </section>
             </div>
 
             <!-- TAB 3: ACADEMIES & COACHES -->
-            <div class="sa-tab-panel" id="panel-academies" data-tab-panel="academies">
-                <!-- Verified Directory Card -->
-                <div class="sa-section">
+            <div class="sa-tab-panel" id="panel-academies" data-tab-panel="academies" data-title="Academies &amp; Coaches">
+                <section class="sa-section">
                     <div class="sa-section-header">
-                        <span class="sa-section-title"><i class="fas fa-building"></i> Verified Academy &amp; Coach Directory</span>
-                        <a href="academy.html" target="_blank" class="sa-btn-approve" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
-                            <i class="fas fa-external-link-alt"></i> Open Public Directory
+                        <span class="sa-section-title"><i class="fas fa-building"></i> Verified academy &amp; coach directory</span>
+                        <a href="academy.html" target="_blank" class="sa-btn sa-btn-primary" style="height:36px;font-size:0.8rem;">
+                            <i class="fas fa-external-link-alt"></i> Open public directory
                         </a>
                     </div>
-                    <div style="padding:20px;color:var(--gray);font-size:0.85rem;line-height:1.6;">
+                    <div style="padding:18px;color:var(--sa-muted);font-size:0.86rem;line-height:1.6;">
                         Approved academies and coaches are automatically indexed in the public directory and made available for swimmer affiliation during registration.
+                        Pending submissions appear under <button type="button" class="sa-filter-btn" data-queue="s2" style="height:28px;">Approvals → Verifications</button>.
                     </div>
-                </div>
+                </section>
             </div>
 
             <!-- TAB 4: FINANCIALS -->
-            <div class="sa-tab-panel" id="panel-financials" data-tab-panel="financials">
-                <!-- Section 3: Financials, Gateway & Emergency -->
-                <div class="sa-section">
+            <div class="sa-tab-panel" id="panel-financials" data-tab-panel="financials" data-title="Financials">
+                <section class="sa-section">
                     <div class="sa-section-header">
-                        <span class="sa-section-title"><i class="fas fa-credit-card"></i> Section 3 — System Financials &amp; Emergency Overrides</span>
+                        <span class="sa-section-title"><i class="fas fa-credit-card"></i> System financials &amp; emergency overrides</span>
                     </div>
                     <div class="sa-fin-row">
-                        <span>Gateway Status</span>
-                        <span class="gateway-online"><span class="gateway-dot"></span> ONLINE — Razorpay Active</span>
+                        <span>Gateway status</span>
+                        <span class="gateway-online"><span class="gateway-dot"></span> Online — Razorpay active</span>
                     </div>
-                    <div class="sa-fin-row"><span>Platform Technology Fee</span><span>₹50.00 / booking (Incl. GST)</span></div>
-                    <div class="sa-fin-row"><span>Total Transactions (FY 2026)</span><span id="saTotalTxns">0</span></div>
-                    <div class="sa-fin-row"><span>Gross Revenue YTD</span><span id="saGrossRevenue" style="color:var(--success);font-weight:800;">₹0</span></div>
-                    <div class="sa-fin-row"><span>Pending Organizer Payouts</span><span id="saPendingPayouts" style="color:var(--warning);font-weight:700;">0 meets · ₹0</span></div>
+                    <div class="sa-fin-row"><span>Platform technology fee</span><span>₹50.00 / booking (incl. GST)</span></div>
+                    <div class="sa-fin-row"><span>Total transactions (FY 2026)</span><span id="saTotalTxns">0</span></div>
+                    <div class="sa-fin-row"><span>Gross revenue YTD</span><span id="saGrossRevenue" style="color:#15803d;">₹0</span></div>
+                    <div class="sa-fin-row"><span>Pending organizer payouts</span><span id="saPendingPayouts" style="color:#b45309;">0 meets · ₹0</span></div>
                     <div class="sa-actions-bar">
                         <button class="sa-action-btn sa-btn-settings" onclick="showToast('Global Platform Settings — loading…','info')">
-                            <i class="fas fa-cog"></i> Global Platform Settings
+                            <i class="fas fa-cog"></i> Global platform settings
                         </button>
                         <button class="sa-action-btn sa-btn-export" onclick="exportAuditLog()">
-                            <i class="fas fa-file-export"></i> Export Audit Logs
+                            <i class="fas fa-file-export"></i> Export audit logs
                         </button>
                         <button class="sa-action-btn sa-btn-notice" onclick="openNoticeModal()">
-                            <i class="fas fa-bell"></i> Publish Emergency Notice
+                            <i class="fas fa-bell"></i> Publish emergency notice
                         </button>
                         <a href="saoverride.html" class="sa-action-btn sa-btn-override">
-                            <i class="fas fa-unlock-alt"></i> Universal Override Engine
+                            <i class="fas fa-unlock-alt"></i> Universal override engine
                         </a>
                     </div>
-                </div>
+                </section>
             </div>
-
-        </div>
-    </main>
+        </main>
+    </div>
+</div>
 
     <!-- Emergency Notice Modal -->
     <div class="modal-overlay" id="noticeModal">
@@ -619,7 +545,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=7"></script>
-    <script src="auth.js?v=6"></script>
-    <script src="superadmin.js?v=2"></script>
+    <script src="auth.js?v=8"></script>
+    <script src="superadmin.js?v=3"></script>
 </body>
 </html>

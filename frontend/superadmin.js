@@ -14,6 +14,38 @@ function escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// Initials avatar used in the first column of each queue row
+function avatarHtml(name, i) {
+  const initials = String(name || '?').trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
+  return `<span class="sa-avatar sa-av-${i % 4}">${escHtml(initials)}</span>`;
+}
+
+function emptyRow(msg) {
+  return `<tr><td colspan="5" class="sa-empty-cell">
+    <div class="sa-empty-icon"><i class="fas fa-check"></i></div>
+    <div style="font-weight:700;color:var(--sa-ink);margin-bottom:4px;">You're all caught up</div>
+    ${escHtml(msg)}
+  </td></tr>`;
+}
+
+// Pending counts per queue: tab pill, sidebar sub-item and sidebar total
+const QUEUE_COUNTS = { s2: 0, s1a: 0, s1b: 0, reopen: 0 };
+function setQueueCount(key, n, label) {
+  QUEUE_COUNTS[key] = n;
+  const pill = $(`${key}Badge`);
+  if (pill) {
+    pill.textContent = label || String(n);
+    pill.classList.toggle('has-items', n > 0);
+  }
+  document.querySelectorAll(`[data-count-for="${key}"]`).forEach(el => { el.textContent = n; });
+  const total = Object.values(QUEUE_COUNTS).reduce((a, b) => a + b, 0);
+  const totalEl = $('saTotalPending');
+  if (totalEl) {
+    totalEl.textContent = total;
+    totalEl.classList.toggle('is-zero', total === 0);
+  }
+}
+
 function openModal(id)  { const m=$(id); m.classList.add('active'); m.style.display='flex'; }
 function closeModal(id) { const m=$(id); m.classList.remove('active'); m.style.display='none'; }
 window.closeModal = closeModal;
@@ -61,8 +93,8 @@ async function loadMetrics() {
 async function loadMeetQueues() {
   if (!window.sb) {
     console.error('[SwimFest] window.sb is undefined — Supabase not initialized.');
-    $('s1aBadge').textContent = 'DB not connected';
-    $('s1bBadge').textContent = 'DB not connected';
+    setQueueCount('s1a', 0, '!');
+    setQueueCount('s1b', 0, '!');
     return;
   }
   const { data, error } = await window.sb
@@ -73,8 +105,6 @@ async function loadMeetQueues() {
 
   if (error) {
     console.error('[SwimFest] queues:', error.message);
-    $('s1aBadge').textContent = '0 pending';
-    $('s1bBadge').textContent = '0 pending';
     renderS1A();
     renderS1B();
     return;
@@ -184,19 +214,20 @@ async function loadReopenQueue() {
 }
 
 function renderReopenQueue() {
-  const badge = $('reopenBadge');
   const body  = $('reopenBody');
-  if (badge) badge.textContent = `${REOPEN_QUEUE.length} pending`;
+  setQueueCount('reopen', REOPEN_QUEUE.length);
   if (!body) return;
   if (!REOPEN_QUEUE.length) {
-    body.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray);">No reopen requests.</td></tr>`;
+    body.innerHTML = emptyRow('No organizers have asked to reopen a completed meet.');
     return;
   }
   body.innerHTML = REOPEN_QUEUE.map((r, i) => `
     <tr id="reopen-row-${i}">
       <td>
-        <div class="sa-meet-title">${escHtml(r.org_name || 'Organizer')}</div>
-        <div class="sa-meet-sub">${escHtml(r.contact_person || '')}</div>
+        <div class="sa-person">${avatarHtml(r.org_name || 'Organizer', i)}<div>
+          <div class="sa-meet-title">${escHtml(r.org_name || 'Organizer')}</div>
+          <div class="sa-meet-sub">${escHtml(r.contact_person || '')}</div>
+        </div></div>
       </td>
       <td>${escHtml(r.tournament_title || '')}</td>
       <td style="max-width:260px;">${escHtml(r.reason || '')}</td>
@@ -206,6 +237,7 @@ function renderReopenQueue() {
         <button class="sa-btn-reject" onclick="denyReopen(${i})"><i class="fas fa-times"></i> Deny</button>
       </td>
     </tr>`).join('');
+  applyQueueSearch();
 }
 
 window.approveReopen = async function(i) {
@@ -217,6 +249,7 @@ window.approveReopen = async function(i) {
   const act = $(`reopen-act-${i}`);
   if (act) act.innerHTML = `<span class="sa-action-done approved-tag"><i class="fas fa-check-circle"></i> Reopened</span>`;
   showToast(`Meet reopened: ${r.tournament_title}`, 'success');
+  recountBadge('reopen');
 };
 
 window.denyReopen = async function(i) {
@@ -228,51 +261,14 @@ window.denyReopen = async function(i) {
   const act = $(`reopen-act-${i}`);
   if (act) act.innerHTML = `<span class="sa-action-done rejected-tag"><i class="fas fa-times-circle"></i> Denied</span>`;
   showToast(`Reopen denied: ${r.tournament_title}`, 'warn');
+  recountBadge('reopen');
 };
-
-// ── State Machine Visual ───────────────────────────────────────
-function renderStateMachine() {
-  $('saSmGrid').innerHTML = `
-    <div class="sa-sm-queue">
-      <div class="sa-sm-queue-title"><i class="fas fa-clipboard-list"></i> Approval Queue 1</div>
-      <div style="font-weight:700;font-size:0.82rem;color:var(--dark);margin:4px 0;">Internal Meets</div>
-      <div class="sa-sm-queue-sub">Submitted by Event Managers</div>
-    </div>
-    <div class="sa-sm-queue">
-      <div class="sa-sm-queue-title"><i class="fas fa-building"></i> Approval Queue 2</div>
-      <div style="font-weight:700;font-size:0.82rem;color:var(--dark);margin:4px 0;">Third-Party Meets</div>
-      <div class="sa-sm-queue-sub">Submitted by Organizers</div>
-    </div>
-    <div class="sa-sm-queue">
-      <div class="sa-sm-queue-title"><i class="fas fa-id-badge"></i> Approval Queue 3</div>
-      <div style="font-weight:700;font-size:0.82rem;color:var(--dark);margin:4px 0;">Academies &amp; Coaches</div>
-      <div class="sa-sm-queue-sub">Submitted by Event Managers</div>
-    </div>`;
-
-  $('saSmOutcomes').innerHTML = `
-    <div class="sa-sm-outcome sa-sm-approve">
-      <strong><i class="fas fa-check-circle"></i> Action: APPROVE</strong>
-      <ul>
-        <li>Internal/Hosted Meets transition to <strong>PUBLISHED</strong></li>
-        <li>Academies/Coaches added to Master Directory globally</li>
-        <li>Upfront fee verified before third-party approval</li>
-      </ul>
-    </div>
-    <div class="sa-sm-outcome sa-sm-reject">
-      <strong><i class="fas fa-times-circle"></i> Action: REJECT</strong>
-      <ul>
-        <li>Reverts to submitter's dashboard with rejection notes attached</li>
-        <li>Status set to <strong>REJECTED_DRAFT</strong></li>
-        <li>Email / WhatsApp notification dispatched to submitter</li>
-      </ul>
-    </div>`;
-}
 
 // ── Section 1A: Internal Meets ────────────────────────────────
 function renderS1A() {
-  $('s1aBadge').textContent = `${S1A_QUEUE.length} pending`;
+  setQueueCount('s1a', S1A_QUEUE.length);
   if (!S1A_QUEUE.length) {
-    $('s1aBody').innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray);">No internal meets awaiting approval.</td></tr>`;
+    $('s1aBody').innerHTML = emptyRow('No internal meets from Event Managers are waiting for approval.');
     return;
   }
   $('s1aBody').innerHTML = S1A_QUEUE.map((item, i) => {
@@ -281,8 +277,10 @@ function renderS1A() {
       : '';
     return `<tr id="s1a-row-${i}">
       <td>
-        <div style="font-weight:700;">${escHtml(item.createdBy)}</div>
-        ${emailTag}
+        <div class="sa-person">${avatarHtml(item.createdBy, i)}<div>
+          <div class="sa-meet-title">${escHtml(item.createdBy)}</div>
+          ${emailTag}
+        </div></div>
       </td>
       <td><div class="sa-meet-title">${escHtml(item.title)}</div></td>
       <td>${escHtml(item.dates)}</td>
@@ -297,13 +295,14 @@ function renderS1A() {
       </td>
     </tr>`;
   }).join('');
+  applyQueueSearch();
 }
 
 // ── Section 1B: Third-Party Meets ─────────────────────────────
 function renderS1B() {
-  $('s1bBadge').textContent = `${S1B_QUEUE.length} pending`;
+  setQueueCount('s1b', S1B_QUEUE.length);
   if (!S1B_QUEUE.length) {
-    $('s1bBody').innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray);">No third-party meets awaiting approval.</td></tr>`;
+    $('s1bBody').innerHTML = emptyRow('No organizer meets are waiting for approval.');
     return;
   }
   $('s1bBody').innerHTML = S1B_QUEUE.map((item, i) => {
@@ -322,8 +321,10 @@ function renderS1B() {
       : '';
     return `<tr id="s1b-row-${i}">
       <td>
-        <div style="font-weight:700;">${escHtml(item.organizer)}</div>
-        ${emailTag}
+        <div class="sa-person">${avatarHtml(item.organizer, i)}<div>
+          <div class="sa-meet-title">${escHtml(item.organizer)}</div>
+          ${emailTag}
+        </div></div>
       </td>
       <td><div class="sa-meet-title">${escHtml(item.title)}</div></td>
       <td>${payChip}</td>
@@ -338,13 +339,14 @@ function renderS1B() {
       </td>
     </tr>`;
   }).join('');
+  applyQueueSearch();
 }
 
 // ── Section 2: Academy & Coach Verification ───────────────────
 function renderS2() {
-  $('s2Badge').textContent = `${S2_QUEUE.length} pending`;
+  setQueueCount('s2', S2_QUEUE.length);
   if (!S2_QUEUE.length) {
-    $('s2Body').innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray);">No academies or coaches awaiting verification.</td></tr>`;
+    $('s2Body').innerHTML = emptyRow('No swimmers, academies, coaches or organizers are waiting for verification.');
     return;
   }
   $('s2Body').innerHTML = S2_QUEUE.map((item, i) => {
@@ -368,8 +370,10 @@ function renderS2() {
       </td>
       <td>${entityBadge}</td>
       <td>
-        <div class="sa-meet-title">${escHtml(item.name)}</div>
-        <div class="sa-meet-sub">${escHtml(item.detail)}</div>
+        <div class="sa-person">${avatarHtml(item.name, i)}<div>
+          <div class="sa-meet-title">${escHtml(item.name)}</div>
+          <div class="sa-meet-sub">${escHtml(item.detail)}</div>
+        </div></div>
       </td>
       <td style="font-family:monospace;font-size:0.78rem;">
         ${escHtml(item.credentialId)}
@@ -387,6 +391,7 @@ function renderS2() {
       </td>
     </tr>`;
   }).join('');
+  applyQueueSearch();
 }
 
 // ── Approve / Reject actions (write to Supabase) ──────────────
@@ -463,11 +468,9 @@ window.doReject = async function(section, idx) {
 };
 
 function recountBadge(section) {
-  const pending = document.querySelectorAll(`[id^="${section}-act-"] button.sa-btn-approve`).length;
-  const badgeId = section === 's1a' ? 's1aBadge' : section === 's1b' ? 's1bBadge' : 's2Badge';
-  const el = $(badgeId);
-  if (el) el.textContent = pending > 0 ? `${pending} pending` : '0 pending';
-  if (el && pending === 0) el.style.background = 'var(--success)';
+  // Rows still showing a Reject button are still pending
+  const pending = document.querySelectorAll(`[id^="${section}-act-"] button.sa-btn-reject`).length;
+  setQueueCount(section, pending);
 }
 
 // ── Export Audit Log ──────────────────────────────────────────
@@ -536,7 +539,7 @@ function showEmergencyBanner(title, msg) {
   if (existing) existing.remove();
   const banner = document.createElement('div');
   banner.id = 'emergencyBanner';
-  banner.style.cssText = `position:fixed;top:104px;left:0;right:0;z-index:9998;
+  banner.style.cssText = `position:fixed;top:0;left:0;right:0;z-index:10001;
     background:var(--danger);color:var(--white);padding:10px 24px;
     font-size:0.85rem;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:16px;
     box-shadow:0 4px 16px rgba(231,76,60,0.4);`;
@@ -716,44 +719,129 @@ function renderAllMeets() {
         </td>
       </tr>`;
   }).join('');
+  applyQueueSearch();
 }
 
-// ── Sub-nav tabs ──────────────────────────────────────────────
+// ── Sidebar navigation (tabs + approval queues) ──────────────
+const VALID_TABS = ['dashboard', 'meets', 'academies', 'financials'];
+
+const QUEUE_META = {
+  s2:     { title: 'Swimmers, academies, coaches & organizers', sub: 'Submitted by swimmers, Event Managers and organizers' },
+  s1a:    { title: 'Internal meets', sub: 'Submitted by Event Managers — approving publishes the meet' },
+  s1b:    { title: 'Third-party meets', sub: 'Submitted by organizers — upfront fee must be paid before approval' },
+  reopen: { title: 'Reopen requests', sub: 'Organizers asking to reopen a completed meet' },
+};
+let ACTIVE_QUEUE = 's2';
+
 function switchTab(tabKey) {
-  const validTabs = ['dashboard', 'meets', 'academies', 'financials'];
-  if (!validTabs.includes(tabKey)) tabKey = 'dashboard';
+  if (!VALID_TABS.includes(tabKey)) tabKey = 'dashboard';
 
   document.querySelectorAll('.sa-nav-tab[data-tab]').forEach(t => {
     t.classList.toggle('active', t.getAttribute('data-tab') === tabKey);
   });
 
+  let title = 'Approvals';
   document.querySelectorAll('.sa-tab-panel').forEach(panel => {
-    panel.style.display = (panel.getAttribute('data-tab-panel') === tabKey) ? 'block' : 'none';
+    const on = panel.getAttribute('data-tab-panel') === tabKey;
+    panel.classList.toggle('active', on);
+    panel.style.display = on ? 'block' : 'none';
+    if (on) title = panel.getAttribute('data-title') || title;
   });
+  const titleEl = $('saPageTitle');
+  if (titleEl) titleEl.textContent = title;
+
+  if (tabKey === 'dashboard') {
+    switchQueue(ACTIVE_QUEUE);
+  } else {
+    document.querySelectorAll('.sa-side-sub [data-queue]').forEach(b => b.classList.remove('active'));
+  }
 
   if (history.replaceState) {
     history.replaceState(null, '', '#' + tabKey);
   }
+  // Remembered so Back on other pages returns to this section (see auth.js)
+  try { localStorage.setItem('swimfest_sa_return', 'superadmin.html#' + tabKey); } catch (_) {}
 }
 window.switchTab = switchTab;
+
+function switchQueue(key) {
+  if (!QUEUE_META[key]) key = 's2';
+  ACTIVE_QUEUE = key;
+  document.querySelectorAll('.sa-qtab[data-queue]').forEach(t => {
+    const on = t.getAttribute('data-queue') === key;
+    t.classList.toggle('active', on);
+    t.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('.sa-side-sub [data-queue]').forEach(t => {
+    t.classList.toggle('active', t.getAttribute('data-queue') === key);
+  });
+  document.querySelectorAll('.sa-qpanel').forEach(p => {
+    p.classList.toggle('active', p.getAttribute('data-qpanel') === key);
+  });
+  $('saQueueTitle').textContent = QUEUE_META[key].title;
+  $('saQueueSub').textContent = QUEUE_META[key].sub;
+  applyQueueSearch();
+}
+window.switchQueue = switchQueue;
+
+// Client-side text filter over the rows of the visible queue
+function applyQueueSearch() {
+  const input = $('saQueueSearch');
+  const q = (input ? input.value : '').trim().toLowerCase();
+  const panel = document.querySelector(`.sa-qpanel[data-qpanel="${ACTIVE_QUEUE}"]`);
+  if (!panel) return;
+  panel.querySelectorAll('tbody tr').forEach(tr => {
+    if (tr.querySelector('.sa-empty-cell')) return;
+    tr.style.display = !q || tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+// Mobile: sidebar slides in as a drawer
+function setNavOpen(open) {
+  $('saShell').classList.toggle('nav-open', open);
+  const btn = $('saMenuBtn');
+  if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
 
 function initTabs() {
   document.querySelectorAll('.sa-nav-tab[data-tab]').forEach(tab => {
     tab.addEventListener('click', function(e) {
       e.preventDefault();
-      const tabKey = this.getAttribute('data-tab');
-      switchTab(tabKey);
-      const label = this.textContent.trim();
-      showToast(`Section: ${label}`, 'info');
+      switchTab(this.getAttribute('data-tab'));
+      setNavOpen(false);
     });
   });
 
+  document.querySelectorAll('[data-queue]').forEach(el => {
+    el.addEventListener('click', function(e) {
+      e.preventDefault();
+      ACTIVE_QUEUE = this.getAttribute('data-queue');
+      switchTab('dashboard');
+      setNavOpen(false);
+    });
+  });
+
+  const search = $('saQueueSearch');
+  if (search) search.addEventListener('input', applyQueueSearch);
+
+  const menuBtn = $('saMenuBtn');
+  if (menuBtn) menuBtn.addEventListener('click', () => setNavOpen(!$('saShell').classList.contains('nav-open')));
+  const scrim = $('saScrim');
+  if (scrim) scrim.addEventListener('click', () => setNavOpen(false));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') setNavOpen(false); });
+
   const hash = (location.hash || '').replace('#', '');
-  if (['dashboard', 'meets', 'academies', 'financials'].includes(hash)) {
-    switchTab(hash);
-  } else {
-    switchTab('dashboard');
-  }
+  switchTab(VALID_TABS.includes(hash) ? hash : 'dashboard');
+}
+
+// Signed-in user in the sidebar footer
+function renderSidebarUser() {
+  const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
+  if (!session) return;
+  const name = session.name || 'Super Admin';
+  $('saUserName').textContent = name;
+  $('saUserEmail').textContent = session.email || '';
+  $('saUserInitials').textContent = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'SA';
 }
 
 // Live preview for notice modal
@@ -795,10 +883,31 @@ function refreshLiveData() {
   loadReopenQueue();
 }
 
+// Realtime: refresh as soon as any watched table changes. Bursts of
+// changes (e.g. a bulk insert) are collapsed into a single refresh.
+const REALTIME_TABLES = ['tournaments','swimmers','academies','coaches','organizers','reopen_requests','bookings'];
+let realtimeTimer = null;
+function subscribeRealtime() {
+  if (!window.sb || !window.sb.channel) return;
+  const channel = window.sb.channel('superadmin-live');
+  REALTIME_TABLES.forEach(table => {
+    channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => {
+      clearTimeout(realtimeTimer);
+      realtimeTimer = setTimeout(refreshLiveData, 300);
+    });
+  });
+  channel.subscribe(status => console.log('[SwimFest] realtime:', status));
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-  renderStateMachine();
   initTabs();
-  // Live data + auto-refresh every 3s
+  renderSidebarUser();
+  subscribeRealtime();
+  // Live data + 30s fallback refresh, only while the tab is visible
   refreshLiveData();
-  setInterval(refreshLiveData, 3000);
+  setInterval(() => { if (!document.hidden) refreshLiveData(); }, 30000);
+  // Catch up immediately when the user returns to the tab
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refreshLiveData();
+  });
 });
