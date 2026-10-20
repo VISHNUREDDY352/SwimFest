@@ -759,6 +759,8 @@ function switchTab(tabKey) {
   if (history.replaceState) {
     history.replaceState(null, '', '#' + tabKey);
   }
+  // Remembered so Back on other pages returns to this section (see auth.js)
+  try { localStorage.setItem('swimfest_sa_return', 'superadmin.html#' + tabKey); } catch (_) {}
 }
 window.switchTab = switchTab;
 
