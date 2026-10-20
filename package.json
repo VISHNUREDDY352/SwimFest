@@ -1,0 +1,23 @@
+{
+  "name": "swimfest",
+  "version": "1.0.0",
+  "description": "SwimFest - Swimming Competition Management Platform",
+  "private": true,
+  "scripts": {
+    "start": "node backend/src/server.js",
+    "dev": "node --watch backend/src/server.js",
+    "server": "cd backend && npm run dev",
+    "frontend": "python -m http.server 3000 --directory frontend",
+    "install:backend": "cd backend && npm install",
+    "postinstall": "cd backend && npm install"
+  },
+  "keywords": [
+    "swimming",
+    "tournament",
+    "management",
+    "supabase",
+    "express"
+  ],
+  "author": "",
+  "license": "ISC"
+}

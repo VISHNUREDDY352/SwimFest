@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwimFest - Swimming Competition Management Platform</title>
+    <link rel="stylesheet" href="styles.css?v=22">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="has-hero-nav">
+    <!-- Fixed Navigation Header -->
+    <header class="navbar navbar-hero" id="navbar">
+        <div class="nav-container">
+            <a href="#" class="logo" id="logo">
+                <i class="fas fa-swimmer"></i> SwimFest
+            </a>
+            <button class="state-selector" id="stateSelector">
+                <i class="fas fa-map-marker-alt"></i>
+                <span id="currentState">Tamil Nadu</span>
+                <i class="fas fa-caret-down"></i>
+            </button>
+            <nav class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="#upcoming-tournaments" class="nav-link">Upcoming</a>
+                <a href="#ongoing-tournaments" class="nav-link">Ongoing</a>
+                <a href="#past-events-archives" class="nav-link">Past</a>
+                <a href="academy.html" class="nav-link">Academy</a>
+            </nav>
+            <a href="profile.html" class="btn-profile"><i class="fas fa-user"></i> Profile</a>
+            <a href="login.html" class="btn-register-login">Register / Login</a>
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="#upcoming-tournaments" class="nav-link">Upcoming</a>
+        <a href="#ongoing-tournaments" class="nav-link">Ongoing</a>
+        <a href="#past-events-archives" class="nav-link">Past</a>
+        <a href="academy.html" class="nav-link">Academy</a>
+        <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> My Profile</a>
+        <a href="login.html" class="btn-register-login">Register / Login</a>
+    </div>
+
+    <!-- Hero Banner -->
+    <section class="hero-banner">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <h1 class="hero-title">Dive Into Victory & Make Your Mark in the Pool</h1>
+            <p class="hero-subtitle">Discover and register for swimming competitions across Tamil Nadu.</p>
+            <div class="hero-buttons">
+                <a href="register.html" class="btn btn-primary">Register for Events</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Search & Filters Bar -->
+    <section class="search-filters-bar" id="search-filters">
+        <div class="filters-container">
+            <div class="search-input-wrapper">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search Tournament / Pool Venue..." class="search-input" aria-label="Search tournaments">
+            </div>
+            <div class="filter-dropdowns">
+                <select id="categoryFilter" class="filter-select" aria-label="Filter by category">
+                    <option value="all">All Categories</option>
+                    <option value="U-10">U-10</option>
+                    <option value="U-12">U-12</option>
+                    <option value="U-14">U-14</option>
+                    <option value="U-16">U-16</option>
+                </select>
+                <select id="statusFilter" class="filter-select" aria-label="Filter by status">
+                    <option value="all">All Statuses</option>
+                    <option value="entries-open">Entries Open</option>
+                    <option value="closing-soon">Closing Soon</option>
+                    <option value="live-now">Live Now</option>
+                    <option value="completed">Completed / Archives</option>
+                </select>
+            </div>
+        </div>
+    </section>
+
+    <!-- Upcoming Tournaments Section -->
+    <section class="section" id="upcoming-tournaments">
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title">Upcoming Tournaments <span class="state-tag">(Tamil Nadu)</span></h2>
+                <a href="#upcoming-tournaments" class="view-all" id="viewAllUpcoming" data-target="upcomingCards">View All <i class="fas fa-arrow-right"></i></a>
+            </div>
+            <div class="card-grid" id="upcomingCards">
+                <!-- Host a Meet -->
+                <div class="event-card host-card" data-categories="" data-status="" data-name="Host an Event in TN" data-venue="Tamil Nadu">
+                    <div class="card-image">
+                        <div class="card-poster host-poster">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Host an Event in TN</span>
+                        </div>
+                        <div class="card-categories">
+                            <span class="cat-badge host-badge">Host/Near</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="card-event-title">Host Your Own Swimming Event</h3>
+                        <div class="card-info-list">
+                            <p><i class="fas fa-map-marker-alt"></i> <strong>Location:</strong> Tamil Nadu (Statewide)</p>
+                            <p><i class="fas fa-calendar-alt"></i> <strong>Date:</strong> Flexible</p>
+                            <p><i class="fas fa-info-circle"></i> Create and manage your own swimming competition</p>
+                        </div>
+                        <div class="card-actions">
+                            <a href="#" class="btn-card btn-register">Create Event <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Ongoing Tournaments Section -->
+    <section class="section section-alt" id="ongoing-tournaments">
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title">Ongoing Tournaments</h2>
+                <a href="#ongoing-tournaments" class="view-all" id="viewAllOngoing" data-target="ongoingCards">View All <i class="fas fa-arrow-right"></i></a>
+            </div>
+            <div class="card-grid" id="ongoingCards">
+                <!-- Empty state -->
+                <div class="empty-state-inline">
+                    <i class="fas fa-info-circle"></i>
+                    <p>No live tournaments today. Check upcoming events above!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Past Events & Archives Section -->
+    <section class="section" id="past-events-archives">
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title">Past Events & Archives</h2>
+                <a href="#past-events-archives" class="view-all" id="viewAllPast" data-target="pastCards">View All <i class="fas fa-arrow-right"></i></a>
+            </div>
+            <div class="card-grid" id="pastCards">
+                <!-- Empty state -->
+                <div class="empty-state-inline">
+                    <i class="fas fa-info-circle"></i>
+                    <p>No past events archived yet.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-brand">
+                <h3><i class="fas fa-swimmer"></i> SwimFest</h3>
+                <p>India's Premier Swimming Competition Platform</p>
+            </div>
+            <div class="footer-links">
+                <h4>Explore</h4>
+                <a href="#upcoming-tournaments">Upcoming Events</a>
+                <a href="#ongoing-tournaments">Ongoing Events</a>
+                <a href="#past-events-archives">Past Events</a>
+                <a href="academy.html">Academy Directory</a>
+                <a href="leaderboard.html">Academy Leaderboard</a>
+            </div>
+            <div class="footer-links">
+                <h4>For Swimmers</h4>
+                <a href="register.html">Register for a Tournament</a>
+                <a href="search.html">Search Swimmer Profile</a>
+                <a href="heatsheets.html">Heat Sheets &amp; Schedule</a>
+                <a href="login.html">Login / Sign Up</a>
+            </div>
+            <div class="footer-links">
+                <h4>For Organizers</h4>
+                <a href="orgcreate.html">Host an Event</a>
+                <a href="login.html">Organizer Login</a>
+                <a href="academy.html">Register Your Academy</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 SwimFest. All rights reserved.</p>
+            <p style="font-size:0.78rem;opacity:0.7;margin-top:4px;">Made for the Tamil Nadu swimming community.</p>
+        </div>
+    </footer>
+
+    <!-- State Selector Modal -->
+    <div class="modal-overlay" id="stateModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Select Your State</h3>
+                <button class="modal-close" id="modalClose"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="state-grid" id="stateGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js?v=7"></script>
+    <script src="auth.js?v=6"></script>
+    <script src="home.js?v=7"></script>
+    <script src="script.js?v=6"></script>
+</body>
+</html>

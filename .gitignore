@@ -6,6 +6,12 @@ Thumbs.db
 # Logs
 *.log
 
+# Node / Dependencies
+node_modules/
+package-lock.json
+
 # Local env (never commit real keys)
 .env
 .env.local
+backend/.env
+backend/.env.local

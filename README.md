@@ -99,16 +99,47 @@ role-update statement above.
 
 ---
 
+## Project Structure
+
+```
+SwimFest/
+├── frontend/             # Client-side web application
+│   ├── index.html        # Homepage
+│   ├── *.html            # Role pages (organizer, admin, swimmer, etc.)
+│   ├── *.css             # Stylesheets
+│   ├── *.js              # Client scripts & Supabase SDK config
+│   └── images/           # Static media assets
+├── backend/              # Node.js + Express API server & Database scripts
+│   ├── src/
+│   │   ├── server.js     # Express server entry point (serves API + UI)
+│   │   ├── config/       # Supabase client configuration
+│   │   └── routes/       # REST API endpoints (tournaments, swimmers, leaderboard, heats)
+│   ├── db/               # PostgreSQL / Supabase SQL schemas, policies, & seeds
+│   ├── .env              # Backend environment variables
+│   └── package.json      # Backend dependencies
+├── vercel.json           # Vercel deployment configuration
+└── package.json          # Root scripts
+```
+
 ## Run locally
 
+### Option 1: Full-Stack Express Server (Frontend + API)
+```bash
+npm start
 ```
-python -m http.server 3000
+- Frontend UI: http://localhost:5000/index.html
+- Backend API: http://localhost:5000/api/health
+
+### Option 2: Frontend-only static server
+```bash
+npm run frontend
+# or: python -m http.server 3000 --directory frontend
 ```
 Then open http://localhost:3000/index.html
-(hard-refresh with Ctrl+Shift+R — the dev server sends no cache headers).
+(hard-refresh with Ctrl+Shift+R — dev server sends no cache headers).
 
 ## Deploy
-Pushes to `main` auto-deploy on Vercel. `vercel.json` sets no-cache headers for
+Pushes to `main` auto-deploy on Vercel (`outputDirectory: "frontend"`). `vercel.json` sets no-cache headers for
 HTML so the live site is never stale.
 
 ---
