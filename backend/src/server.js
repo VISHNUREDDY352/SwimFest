@@ -34,6 +34,8 @@ app.use('/api/tournaments', tournamentsRouter);
 app.use('/api/swimmers', swimmersRouter);
 app.use('/api/leaderboard', leaderboardRouter);
 app.use('/api/heats', heatsRouter);
+// Staff assistant (the same file Vercel runs as a serverless function)
+app.post('/api/agent', require('../../api/agent'));
 
 // Serve Frontend Static Files
 const frontendPath = path.resolve(__dirname, '../../frontend');

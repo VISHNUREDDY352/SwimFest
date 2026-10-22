@@ -19,5 +19,9 @@
     "express"
   ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.1.0",
+    "@supabase/supabase-js": "^2.118.0"
+  }
 }

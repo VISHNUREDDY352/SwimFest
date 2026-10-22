@@ -195,7 +195,7 @@
                     <div data-panel="0">
                         <div class="ac-card-head"><div><h2 class="ac-card-title">Meet details</h2><p class="ac-card-sub">What swimmers and parents see on the meet page.</p></div></div>
                         <div class="oc-body">
-                            <div class="oc-field"><label class="oc-label req" for="fTitle">Meet name</label><input class="oc-input" id="fTitle" maxlength="200" placeholder="e.g. Coimbatore District Swimming Championship 2026"></div>
+                            <div class="oc-field"><label class="oc-label req" for="fTitle">Meet name</label><input class="oc-input" id="fTitle" maxlength="200" placeholder="e.g. Coimbatore District Swimming Championship 2026" aria-describedby="titleHint"><span class="oc-hint" id="titleHint" aria-live="polite"></span></div>
                             <div class="oc-field"><label class="oc-label req" for="fHost">Host club</label><input class="oc-input" id="fHost" maxlength="200" placeholder="Club or organization hosting the meet"><span class="oc-hint" id="hostHint"></span></div>
                             <div class="oc-row">
                                 <div class="oc-field"><label class="oc-label req" for="fCity">City</label><input class="oc-input" id="fCity" maxlength="100" placeholder="City"></div>
@@ -299,7 +299,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
+    <script src="assistant.js?v=1"></script>
     <script src="consolenav.js?v=2"></script>
-    <script src="orgcreate.js?v=6"></script>
+    <script src="orgcreate.js?v=7"></script>
 </body>
 </html>

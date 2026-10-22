@@ -72,11 +72,58 @@ function renderMatrix() {
   renderSummary();
 }
 
+// ─── One meet per name ────────────────────────────────────────
+// Names match ignoring capitals and extra spaces. The database enforces
+// the same rule (backend/db/add_unique_meet_names.sql); this check
+// tells the user straight away and points them at the existing meet.
+const normTitle = t => String(t || '').trim().replace(/\s+/g, ' ').toLowerCase();
+let nameClash = null;          // the existing meet with this name, if any
+let nameCheckedFor = null;     // normalized title the clash result belongs to
+let nameTimer = null;
+
+const MEET_STATUS = {
+  DRAFT: 'Draft', PENDING_APPROVAL: 'Waiting for approval', REJECTED_DRAFT: 'Returned by the super admin',
+  PUBLISHED: 'Published', CLOSED: 'Registration closed', LOCKED: 'Racing',
+  CLOSURE_REQUESTED: 'Closure requested', COMPLETED: 'Completed',
+};
+
+async function checkName() {
+  const key = normTitle(val('fTitle'));
+  if (!key || !window.sb) { nameClash = null; nameCheckedFor = key; renderNameHint(); return null; }
+  if (key === nameCheckedFor) return nameClash;
+  // Wildcards escaped; spaces become % so "a  b" and "a b" both come back
+  const pattern = '%' + key.replace(/[\\%_]/g, c => '\\' + c).replace(/ /g, '%') + '%';
+  const { data, error } = await window.sb.from('tournaments')
+    .select('tournament_id, title, status, start_date, created_by')
+    .ilike('title', pattern).limit(25);
+  if (normTitle(val('fTitle')) !== key) return nameClash;   // the name changed while checking
+  if (error) { console.warn('[SwimFest] name check:', error.message); return null; }
+  nameCheckedFor = key;
+  nameClash = (data || []).find(t => normTitle(t.title) === key && t.tournament_id !== draftId) || null;
+  renderNameHint();
+  return nameClash;
+}
+
+function renderNameHint() {
+  const hint = $('titleHint');
+  const t = nameClash;
+  if (!t || normTitle(val('fTitle')) !== nameCheckedFor) { hint.textContent = ''; hint.className = 'oc-hint'; return; }
+  const when = fmtDate(String(t.start_date || '').slice(0, 10));
+  const label = `${MEET_STATUS[t.status] || t.status}${when ? ' · ' + when : ''}`;
+  const mine = SESSION && t.created_by === SESSION.userId;
+  hint.className = 'oc-hint err';
+  hint.innerHTML = mine && ['DRAFT', 'REJECTED_DRAFT'].includes(t.status)
+    ? `You already have a meet with this name (${escHtml(label)}). <a href="orgcreate.html?id=${encodeURIComponent(t.tournament_id)}">Open it</a> instead of making a new one.`
+    : `A meet with this name already exists (${escHtml(label)}). Use a different name, for example add the city or year.`;
+  $('fTitle').classList.add('bad');
+}
+
 // ─── Validation ───────────────────────────────────────────────
 function problemsFor(s) {
   const p = [];   // [inputId, message]
   if (s === 0) {
     if (!val('fTitle')) p.push(['fTitle', 'Enter the meet name']);
+    else if (nameClash && normTitle(val('fTitle')) === nameCheckedFor) p.push(['fTitle', 'A meet with this name already exists. Choose a different name.']);
     if (!val('fHost')) p.push(['fHost', 'Enter the host club']);
     if (!val('fCity')) p.push(['fCity', 'Enter the city']);
     if (!val('fVenue')) p.push(['fVenue', 'Enter the venue']);
@@ -142,9 +189,10 @@ function renderSummary() {
 }
 
 // ─── Steps ────────────────────────────────────────────────────
-function go(n) {
+async function go(n) {
   n = Math.max(0, Math.min(2, n));
   if (n === step || sent) return;
+  if (n > step && step === 0) await checkName();
   // Moving forward checks every step being skipped over
   for (let s = step; s < n; s++) {
     const p = problemsFor(s);
@@ -206,6 +254,11 @@ async function saveMeet(status) {
   if (!window.sb) { showToast('Not connected to the database. Refresh the page and try again.', 'warn'); return null; }
   if (!SESSION || !SESSION.userId) { showToast('Your sign-in has expired. Log in again to save this meet.', 'warn'); return null; }
 
+  if (await checkName()) {
+    if (step !== 0) showPanel(0, false);
+    showProblems(problemsFor(0));
+    return null;
+  }
   if (!(await uploadPoster())) return null;
   const row = collect(status);
   let res;
@@ -223,7 +276,12 @@ async function saveMeet(status) {
   if (res.error) {
     const msg = res.error.message || '';
     console.error('[SwimFest] save meet:', msg);
-    if (msg.includes('events_offered')) {
+    if (res.error.code === '23505' && /title/i.test(msg)) {
+      nameCheckedFor = null;
+      await checkName();
+      if (step !== 0) showPanel(0, false);
+      showToast('A meet with this name already exists. Choose a different name.', 'warn');
+    } else if (msg.includes('events_offered')) {
       showToast('The races list can\'t be saved until the database is updated. Run backend/db/add_events_offered.sql in Supabase, then try again.', 'warn');
     } else {
       showToast('Couldn\'t save the meet: ' + msg, 'warn');
@@ -500,6 +558,12 @@ document.addEventListener('DOMContentLoaded', () => {
     i.addEventListener('change', onEdit);
   });
   $('fHost').addEventListener('input', () => { $('hostHint').textContent = ''; });
+  $('fTitle').addEventListener('input', () => {
+    renderNameHint();
+    clearTimeout(nameTimer);
+    nameTimer = setTimeout(checkName, 500);
+  });
+  $('fTitle').addEventListener('blur', () => { clearTimeout(nameTimer); checkName(); });
 
   document.querySelectorAll('.oc-seg').forEach(seg => seg.addEventListener('click', e => {
     const b = e.target.closest('button');
