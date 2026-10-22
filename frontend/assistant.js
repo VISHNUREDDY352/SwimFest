@@ -1,31 +1,65 @@
 /* ============================================================
-   SwimFest — staff assistant chat   assistant.js
-   A floating "Ask SwimFest" button on staff pages. Only shown to
-   signed-in Admins and super admins; questions go to /api/agent
-   with the user's own sign-in, so answers respect their access.
-   The assistant is read-only: it looks things up, it never edits.
+   SwimFest — "Ask SwimFest" chat   assistant.js
+   A floating chat button, read-only (it looks things up, never edits).
+   - Staff pages: <script src="assistant.js"> — only shown to signed-in
+     Admins and super admins.
+   - Public pages: <script src="assistant.js" data-mode="public"> — shown
+     to everyone; a signed-in parent can also ask about their own swimmers.
+   Questions go to /api/agent with the user's own sign-in (if any).
    ============================================================ */
 'use strict';
 
 (function () {
   const STAFF_ROLES = ['event_manager', 'super_admin'];
-  const STORE_KEY = 'swimfest_assistant_chat';
+  const MODE = (document.currentScript && document.currentScript.dataset.mode) === 'public' ? 'public' : 'staff';
+  const STORE_KEY = MODE === 'public' ? 'swimfest_helper_chat' : 'swimfest_assistant_chat';
   const MAX_KEEP = 12;
-  const SUGGESTIONS = [
-    'What is waiting for approval?',
-    'Summarise the upcoming meets',
-    'Which meets close entries in the next 2 weeks?',
-    'How many swimmers have entered each open meet?',
-  ];
 
   const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
-  if (!session || !STAFF_ROLES.includes(session.role)) return;
+  if (MODE === 'staff' && (!session || !STAFF_ROLES.includes(session.role))) return;
+
+  const COPY = MODE === 'public' ? {
+    subtitle: 'Help with meets, entries and academies',
+    intro: name => `Hi${name ? ' ' + name : ''}! Ask me about open meets, deadlines, fees, which age group your child is in, academies near you, or how to register.`,
+    placeholder: 'Ask about meets, age groups, academies…',
+    note: 'Answers come from SwimFest\'s meet listings. Check the meet page before you pay or travel.',
+    suggestions: [
+      'Which meets are open for entries?',
+      'My child was born in 2014. Which age group?',
+      'Which academies in Chennai have a 50 m pool?',
+      'How do I register my swimmer?',
+      ...(session ? ['How did my swimmer do?'] : []),
+    ],
+  } : {
+    subtitle: 'Staff assistant · looks things up, never edits',
+    intro: name => `Hi ${name || 'there'}. Ask me about meets, entries, payments, heats, results, approvals, academies or swimmers.`,
+    placeholder: 'Ask about meets, entries, payments, results…',
+    note: 'Answers come from SwimFest\'s database. Check important figures before acting on them.',
+    suggestions: [
+      'What is waiting for approval?',
+      'Summarise the upcoming meets',
+      'Which meets close entries in the next 2 weeks?',
+      'How many swimmers have entered each open meet?',
+    ],
+  };
 
   let history = [];
   try { history = JSON.parse(sessionStorage.getItem(STORE_KEY) || '[]'); } catch (_) { history = []; }
   let busy = false;
 
   const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  // Escaped text with this site's own links made clickable
+  function linkify(escaped) {
+    return escaped.replace(/https?:\/\/[^\s<)]+/g, url => {
+      let u;
+      try { u = new URL(url.replace(/&amp;/g, '&')); } catch (_) { return url; }
+      if (u.origin !== location.origin && !/swim-fest/.test(u.hostname)) return url;
+      const path = u.pathname + u.search;
+      const label = /\/register/.test(u.pathname) ? 'Register' : /\/event/.test(u.pathname) ? 'Open meet page' : /\/academy/.test(u.pathname) ? 'Academy directory' : path;
+      return `<a href="${esc(path)}">${label}</a>`;
+    });
+  }
 
   // Plain text with "- " lists → safe HTML
   function format(text) {
@@ -35,10 +69,10 @@
       const item = /^\s*[-•]\s+(.*)$/.exec(line);
       if (item) {
         if (!inList) { html += '<ul>'; inList = true; }
-        html += `<li>${esc(item[1])}</li>`;
+        html += `<li>${linkify(esc(item[1]))}</li>`;
       } else {
         if (inList) { html += '</ul>'; inList = false; }
-        if (line.trim()) html += `<p>${esc(line)}</p>`;
+        if (line.trim()) html += `<p>${linkify(esc(line))}</p>`;
       }
     });
     if (inList) html += '</ul>';
@@ -71,6 +105,7 @@
     .sfa-log { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; background:#f4f8fa; }
     .sfa-msg { max-width:88%; padding:10px 14px; border-radius:14px; font-size:0.88rem; line-height:1.5; overflow-wrap:anywhere; }
     .sfa-msg p { margin:0 0 6px; } .sfa-msg p:last-child { margin-bottom:0; }
+    .sfa-bot a { color:#0369a1; font-weight:600; }
     .sfa-msg ul { margin:4px 0 6px; padding-left:18px; } .sfa-msg li { margin:2px 0; }
     .sfa-user { align-self:flex-end; background:#0b3a53; color:#fff; border-bottom-right-radius:4px; }
     .sfa-bot { align-self:flex-start; background:#fff; border:1px solid #dde7ec; border-bottom-left-radius:4px; }
@@ -104,24 +139,33 @@
   panel.className = 'sfa-panel';
   panel.hidden = true;
   panel.setAttribute('role', 'dialog');
-  panel.setAttribute('aria-label', 'SwimFest staff assistant');
+  panel.setAttribute('aria-label', MODE === 'public' ? 'Ask SwimFest' : 'SwimFest staff assistant');
   panel.innerHTML = `
     <div class="sfa-head">
       <i class="fas fa-comments" aria-hidden="true"></i>
-      <div class="sfa-head-text"><b>Ask SwimFest</b><small>Staff assistant · looks things up, never edits</small></div>
+      <div class="sfa-head-text"><b>Ask SwimFest</b><small>${COPY.subtitle}</small></div>
       <button type="button" class="sfa-icon-btn" data-act="clear" aria-label="Start a new chat" title="New chat"><i class="fas fa-rotate-left"></i></button>
       <button type="button" class="sfa-icon-btn" data-act="close" aria-label="Close"><i class="fas fa-times"></i></button>
     </div>
     <div class="sfa-log" aria-live="polite"></div>
     <form class="sfa-form">
       <label for="sfaInput" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Your question</label>
-      <textarea id="sfaInput" class="sfa-input" rows="1" maxlength="1000" placeholder="Ask about meets, entries, payments, results…"></textarea>
+      <textarea id="sfaInput" class="sfa-input" rows="1" maxlength="1000" placeholder="${COPY.placeholder}"></textarea>
       <button type="submit" class="sfa-send" aria-label="Send"><i class="fas fa-paper-plane"></i></button>
     </form>
-    <div class="sfa-note">Answers come from SwimFest's database. Check important figures before acting on them.</div>`;
+    <div class="sfa-note">${COPY.note}</div>`;
 
   document.body.appendChild(fab);
   document.body.appendChild(panel);
+  const bottomBar = document.querySelector('.mobile-register-btn, .checkout-footer-bar, .mobile-bottom-bar');
+  if (bottomBar) {
+    const lift = () => {
+      const shown = getComputedStyle(bottomBar).display !== 'none' && bottomBar.getBoundingClientRect().height > 0;
+      fab.style.bottom = shown ? `calc(${Math.round(bottomBar.getBoundingClientRect().height) + 28}px + env(safe-area-inset-bottom, 0px))` : '';
+    };
+    lift();
+    window.addEventListener('resize', lift);
+  }
 
   const log = panel.querySelector('.sfa-log');
   const form = panel.querySelector('.sfa-form');
@@ -131,8 +175,8 @@
   function render(waiting) {
     if (!history.length && !waiting) {
       log.innerHTML = `<div class="sfa-intro">
-        <p>Hi ${esc((session.name || '').split(' ')[0] || 'there')}. Ask me about meets, entries, payments, heats, results, approvals, academies or swimmers.</p>
-        <div class="sfa-chips">${SUGGESTIONS.map(s => `<button type="button" class="sfa-chip">${esc(s)}</button>`).join('')}</div>
+        <p>${esc(COPY.intro(session && session.name ? session.name.replace(/\s*\(Parent\)$/i, '').split(' ')[0] : ''))}</p>
+        <div class="sfa-chips">${COPY.suggestions.map(s => `<button type="button" class="sfa-chip">${esc(s)}</button>`).join('')}</div>
       </div>`;
       log.querySelectorAll('.sfa-chip').forEach(b => b.addEventListener('click', () => ask(b.textContent)));
       return;
@@ -155,14 +199,20 @@
 
     let reply;
     try {
-      const { data } = await window.sb.auth.getSession();
-      const token = data && data.session && data.session.access_token;
-      if (!token) throw new Error('Your sign-in has expired. Sign in again to use the assistant.');
+      let token = null;
+      if (window.sb && window.sb.auth) {
+        const { data } = await window.sb.auth.getSession();
+        token = data && data.session && data.session.access_token;
+      }
+      if (!token && MODE === 'staff') throw new Error('Your sign-in has expired. Sign in again to use the assistant.');
       const res = await fetch('/api/agent', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         // Only past questions and answers are sent, never error notes
-        body: JSON.stringify({ messages: history.filter(m => !m.error).map(m => ({ role: m.role, content: m.content })) }),
+        body: JSON.stringify({
+          mode: MODE,
+          messages: history.filter(m => !m.error).map(m => ({ role: m.role, content: m.content })),
+        }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error || `The assistant couldn't answer (error ${res.status}).`);
