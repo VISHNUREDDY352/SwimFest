@@ -144,7 +144,7 @@ function renderCityChips() {
   items.forEach(c => { if (c) counts[c] = (counts[c] || 0) + 1; });
   const cities = [...new Set(ACADEMIES.map(a => a.city).filter(Boolean))].sort();
   const chip = (value, label, n) =>
-    `<button type="button" class="ad-chip" data-city="${escHtml(value)}" aria-pressed="${FILTER.city === value}">${escHtml(label)}<span>${n}</span></button>`;
+    `<button type="button" class="dir-chip" data-city="${escHtml(value)}" aria-pressed="${FILTER.city === value}">${escHtml(label)}<span>${n}</span></button>`;
   $('cityChips').innerHTML = chip('', 'All cities', items.length) + cities.map(c => chip(c, c, counts[c] || 0)).join('');
 }
 
@@ -160,36 +160,36 @@ function renderCard(ac) {
     : 'The academy hasn’t added its coaches yet';
 
   const pool = lanes
-    ? `<div class="ad-pool-lanes" role="img" aria-label="${escHtml(`${length || 'Pool'} with ${lanes} lanes`)}">
+    ? `<div class="dir-pool-lanes" role="img" aria-label="${escHtml(`${length || 'Pool'} with ${lanes} lanes`)}">
          ${Array.from({ length: lanes }, (_, i) => `<span>${i + 1}</span>`).join('')}
        </div>`
-    : `<div class="ad-pool-none">Pool details not listed</div>`;
+    : `<div class="dir-pool-none">Pool details not listed</div>`;
 
   const where = [ac.address_line, ac.address_line.includes(ac.city) ? '' : ac.city].filter(Boolean).join(', ');
   const swimmers = ac.swimmers.length;
   const card = document.createElement('article');
-  card.className = 'ad-card';
+  card.className = 'dir-card';
   card.innerHTML = `
-    <div class="ad-card-main">
-      <div class="ad-card-top">
-        <h3 class="ad-display">${escHtml(ac.academy_name)}</h3>
-        <span class="ad-verified"><i class="fas fa-check" aria-hidden="true"></i> Verified</span>
+    <div class="dir-card-main">
+      <div class="dir-card-top">
+        <h3 class="dir-display">${escHtml(ac.academy_name)}</h3>
+        <span class="dir-verified"><i class="fas fa-check" aria-hidden="true"></i> Verified</span>
       </div>
-      <p class="ad-addr"><i class="fas fa-map-marker-alt" aria-hidden="true"></i><span>${escHtml(where || '—')}</span></p>
-      <div class="ad-coach">
-        <span class="ad-coach-avatar" aria-hidden="true">${lead ? escHtml(initials(lead.full_name.replace(/\./g, ' '))) : '—'}</span>
+      <p class="dir-addr"><i class="fas fa-map-marker-alt" aria-hidden="true"></i><span>${escHtml(where || '—')}</span></p>
+      <div class="dir-coach">
+        <span class="dir-coach-avatar" aria-hidden="true">${lead ? escHtml(initials(lead.full_name.replace(/\./g, ' '))) : '—'}</span>
         <div style="min-width:0;">
-          <div class="ad-coach-name">${lead ? escHtml(lead.full_name) : 'No coach listed yet'}</div>
-          <div class="ad-coach-line">${coachLine}</div>
+          <div class="dir-coach-name">${lead ? escHtml(lead.full_name) : 'No coach listed yet'}</div>
+          <div class="dir-coach-line">${coachLine}</div>
         </div>
       </div>
-      <div class="ad-card-actions">
-        <button type="button" class="ad-btn" data-action="profile">View academy</button>
-        <button type="button" class="ad-btn ad-btn-ghost" data-action="swimmers">${swimmers} swimmer${swimmers === 1 ? '' : 's'}</button>
-        <span class="ad-contact">${escHtml(ac.contact_person)} · <b>${escHtml(ac.phone_number)}</b></span>
+      <div class="dir-card-actions">
+        <button type="button" class="dir-btn" data-action="profile">View academy</button>
+        <button type="button" class="dir-btn dir-btn-ghost" data-action="swimmers">${swimmers} swimmer${swimmers === 1 ? '' : 's'}</button>
+        <span class="dir-contact">${escHtml(ac.contact_person)} · <b>${escHtml(ac.phone_number)}</b></span>
       </div>
     </div>
-    <figure class="ad-pool">
+    <figure class="dir-pool">
       ${pool}
       <figcaption><b>${escHtml([length, lanes ? `${lanes} lanes` : ''].filter(Boolean).join(' · ') || '—')}</b><span>${escHtml(ac.pool_type)}</span></figcaption>
     </figure>`;
@@ -212,21 +212,21 @@ function renderGrid(list) {
 function coachCard(c) {
   const ac = academyOf(c.academy_id);
   const card = document.createElement('article');
-  card.className = 'ad-person';
+  card.className = 'dir-person';
   card.innerHTML = `
-    <div class="ad-person-top">
-      <span class="ad-person-avatar" aria-hidden="true">${escHtml(initials(c.full_name.replace(/\./g, ' ')))}</span>
+    <div class="dir-person-top">
+      <span class="dir-person-avatar" aria-hidden="true">${escHtml(initials(c.full_name.replace(/\./g, ' ')))}</span>
       <div style="min-width:0;">
-        <h3 class="ad-person-name ad-display">${escHtml(c.full_name)}</h3>
-        <div class="ad-person-sub">${escHtml(c.designation)} · ${ac ? escHtml(ac.academy_name) : (c.academy_id ? 'Academy not verified yet' : 'Independent coach')}</div>
+        <h3 class="dir-person-name dir-display">${escHtml(c.full_name)}</h3>
+        <div class="dir-person-sub">${escHtml(c.designation)} · ${ac ? escHtml(ac.academy_name) : (c.academy_id ? 'Academy not verified yet' : 'Independent coach')}</div>
       </div>
     </div>
-    <div class="ad-tags">
-      ${c.certifications.slice(0, 3).map(t => `<span class="ad-tag">${escHtml(t)}</span>`).join('')}
-      ${c.experience_years ? `<span class="ad-tag plain">${c.experience_years} yrs experience</span>` : ''}
-      ${ac ? `<span class="ad-tag plain"><i class="fas fa-map-marker-alt" aria-hidden="true"></i> ${escHtml(ac.city)}</span>` : ''}
+    <div class="dir-tags">
+      ${c.certifications.slice(0, 3).map(t => `<span class="dir-tag">${escHtml(t)}</span>`).join('')}
+      ${c.experience_years ? `<span class="dir-tag plain">${c.experience_years} yrs experience</span>` : ''}
+      ${ac ? `<span class="dir-tag plain"><i class="fas fa-map-marker-alt" aria-hidden="true"></i> ${escHtml(ac.city)}</span>` : ''}
     </div>
-    <button type="button" class="ad-btn ad-btn-ghost">View profile</button>`;
+    <button type="button" class="dir-btn dir-btn-ghost">View profile</button>`;
   card.querySelector('button').addEventListener('click', () => openCoachProfile(c.coach_id));
   return card;
 }
@@ -248,9 +248,9 @@ function openCoachProfile(coachId) {
     </div>
     <div class="acd-modal-section">
       <div class="acd-modal-section-label">Certificates (${c.certifications.length})</div>
-      ${c.certifications.length ? `<div class="ad-tags">${c.certifications.map(t => `<span class="ad-tag">${escHtml(t)}</span>`).join('')}</div>` : '<p style="color:var(--gray);font-size:0.85rem;margin:0;">No certificates listed.</p>'}
+      ${c.certifications.length ? `<div class="dir-tags">${c.certifications.map(t => `<span class="dir-tag">${escHtml(t)}</span>`).join('')}</div>` : '<p style="color:var(--gray);font-size:0.85rem;margin:0;">No certificates listed.</p>'}
     </div>
-    ${ac ? `<div class="acd-modal-section"><button type="button" class="ad-btn" id="personToAcademy">View ${escHtml(ac.academy_name)}</button></div>` : ''}`;
+    ${ac ? `<div class="acd-modal-section"><button type="button" class="dir-btn" id="personToAcademy">View ${escHtml(ac.academy_name)}</button></div>` : ''}`;
   const go = $('personToAcademy');
   if (go) go.addEventListener('click', () => { closeModal('personModal'); openProfileModal(ac.academy_id); });
   openModal('personModal');
@@ -259,17 +259,17 @@ function openCoachProfile(coachId) {
 // ─── Swimmers (staff only) ────────────────────────────────────
 function swimmerCard(sw) {
   const card = document.createElement('article');
-  card.className = 'ad-person';
+  card.className = 'dir-person';
   card.innerHTML = `
-    <div class="ad-person-top">
-      <span class="ad-person-avatar${sw.gender === 'Girl' ? ' girl' : ''}" aria-hidden="true">${escHtml(initials(sw.name))}</span>
+    <div class="dir-person-top">
+      <span class="dir-person-avatar${sw.gender === 'Girl' ? ' girl' : ''}" aria-hidden="true">${escHtml(initials(sw.name))}</span>
       <div style="min-width:0;">
-        <h3 class="ad-person-name ad-display">${escHtml(sw.name)}</h3>
-        <div class="ad-person-sub">${escHtml([sw.category, sw.gender === 'Girl' ? 'Girls' : sw.gender === 'Boy' ? 'Boys' : ''].filter(Boolean).join(' · ') || 'Age group not set')}</div>
+        <h3 class="dir-person-name dir-display">${escHtml(sw.name)}</h3>
+        <div class="dir-person-sub">${escHtml([sw.category, sw.gender === 'Girl' ? 'Girls' : sw.gender === 'Boy' ? 'Boys' : ''].filter(Boolean).join(' · ') || 'Age group not set')}</div>
       </div>
     </div>
-    <div class="ad-tags"><span class="ad-tag plain">${sw.academyName ? escHtml(sw.academyName) : 'No academy'}</span></div>
-    <button type="button" class="ad-btn ad-btn-ghost">View profile</button>`;
+    <div class="dir-tags"><span class="dir-tag plain">${sw.academyName ? escHtml(sw.academyName) : 'No academy'}</span></div>
+    <button type="button" class="dir-btn dir-btn-ghost">View profile</button>`;
   card.querySelector('button').addEventListener('click', () => openSwimmerProfile(sw.id));
   return card;
 }
@@ -302,7 +302,7 @@ async function openSwimmerProfile(swimmerId) {
     races = '<p style="margin:0;color:var(--gray);">No races entered yet.</p>';
   } else {
     const rows = data.slice().sort((a, b) => String((b.tournaments || {}).start_date || '').localeCompare(String((a.tournaments || {}).start_date || '')));
-    races = `<div style="overflow-x:auto;"><table class="ad-hist">
+    races = `<div style="overflow-x:auto;"><table class="dir-hist">
       <thead><tr><th>Meet</th><th>Race</th><th>Seed</th><th>Result</th><th>Place</th></tr></thead>
       <tbody>${rows.map(e => {
         const h = (e.heat_rows || [])[0] || {};
@@ -348,7 +348,7 @@ function setTab(tab) {
 function applyFilters() {
   const q = $('acdSearch').value.trim().toLowerCase();
   $('acdSearchClear').hidden = !q;
-  document.querySelectorAll('#cityChips .ad-chip').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.city === FILTER.city)));
+  document.querySelectorAll('#cityChips .dir-chip').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.city === FILTER.city)));
   $('swimmerPrivate').hidden = true;
 
   if (TAB === 'coaches') {
@@ -638,7 +638,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // City buttons and pool length switch
   $('cityChips').addEventListener('click', e => {
-    const b = e.target.closest('.ad-chip');
+    const b = e.target.closest('.dir-chip');
     if (!b) return;
     FILTER.city = b.dataset.city;
     applyFilters();
