@@ -89,23 +89,4 @@
   });
   // Never keep anyone staring at a spinner: show the page after 3 s regardless
   setTimeout(reveal, 3000);
-
-  // Instant switching between console pages: Chrome starts loading a page
-  // while the pointer rests on its link, so the click shows it at once.
-  // Browsers without speculation rules simply ignore this.
-  if (window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules')) {
-    var rules = document.createElement('script');
-    rules.type = 'speculationrules';
-    rules.textContent = JSON.stringify({
-      prerender: [{
-        where: { and: [
-          { href_matches: '/*.html' },
-          { not: { href_matches: '/login.html*' } },
-          { not: { selector_matches: '[target=_blank], [download]' } },
-        ] },
-        eagerness: 'moderate',
-      }],
-    });
-    document.head.appendChild(rules);
-  }
 })();
