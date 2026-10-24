@@ -170,7 +170,7 @@ async function loadResultTournaments() {
   const sel = $('resTournamentSelect');
   if (!window.sb) { sel.innerHTML = '<option value="">Database not connected</option>'; return; }
   let query = window.sb.from('tournaments')
-    .select('tournament_id, title, status, start_date, lane_count')
+    .select('tournament_id, title, status, start_date, end_date, lane_count')
     .in('status', MEET_STATUSES)
     .order('start_date', { ascending: false });
   if (SESSION && SESSION.role === 'organizer') query = query.eq('created_by', SESSION.userId);
@@ -183,14 +183,9 @@ async function loadResultTournaments() {
     return;
   }
   MEETS = data;
-  const fmt = d => d ? new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '';
-  sel.innerHTML = data.map(t => `<option value="${t.tournament_id}">${escHtml(t.title)}${t.start_date ? ' · ' + fmt(t.start_date) : ''}</option>`).join('');
-
-  // Honor ?t=<tournament_id> deep links; otherwise prefer a meet that is racing
-  const wanted = new URLSearchParams(location.search).get('t');
-  const pick = data.find(t => t.tournament_id === wanted)
-    || data.find(t => t.status === 'LOCKED')
-    || data[0];
+  // Current & upcoming first, finished last; ?t=<id> wins, then a meet that is racing
+  sel.innerHTML = SwimNav.meetOptions(data);
+  const pick = SwimNav.pickMeet(data, t => t.status === 'LOCKED');
   sel.value = pick.tournament_id;
   await loadResultsForTournament(pick.tournament_id);
 }

@@ -40,7 +40,7 @@ async function loadTournamentOptions() {
 
   const { data, error } = await window.sb
     .from('tournaments')
-    .select('tournament_id, title, status, start_date, lane_count')
+    .select('tournament_id, title, status, start_date, end_date, lane_count')
     .in('status', Object.keys(STATUS_PILL))
     .order('start_date', { ascending: false });
 
@@ -50,14 +50,9 @@ async function loadTournamentOptions() {
     return;
   }
   MEETS = data;
-  const fmt = d => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
-  sel.innerHTML = data.map(t =>
-    `<option value="${t.tournament_id}">${escHtml(t.title)}${t.start_date ? ' · ' + fmt(t.start_date) : ''}</option>`
-  ).join('');
-
-  // ?t=<id> deep link, else the first meet whose player list is locked
-  const wanted = new URLSearchParams(location.search).get('t');
-  const pick = data.find(t => t.tournament_id === wanted) || data.find(t => t.status === 'LOCKED') || data[0];
+  // Current & upcoming first, finished last; ?t=<id> wins, then a meet whose player list is locked
+  sel.innerHTML = SwimNav.meetOptions(data);
+  const pick = SwimNav.pickMeet(data, t => t.status === 'LOCKED');
   sel.value = pick.tournament_id;
   sel.addEventListener('change', () => loadRosterForTournament(sel.value));
   await loadRosterForTournament(sel.value);

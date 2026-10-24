@@ -52,5 +52,60 @@
     redirect('wrong_role');
     return;
   }
-  // Access granted — do nothing, let the page render.
+  // Access granted. Keep the page hidden behind a small spinner until it
+  // is ready, so a refresh never shows the half-built layout (blank icons,
+  // empty boxes). Pages with data-wait-ready also wait for window.SwimReady().
+  var root = document.documentElement;
+  var waitForPage = current && current.hasAttribute('data-wait-ready');
+  root.classList.add('sf-wait');
+  var style = document.createElement('style');
+  style.textContent =
+    'html.sf-wait body{visibility:hidden}' +
+    'html.sf-wait::before{content:"";position:fixed;top:50%;left:50%;width:36px;height:36px;margin:-18px 0 0 -18px;' +
+    'border:3px solid #cbd5e1;border-top-color:#0077b6;border-radius:50%;animation:sf-spin .8s linear infinite;z-index:2147483647}' +
+    '@keyframes sf-spin{to{transform:rotate(360deg)}}' +
+    'html.sf-show body{animation:sf-in .18s ease-out}' +
+    '@keyframes sf-in{from{opacity:0}to{opacity:1}}';
+  document.head.appendChild(style);
+
+  var pageReady = !waitForPage, loaded = false, shown = false;
+  function reveal() {
+    if (shown) return;
+    shown = true;
+    root.classList.remove('sf-wait');
+    root.classList.add('sf-show');
+  }
+  function maybeReveal() { if (pageReady && loaded) reveal(); }
+
+  window.SwimReady = function () { pageReady = true; maybeReveal(); };
+  // Text and layout are ready at DOMContentLoaded; don't wait for images too.
+  // Give the fonts and icons a moment to arrive, but a slow font server
+  // must never hold the page back for more than 0.6 s.
+  document.addEventListener('DOMContentLoaded', function () {
+    var fontsIn = function () { loaded = true; maybeReveal(); };
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fontsIn);
+    else fontsIn();
+    setTimeout(fontsIn, 600);
+  });
+  // Never keep anyone staring at a spinner: show the page after 3 s regardless
+  setTimeout(reveal, 3000);
+
+  // Instant switching between console pages: Chrome starts loading a page
+  // while the pointer rests on its link, so the click shows it at once.
+  // Browsers without speculation rules simply ignore this.
+  if (window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules')) {
+    var rules = document.createElement('script');
+    rules.type = 'speculationrules';
+    rules.textContent = JSON.stringify({
+      prerender: [{
+        where: { and: [
+          { href_matches: '/*.html' },
+          { not: { href_matches: '/login.html*' } },
+          { not: { selector_matches: '[target=_blank], [download]' } },
+        ] },
+        eagerness: 'moderate',
+      }],
+    });
+    document.head.appendChild(rules);
+  }
 })();

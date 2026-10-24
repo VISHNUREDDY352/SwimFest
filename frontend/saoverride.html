@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="embed.js?v=3"></script>
     <title>Universal Override — SwimFest Super Admin</title>
-    <script src="guard.js" data-roles="super_admin"></script>
+    <script src="guard.js?v=4" data-roles="super_admin"></script>
     <link rel="stylesheet" href="styles.css?v=24">
     <link rel="stylesheet" href="admin.css?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="console.css?v=2">
+    <link rel="stylesheet" href="console.css?v=4">
     <style>
         /* ── Universal override: page-specific pieces on top of console.css ── */
         .ov-body { padding:1.25rem; display:flex; flex-direction:column; gap:1rem; }
@@ -163,8 +165,8 @@
                 <div class="ac-card-head"><div><h2 class="ac-card-title" id="logTitle">Audit log</h2><p class="ac-card-sub">The 50 most recent admin actions</p></div></div>
                 <div class="ac-table-wrap">
                     <table class="ac-table">
-                        <thead><tr><th>When</th><th>Action</th><th>Meet</th><th>Reason / notes</th><th>By</th></tr></thead>
-                        <tbody id="ovLogBody"><tr><td colspan="5" class="ac-empty-cell">Loading…</td></tr></tbody>
+                        <thead><tr><th>When</th><th>Action</th><th>Meet</th><th>What changed</th><th>Reason</th><th>By</th></tr></thead>
+                        <tbody id="ovLogBody"><tr><td colspan="6" class="ac-empty-cell">Loading…</td></tr></tbody>
                     </table>
                 </div>
             </section>
@@ -257,6 +259,48 @@
         $('ovApply').disabled = !action || !$('ovTournamentSelect').value || !$('ovReason').value.trim();
     }
 
+    // Notes are saved as "<reason>\nChange: <from → to>"
+    const CHANGE_MARK = '\nChange: ';
+    const swimUpLabel = on => on ? 'Allowed' : 'Single age group only';
+
+    function describeChange(t, patch) {
+        const parts = [];
+        if ('status' in patch) parts.push(`Status: ${STATUS_LABEL[t.status] || t.status} → ${STATUS_LABEL[patch.status] || patch.status}`);
+        if ('reg_fee_amount' in patch && Number(t.reg_fee_amount) !== patch.reg_fee_amount) parts.push(`Entry fee: ${money(t.reg_fee_amount)} → ${money(patch.reg_fee_amount)}`);
+        if ('relay_add_on_fee' in patch && Number(t.relay_add_on_fee) !== patch.relay_add_on_fee) parts.push(`Relay fee: ${money(t.relay_add_on_fee)} → ${money(patch.relay_add_on_fee)}`);
+        if ('allow_swim_up' in patch && !!t.allow_swim_up !== patch.allow_swim_up) parts.push(`Swim-up: ${swimUpLabel(t.allow_swim_up)} → ${swimUpLabel(patch.allow_swim_up)}`);
+        return parts.join('; ') || 'No change (values were already the same)';
+    }
+
+    // What changed for a log row: from the saved notes, or worked out for older rows
+    const IMPLIED = {
+        EVENT_APPROVED: 'Status → Published', EVENT_REJECTED: 'Status → Returned', MEET_CLOSED: 'Status → Completed',
+        EVENT_REOPENED: 'Status → Published', EVENT_WITHDRAWN: 'Status → Returned / withdrawn', EVENT_CANCELLED: 'Status → Returned / withdrawn',
+        COACH_VERIFIED: 'Coach → Verified', ACADEMY_VERIFIED: 'Academy → Verified',
+        SWIM_UP_CHANGED: "Swim-up rule changed (values weren't recorded)",
+        AGE_CUTOFF_EDITED: "Swim-up rule changed (values weren't recorded)",
+        FEE_OVERRIDE: "Fees changed (values weren't recorded)",
+    };
+    function splitNotes(r) {
+        const notes = String(r.notes || '');
+        const at = notes.indexOf(CHANGE_MARK);
+        if (at >= 0) return { reason: notes.slice(0, at), change: notes.slice(at + CHANGE_MARK.length) };
+        const was = /^([\s\S]*?)\s*\(was (.+)\)\s*$/.exec(notes);       // older fee entries: "reason (was ₹800 / ₹300)"
+        if (was) return { reason: was[1], change: `Fees were ${was[2]} (new values weren't recorded)` };
+        return { reason: notes, change: IMPLIED[r.action_type] || '' };
+    }
+
+    // "Entry fee: ₹500 → ₹600; Relay fee: …" → one line per change, new value in bold
+    function changeHtml(text) {
+        if (!text) return '<span style="color:#94a3b8;">—</span>';
+        return text.split('; ').map(part => {
+            const [from, to] = part.split(' → ');
+            return to === undefined
+                ? `<div>${escHtml(part)}</div>`
+                : `<div>${escHtml(from)} <span aria-label="changed to" style="color:#94a3b8;">→</span> <b>${escHtml(to)}</b></div>`;
+        }).join('');
+    }
+
     async function applyOverride() {
         const id = $('ovTournamentSelect').value;
         const t = MEETS[id];
@@ -284,13 +328,12 @@
             return;
         }
 
-        const before = action === 'fees' ? ` (was ${money(t.reg_fee_amount)} / ${money(t.relay_add_on_fee)})` : '';
         const { error: logErr } = await window.sb.from('system_audit_logs').insert({
             admin_id: SESSION ? SESSION.userId : null,
             action_type: logType,
             target_entity: 'TOURNAMENT',
             target_entity_id: id,
-            notes: reason + before,
+            notes: `${reason}${CHANGE_MARK}${describeChange(t, patch)}`,
         });
 
         $('ovReason').value = '';
@@ -304,15 +347,16 @@
         const { data, error } = await window.sb.from('system_audit_logs')
             .select('log_id, admin_id, action_type, target_entity_id, notes, created_at')
             .order('created_at', { ascending: false }).limit(50);
-        if (error) { body.innerHTML = `<tr><td colspan="5" class="ac-empty-cell">Could not load the audit log: ${escHtml(error.message)}</td></tr>`; return; }
-        if (!data || !data.length) { body.innerHTML = '<tr><td colspan="5" class="ac-empty-cell">Nothing logged yet.</td></tr>'; return; }
+        if (error) { body.innerHTML = `<tr><td colspan="6" class="ac-empty-cell">Could not load the audit log: ${escHtml(error.message)}</td></tr>`; return; }
+        if (!data || !data.length) { body.innerHTML = '<tr><td colspan="6" class="ac-empty-cell">Nothing logged yet.</td></tr>'; return; }
 
         // Names for the people who made the changes
         const ids = [...new Set(data.map(r => r.admin_id).filter(Boolean))];
         const names = {};
         if (ids.length) {
-            const { data: ps } = await window.sb.from('profiles').select('id, full_name, email').in('id', ids);
-            (ps || []).forEach(p => { names[p.id] = p.full_name || p.email; });
+            // profiles has no email column; the name is enough here
+            const { data: ps } = await window.sb.from('profiles').select('id, full_name').in('id', ids);
+            (ps || []).forEach(p => { names[p.id] = p.full_name; });
         }
         body.innerHTML = data.map(r => {
             const [label, cls] = LOG_LABEL[r.action_type] || [r.action_type, ''];
@@ -321,7 +365,8 @@
                 <td style="white-space:nowrap;">${escHtml(new Date(r.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</td>
                 <td><span class="ov-tag ${cls}">${escHtml(label)}</span></td>
                 <td>${meet ? escHtml(meet.title) : '<span style="color:#94a3b8;">—</span>'}</td>
-                <td style="max-width:22rem;">${escHtml(r.notes || '')}</td>
+                <td style="min-width:12rem;">${changeHtml(splitNotes(r).change)}</td>
+                <td style="max-width:18rem;">${escHtml(splitNotes(r).reason) || '<span style="color:#94a3b8;">—</span>'}</td>
                 <td>${escHtml(names[r.admin_id] || (r.admin_id ? 'Unknown user' : '—'))}</td>
             </tr>`;
         }).join('');

@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Super Admin Console — SwimFest</title>
-    <script src="guard.js" data-roles="super_admin"></script>
+    <script src="guard.js?v=4" data-roles="super_admin"></script>
     <link rel="stylesheet" href="styles.css?v=24">
     <link rel="stylesheet" href="admin.css?v=2">
     <link rel="stylesheet" href="dashboard.css?v=2">
     <link rel="stylesheet" href="emdashboard.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* ── Super Admin layout tokens ── */
@@ -262,6 +263,13 @@
             .sa-head-actions .sa-btn { flex:1; justify-content:center; }
             .sa-queue-table th, .sa-queue-table td { padding:0.625rem 0.75rem; }
         }
+        .sa-head-actions [hidden] { display: none !important; }
+        .sa-tool { flex:1; display:flex; }
+        /* With a tool open only the tool scrolls, so there is one scrollbar */
+        html:has(#saTool:not([hidden])), html:has(#saTool:not([hidden])) body { height:100%; overflow:hidden; }
+        .sa-tool[hidden], .sa-container[hidden] { display:none !important; }
+        .sa-tool iframe { flex:1; width:100%; height:100vh; border:0; display:block; background:#f4f6fa; }
+        @media (max-width: 900px) { .sa-tool iframe { height:calc(100vh - 3.5rem); } }
     </style>
 </head>
 <body class="sa-body" data-no-back>
@@ -285,22 +293,25 @@
                 <button class="sa-side-link" data-queue="s1a">Internal meets <span class="sa-mini" data-count-for="s1a">0</span></button>
                 <button class="sa-side-link" data-queue="s1b">Third-party meets <span class="sa-mini" data-count-for="s1b">0</span></button>
                 <button class="sa-side-link" data-queue="reopen">Reopen requests <span class="sa-mini" data-count-for="reopen">0</span></button>
+                <button class="sa-side-link" data-queue="sentback">Sent back <span class="sa-mini" data-count-for="sentback">0</span></button>
             </div>
-            <button class="sa-side-link sa-nav-tab" data-tab="meets"><i class="fas fa-trophy"></i> All Meets</button>
-            <button class="sa-side-link sa-nav-tab" data-tab="academies"><i class="fas fa-building"></i> Academies &amp; Coaches</button>
+            <button class="sa-side-link sa-nav-tab" data-tab="meets"><i class="fas fa-trophy"></i> All meets</button>
+            <button class="sa-side-link sa-nav-tab" data-tab="academies"><i class="fas fa-building"></i> Academies &amp; coaches</button>
             <button class="sa-side-link sa-nav-tab" data-tab="financials"><i class="fas fa-indian-rupee-sign"></i> Financials</button>
         </nav>
 
         <nav class="sa-side-group" aria-label="Tools">
             <div class="sa-side-label">Tools</div>
-            <a href="playerlist.html" class="sa-side-link"><i class="fas fa-list-check"></i> Master Player List</a>
-            <a href="heatgen.html" class="sa-side-link"><i class="fas fa-bolt"></i> Heat Generation</a>
-            <a href="orgracecontrol.html" class="sa-side-link"><i class="fas fa-flag-checkered"></i> Race Control</a>
-            <a href="results.html" class="sa-side-link"><i class="fas fa-broadcast-tower"></i> Live Results</a>
-            <a href="academy.html" class="sa-side-link"><i class="fas fa-building-columns"></i> Academy Directory</a>
-            <a href="admin.html" class="sa-side-link"><i class="fas fa-cogs"></i> Admin Console</a>
-            <a href="orgdashboard.html" class="sa-side-link"><i class="fas fa-user-tie"></i> Organizer Dashboard</a>
-            <a href="saoverride.html" class="sa-side-link warn"><i class="fas fa-unlock-alt"></i> Universal Override</a>        </nav>
+            <a href="playerlist.html" data-tool="playerlist" class="sa-side-link"><i class="fas fa-list-check"></i> Master player list</a>
+            <a href="heatgen.html" data-tool="heatgen" class="sa-side-link"><i class="fas fa-bolt"></i> Heat generation</a>
+            <a href="orgracecontrol.html" data-tool="racecontrol" class="sa-side-link"><i class="fas fa-flag-checkered"></i> Race control</a>
+            <a href="results.html" data-tool="results" class="sa-side-link"><i class="fas fa-broadcast-tower"></i> Live results</a>
+            <a href="orgcreate.html" data-tool="createmeet" class="sa-side-link"><i class="fas fa-plus"></i> Create meet</a>
+            <a href="academy.html" class="sa-side-link"><i class="fas fa-building-columns"></i> Academy directory</a>
+            <a href="admin.html" class="sa-side-link"><i class="fas fa-cogs"></i> Admin console</a>
+            <a href="orgdashboard.html" data-tool="organizer" class="sa-side-link"><i class="fas fa-user-tie"></i> Organizer dashboard</a>
+            <a href="saoverride.html" data-tool="override" class="sa-side-link warn"><i class="fas fa-unlock-alt"></i> Universal override</a>
+        </nav>
 
         <div class="sa-side-user">
             <span class="sa-avatar-lg" id="saUserInitials">SA</span>
@@ -322,7 +333,7 @@
             <span style="font-size:0.72rem;color:#94a3b8;">Super Admin</span>
         </div>
 
-        <main class="sa-container">
+        <main class="sa-container" id="saContainer">
             <div class="sa-page-head">
                 <div>
                     <h1 class="sa-page-title" id="saPageTitle">Approvals</h1>
@@ -330,7 +341,9 @@
                 </div>
                 <div class="sa-head-actions">
                     <button class="sa-btn sa-btn-ghost" onclick="openNoticeModal()"><i class="fas fa-bell"></i> Emergency notice</button>
-                    <a href="orgcreate.html" class="sa-btn sa-btn-primary"><i class="fas fa-plus"></i> Create meet</a>
+                    <a href="orgcreate.html" data-tool="createmeet" class="sa-btn sa-btn-primary" data-head-for="other"><i class="fas fa-plus"></i> Create meet</a>
+                    <a href="admin.html#add-coach" class="sa-btn sa-btn-ghost" data-head-for="academies" hidden><i class="fas fa-chalkboard-teacher"></i> Add coach</a>
+                    <a href="admin.html#add-academy" class="sa-btn sa-btn-primary" data-head-for="academies" hidden><i class="fas fa-building"></i> Add academy</a>
                 </div>
             </div>
 
@@ -362,6 +375,7 @@
                         <button class="sa-qtab" role="tab" data-queue="s1a">Internal meets <span class="sa-qcount" id="s1aBadge">…</span></button>
                         <button class="sa-qtab" role="tab" data-queue="s1b">Third-party meets <span class="sa-qcount" id="s1bBadge">…</span></button>
                         <button class="sa-qtab" role="tab" data-queue="reopen">Reopen requests <span class="sa-qcount" id="reopenBadge">…</span></button>
+                        <button class="sa-qtab" role="tab" data-queue="sentback">Sent back <span class="sa-qcount" id="sentbackBadge">…</span></button>
                     </div>
 
                     <div class="sa-toolbar">
@@ -401,6 +415,16 @@
                             <table class="sa-queue-table">
                                 <thead><tr><th>Organizer</th><th>Tournament</th><th>Payment type</th><th>Upfront fee</th><th>Actions</th></tr></thead>
                                 <tbody id="s1bBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Sent back: meets returned to their organizer for changes -->
+                    <div class="sa-qpanel" data-qpanel="sentback">
+                        <div class="sa-table-wrap">
+                            <table class="sa-queue-table">
+                                <thead><tr><th>Organizer / host</th><th>Tournament</th><th>Dates &amp; venue</th><th>Payment type</th><th>Actions</th></tr></thead>
+                                <tbody id="sentbackBody"></tbody>
                             </table>
                         </div>
                     </div>
@@ -497,6 +521,12 @@
                 </section>
             </div>
         </main>
+
+        <!-- Tools (player list, heat generation…) open here, inside the super admin
+             console, so the address stays superadmin.html#<tool> -->
+        <div class="sa-tool" id="saTool" hidden>
+            <iframe id="saToolFrame" title="Tool"></iframe>
+        </div>
     </div>
 </div>
 
@@ -549,6 +579,6 @@
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
     <script src="assistant.js?v=2"></script>
-    <script src="superadmin.js?v=8"></script>
+    <script src="superadmin.js?v=15"></script>
 </body>
 </html>

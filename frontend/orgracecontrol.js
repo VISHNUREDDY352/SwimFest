@@ -64,15 +64,9 @@ async function loadMeets() {
     return;
   }
 
-  sel.innerHTML = MEETS.map(m => {
-    const dates = fmtDates(m.start_date, m.end_date);
-    return `<option value="${m.tournament_id}">${escHtml(m.title)}${dates ? ' · ' + dates : ''}</option>`;
-  }).join('');
-
-  // ?t=<id> picks a meet; otherwise the first meet that is still running
-  const wanted = new URLSearchParams(location.search).get('t');
-  const running = MEETS.find(m => ['PUBLISHED', 'CLOSED', 'LOCKED'].includes(m.status));
-  const pick = MEETS.find(m => m.tournament_id === wanted) || running || MEETS[0];
+  // Current & upcoming first, finished last; ?t=<id> wins, then a meet that is still running
+  sel.innerHTML = SwimNav.meetOptions(MEETS);
+  const pick = SwimNav.pickMeet(MEETS, m => ['PUBLISHED', 'CLOSED', 'LOCKED'].includes(m.status));
   sel.value = pick.tournament_id;
   selectMeet(pick.tournament_id);
 }

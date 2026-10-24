@@ -439,7 +439,9 @@ async function loadExistingMeet() {
   $('ocHeading').textContent = returned ? 'Fix and resend' : 'Edit draft';
   $('ocSubheading').textContent = returned
     ? 'The super admin sent this meet back. Make your changes, then send it for approval again.'
-    : 'Carry on where you left off, then send it to the super admin for approval.';
+    : isSuperAdmin()
+      ? 'Carry on where you left off, then publish it.'
+      : 'Carry on where you left off, then send it to the super admin for approval.';
   document.title = `${$('ocHeading').textContent} — SwimFest`;
   $('draftBtn').innerHTML = '<i class="fas fa-floppy-disk"></i> Save draft';
   renderMatrix();
@@ -478,7 +480,10 @@ async function loadOrganization() {
   $('ocUserName').textContent = name;
   $('ocUserRole').textContent = { super_admin: 'Super Admin', event_manager: 'Admin' }[SESSION.role] || 'Organizer';
   $('ocInitials').textContent = String(name).split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'OR';
-  if (isSuperAdmin()) $('sumStatus').innerHTML = 'You\'re a super admin, so this meet is <b>published straight away</b> when you press Publish.';
+  if (isSuperAdmin()) {
+    $('sumStatus').innerHTML = 'You\'re a super admin, so this meet is <b>published straight away</b> when you press Publish.';
+    $('ocSubheading').textContent = 'Fill in the details, then publish it. It goes live straight away.';
+  }
 
   if (!window.sb || !SESSION.userId || isStaff()) return;
   const { data: org } = await window.sb.from('organizers').select('org_name, city, state').eq('owner_id', SESSION.userId).maybeSingle();

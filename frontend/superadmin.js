@@ -5,6 +5,7 @@
 
 // Live data pulled from Supabase (see load* functions below)
 let S1A_QUEUE = [];   // pending internal meets (Option A gateway)
+let SENT_BACK = [];   // meets returned to their organizer (REJECTED_DRAFT)
 let S1B_QUEUE = [];   // pending third-party meets (Option B gateway)
 let S2_QUEUE  = [];   // pending academy / coach verifications
 
@@ -68,72 +69,70 @@ function fmtDateRange(s, e) {
   return s ? `${f(s)}${e ? ' – ' + f(e) : ''}` : '—';
 }
 
+const money = n => '₹' + n.toLocaleString('en-IN');
+
+// Numbers worked out from the meets list (no extra requests)
+function renderMeetMetrics() {
+  const cards = document.querySelectorAll('.sa-metric-value');
+  if (cards[0]) cards[0].textContent = ALL_MEETS.filter(t => t.status === 'PUBLISHED' || t.status === 'LOCKED').length;
+  // Offline (Option B) meets that are live owe the ₹5,000 software fee, which can't be paid online yet
+  const offline = ALL_MEETS.filter(t => t.gateway_option === 'OPTION_B_NO_GATEWAY'
+    && ['PUBLISHED', 'CLOSED', 'LOCKED', 'CLOSURE_REQUESTED', 'COMPLETED'].includes(t.status)).length;
+  $('saPendingPayouts').textContent = `${offline} meet${offline === 1 ? '' : 's'} · ${money(offline * 5000)} not collected`;
+}
+
+// Swimmer and academy counts
+async function loadPeopleMetrics() {
+  if (!window.sb) return;
+  const cards = document.querySelectorAll('.sa-metric-value');
+  try {
+    const [swimmers, acads] = await Promise.all([
+      window.sb.from('swimmer_directory').select('swimmer_id', { count:'exact', head:true }),
+      window.sb.from('academies').select('academy_id', { count:'exact', head:true }),
+    ]);
+    if (cards[1]) cards[1].textContent = (swimmers.count ?? 0).toLocaleString('en-IN');
+    if (cards[2]) cards[2].textContent = acads.count ?? 0;
+  } catch (e) { console.warn('[SwimFest] people metrics:', e.message); }
+}
+
+// Money: registrations, paid and not paid yet
 async function loadMetrics() {
   if (!window.sb) return;
   const cards = document.querySelectorAll('.sa-metric-value');
-  // cards: [Active Meets, Total Athletes, Academies, Gross Revenue]
+  // cards: [Active Meets, Total Athletes, Academies, Entry fees paid]
   try {
-    const [meets, swimmers, acads, bookings] = await Promise.all([
-      window.sb.from('tournaments').select('tournament_id', { count:'exact', head:true }).in('status', ['PUBLISHED','LOCKED']),
-      window.sb.from('swimmer_directory').select('swimmer_id', { count:'exact', head:true }),
-      window.sb.from('academies').select('academy_id', { count:'exact', head:true }),
-      window.sb.from('bookings').select('total_amount, payment_status'),
-    ]);
-    if (cards[0]) cards[0].textContent = meets.count ?? 0;
-    if (cards[1]) cards[1].textContent = (swimmers.count ?? 0).toLocaleString('en-IN');
-    if (cards[2]) cards[2].textContent = acads.count ?? 0;
+    const bookings = await window.sb.from('bookings').select('total_amount, payment_status');
 
     // Only bookings marked PAID count as money received
     const rows = bookings.data || [];
     const sum = list => list.reduce((s, b) => s + Number(b.total_amount || 0), 0);
     const paid = rows.filter(b => b.payment_status === 'PAID');
     const unpaid = rows.filter(b => b.payment_status !== 'PAID');
-    const money = n => '₹' + n.toLocaleString('en-IN');
     if (cards[3]) cards[3].textContent = money(sum(paid));
     $('saTotalTxns').textContent = rows.length.toLocaleString('en-IN');
     $('saGrossRevenue').textContent = `${money(sum(paid))} · ${paid.length} booking${paid.length === 1 ? '' : 's'}`;
     $('saPendingFees').textContent = `${money(sum(unpaid))} · ${unpaid.length} booking${unpaid.length === 1 ? '' : 's'}`;
-
-    // Offline (Option B) meets that are live owe the ₹5,000 software fee, which can't be paid online yet
-    const { count: offline } = await window.sb.from('tournaments').select('tournament_id', { count: 'exact', head: true })
-      .eq('gateway_option', 'OPTION_B_NO_GATEWAY').in('status', ['PUBLISHED', 'CLOSED', 'LOCKED', 'CLOSURE_REQUESTED', 'COMPLETED']);
-    $('saPendingPayouts').textContent = `${offline ?? 0} meet${offline === 1 ? '' : 's'} · ${money((offline || 0) * 5000)} not collected`;
   } catch (e) { console.warn('[SwimFest] metrics:', e.message); }
 }
 
 // ── Supabase: pending meet queues ─────────────────────────────
-async function loadMeetQueues() {
-  if (!window.sb) {
-    console.error('[SwimFest] window.sb is undefined — Supabase not initialized.');
-    setQueueCount('s1a', 0, '!');
-    setQueueCount('s1b', 0, '!');
-    return;
-  }
-  const { data, error } = await window.sb
-    .from('tournaments')
-    .select('*')
-    .eq('status', 'PENDING_APPROVAL')
-    .order('created_at', { ascending: true });
+const CREATORS = {};   // profile id → { role, email }, kept between refreshes
 
-  if (error) {
-    console.error('[SwimFest] queues:', error.message);
-    renderS1A();
-    renderS1B();
-    return;
-  }
-  console.info('[SwimFest] PENDING_APPROVAL tournaments found:', (data || []).length);
+async function buildMeetQueues() {
+  const rows = ALL_MEETS.filter(t => t.status === 'PENDING_APPROVAL')
+    .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
 
-  const rows = data || [];
   // Who created each meet: staff (Admin / super admin) → internal (1A),
-  // anyone else (organizers) → third-party (1B)
-  const creatorIds = [...new Set(rows.map(t => t.created_by).filter(Boolean))];
-  const creators = {};
-  if (creatorIds.length) {
-    const { data: ps } = await window.sb.from('profiles').select('id, role, email').in('id', creatorIds);
-    (ps || []).forEach(p => { creators[p.id] = p; });
+  // anyone else (organizers) → third-party (1B). Only unknown creators are looked up.
+  const missing = [...new Set(rows.map(t => t.created_by).filter(id => id && !CREATORS[id]))];
+  if (missing.length) {
+    // profiles has no email column; role is what decides the queue
+    const { data: ps } = await window.sb.from('profiles').select('id, role').in('id', missing);
+    (ps || []).forEach(p => { CREATORS[p.id] = p; });
   }
+  const creators = CREATORS;
   const isStaffMeet = t => ['event_manager', 'super_admin'].includes((creators[t.created_by] || {}).role);
-  const emailOf = t => (creators[t.created_by] || {}).email || t.created_by_email || null;
+  const emailOf = t => t.created_by_email || null;
 
   S1A_QUEUE = rows.filter(isStaffMeet).map(t => ({
     id: t.tournament_id, createdBy: t.host_organization || '—', title: t.title,
@@ -148,72 +147,89 @@ async function loadMeetQueues() {
 
   renderS1A();
   renderS1B();
+
+  SENT_BACK = ALL_MEETS.filter(t => t.status === 'REJECTED_DRAFT')
+    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  renderSentBack();
 }
 
+// Sent back meets wait on the organizer, not on you, so they don't add to the Approvals total
+function renderSentBack() {
+  const n = SENT_BACK.length;
+  const pill = $('sentbackBadge');
+  if (pill) { pill.textContent = String(n); pill.classList.remove('has-items'); }
+  document.querySelectorAll('[data-count-for="sentback"]').forEach(el => { el.textContent = n; });
+  if (!n) {
+    $('sentbackBody').innerHTML = emptyRow('No meets are waiting on their organizer for changes.');
+    return;
+  }
+  $('sentbackBody').innerHTML = SENT_BACK.map((t, i) => {
+    const host = t.host_organization || '—';
+    const pay = t.gateway_option === 'OPTION_A_PLATFORM_GATEWAY'
+      ? `<span class="pay-chip pay-chip-a"><i class="fas fa-credit-card"></i> Option A (Platform GW)</span>`
+      : `<span class="pay-chip pay-chip-b"><i class="fas fa-file-excel"></i> Option B (No Gateway)</span>`;
+    return `<tr>
+      <td><div class="sa-person">${avatarHtml(host, i)}<div><div class="sa-meet-title">${escHtml(host)}</div>
+        <div style="font-size:0.72rem;color:var(--gray);margin-top:2px;">Waiting on organizer</div></div></div></td>
+      <td><div class="sa-meet-title">${escHtml(t.title)}</div></td>
+      <td>${escHtml(fmtDateRange(t.start_date, t.end_date))}<div style="font-size:0.75rem;color:var(--gray);">${escHtml(`${t.venue_name || ''}${t.city ? ', ' + t.city : ''}`)}</div></td>
+      <td>${pay}</td>
+      <td><button class="sa-btn-approve" onclick="approveSentBack(${i})"><i class="fas fa-check"></i> Approve &amp; publish</button></td>
+    </tr>`;
+  }).join('');
+  applyQueueSearch();
+}
+
+// Publish a sent-back meet as it is, without waiting for the organizer's changes
+window.approveSentBack = function (i) {
+  const t = SENT_BACK[i];
+  if (!t) return;
+  if (!confirm(`Publish "${t.title}" as it is? It was sent back to the organizer for changes, and they haven't resubmitted it yet.`)) return;
+  approveMeetDirect(t.tournament_id, t.title);
+};
+
 // ── Supabase: pending academy / coach / swimmer verifications ─
+let swimmerStatusMissing = false;   // the live swimmers table may have no status column
+
 async function loadVerificationQueue() {
   if (!window.sb) return;
+  const waiting = q => q.eq('status', 'PENDING_VERIFICATION');
+  const [swRes, orgRes, acRes, coRes] = await Promise.all([
+    swimmerStatusMissing ? Promise.resolve({ data: [] }) : waiting(window.sb.from('swimmers').select('*')),
+    waiting(window.sb.from('organizer_directory').select('*')),
+    waiting(window.sb.from('academies').select('*')),
+    waiting(window.sb.from('coaches').select('*')),
+  ]);
+  if (swRes.error && /status/i.test(swRes.error.message)) swimmerStatusMissing = true;   // stop asking
+  ['swimmers', 'organizers', 'academies', 'coaches'].forEach((name, i) => {
+    const r = [swRes, orgRes, acRes, coRes][i];
+    if (r.error && !(i === 0 && swimmerStatusMissing)) console.warn(`[SwimFest] ${name} queue query:`, r.error.message);
+  });
 
   S2_QUEUE = [];
-
-  // 1. Swimmers (fetch select(*) and filter status in JS to avoid HTTP 400 if status column is missing in DB)
-  try {
-    const swRes = await window.sb.from('swimmers').select('*');
-    if (!swRes.error && swRes.data) {
-      swRes.data
-        .filter(s => s && s.status === 'PENDING_VERIFICATION')
-        .forEach(s => S2_QUEUE.push({
-          id: s.swimmer_id, table: 'swimmers', idCol: 'swimmer_id',
-          entityType: 'SWIMMER', name: s.full_name,
-          detail: `${s.gender || ''} ${s.category || ''} ${s.date_of_birth ? '(DOB: ' + s.date_of_birth + ')' : ''} · Parent: ${s.parent_name || '—'} (${s.parent_phone || '—'}) ${s.school_name ? '· School: ' + s.school_name : ''} ${s.id_ref ? '· ID/Ref: ' + s.id_ref : ''}`,
-          email: s.parent_email || null,
-          credentialId: s.sfi_serial_no || `SWM-${String(s.swimmer_id).slice(0,8).toUpperCase()}`,
-          documentUrl: null,
-        }));
-    }
-  } catch (e) { console.warn('[SwimFest] swimmers queue query:', e.message); }
-
-  // 2. Organizers
-  try {
-    const orgRes = await window.sb.from('organizer_directory').select('*');
-    if (!orgRes.error && orgRes.data) {
-      orgRes.data
-        .filter(o => o && o.status === 'PENDING_VERIFICATION')
-        .forEach(o => S2_QUEUE.push({
-          id: o.organizer_id, table: 'organizers', idCol: 'organizer_id',
-          entityType: 'ORGANIZER', name: o.org_name, detail: `Contact: ${o.contact_person || '—'} · ${o.city || ''}`,
-          email: o.email || null, credentialId: o.registration_no || '—', documentUrl: o.document_url || null,
-        }));
-    }
-  } catch (e) { console.warn('[SwimFest] organizer queue query:', e.message); }
-
-  // 3. Academies
-  try {
-    const acRes = await window.sb.from('academies').select('*');
-    if (!acRes.error && acRes.data) {
-      acRes.data
-        .filter(a => a && a.status === 'PENDING_VERIFICATION')
-        .forEach(a => S2_QUEUE.push({
-          id: a.academy_id, table: 'academies', idCol: 'academy_id',
-          entityType: 'ACADEMY', name: a.academy_name, detail: `Location: ${a.city || '—'}`,
-          email: a.created_by_email || null, credentialId: a.registration_no || '—', documentUrl: a.document_url || null,
-        }));
-    }
-  } catch (e) { console.warn('[SwimFest] academies queue query:', e.message); }
-
-  // 4. Coaches
-  try {
-    const coRes = await window.sb.from('coaches').select('*');
-    if (!coRes.error && coRes.data) {
-      coRes.data
-        .filter(c => c && c.status === 'PENDING_VERIFICATION')
-        .forEach(c => S2_QUEUE.push({
-          id: c.coach_id, table: 'coaches', idCol: 'coach_id',
-          entityType: 'COACH', name: c.full_name, detail: c.designation || 'Coach',
-          email: c.created_by_email || null, credentialId: Array.isArray(c.certifications) ? c.certifications.join(', ') : '—', documentUrl: c.document_url || null,
-        }));
-    }
-  } catch (e) { console.warn('[SwimFest] coaches queue query:', e.message); }
+  (swRes.data || []).forEach(s => S2_QUEUE.push({
+    id: s.swimmer_id, table: 'swimmers', idCol: 'swimmer_id',
+    entityType: 'SWIMMER', name: s.full_name,
+    detail: `${s.gender || ''} ${s.category || ''} ${s.date_of_birth ? '(DOB: ' + s.date_of_birth + ')' : ''} · Parent: ${s.parent_name || '—'} (${s.parent_phone || '—'}) ${s.school_name ? '· School: ' + s.school_name : ''} ${s.id_ref ? '· ID/Ref: ' + s.id_ref : ''}`,
+    email: s.parent_email || null,
+    credentialId: s.sfi_serial_no || `SWM-${String(s.swimmer_id).slice(0,8).toUpperCase()}`,
+    documentUrl: null,
+  }));
+  (orgRes.data || []).forEach(o => S2_QUEUE.push({
+    id: o.organizer_id, table: 'organizers', idCol: 'organizer_id',
+    entityType: 'ORGANIZER', name: o.org_name, detail: `Contact: ${o.contact_person || '—'} · ${o.city || ''}`,
+    email: o.email || null, credentialId: o.registration_no || '—', documentUrl: o.document_url || null,
+  }));
+  (acRes.data || []).forEach(a => S2_QUEUE.push({
+    id: a.academy_id, table: 'academies', idCol: 'academy_id',
+    entityType: 'ACADEMY', name: a.academy_name, detail: `Location: ${a.city || '—'}`,
+    email: a.created_by_email || null, credentialId: a.registration_no || '—', documentUrl: a.document_url || null,
+  }));
+  (coRes.data || []).forEach(c => S2_QUEUE.push({
+    id: c.coach_id, table: 'coaches', idCol: 'coach_id',
+    entityType: 'COACH', name: c.full_name, detail: c.designation || 'Coach',
+    email: c.created_by_email || null, credentialId: Array.isArray(c.certifications) ? c.certifications.join(', ') : '—', documentUrl: c.document_url || null,
+  }));
 
   renderS2();
 }
@@ -571,22 +587,31 @@ let ALL_MEETS = [];
 let ALL_MEETS_FILTER = 'ALL';
 let ALL_MEETS_SEARCH = '';
 
-async function loadAllMeets() {
-  if (!window.sb) return;
+// One request for every meet; the All meets tab, the meet approval
+// queues and the meet numbers are all built from it.
+async function loadTournaments() {
+  if (!window.sb) {
+    setQueueCount('s1a', 0, '!');
+    setQueueCount('s1b', 0, '!');
+    return;
+  }
   try {
     const { data, error } = await window.sb
       .from('tournaments')
       .select('*')
       .order('start_date', { ascending: false });
-
     if (error) {
-      console.error('[SwimFest] loadAllMeets:', error.message);
+      console.error('[SwimFest] meets:', error.message);
+      renderS1A();
+      renderS1B();
       return;
     }
     ALL_MEETS = data || [];
     renderAllMeets();
+    renderMeetMetrics();
+    await buildMeetQueues();
   } catch (e) {
-    console.error('[SwimFest] loadAllMeets exception:', e);
+    console.error('[SwimFest] meets exception:', e);
   }
 }
 
@@ -622,7 +647,7 @@ window.approveClosure = async function(tid, title) {
   }
   await writeAudit('MEET_CLOSED', 'TOURNAMENT', tid, `Closure approved: ${title}`);
   showToast(`Meet closed: ${title}`, 'success');
-  refreshLiveData();
+  loadTournaments();
 };
 
 window.approveMeetDirect = async function(tid, title) {
@@ -635,7 +660,7 @@ window.approveMeetDirect = async function(tid, title) {
   }
   await writeAudit('EVENT_APPROVED', 'TOURNAMENT', tid, `Approved & published from All Meets directory: ${title}`);
   showToast(`Meet Approved & Published: ${title}`, 'success');
-  refreshLiveData();
+  loadTournaments();
 };
 
 function renderAllMeets() {
@@ -766,11 +791,72 @@ const QUEUE_META = {
   s1a:    { title: 'Internal meets', sub: 'Submitted by Admins — approving publishes the meet' },
   s1b:    { title: 'Third-party meets', sub: 'Submitted by organizers — upfront fee must be paid before approval' },
   reopen: { title: 'Reopen requests', sub: 'Organizers asking to reopen a completed meet' },
+  sentback: { title: 'Sent back', sub: 'Meets you returned to their organizer for changes. They come back to Third-party or Internal meets when resubmitted' },
 };
 let ACTIVE_QUEUE = 's2';
 
+// Tool pages open inside this console (iframe), at superadmin.html#<key>.
+// Academy directory and Admin console are full pages of their own, so they're not listed.
+const TOOLS = {
+  playerlist:   { page: 'playerlist.html',     title: 'Master player list' },
+  heatgen:      { page: 'heatgen.html',        title: 'Heat generation' },
+  racecontrol:  { page: 'orgracecontrol.html', title: 'Race control' },
+  results:      { page: 'results.html',        title: 'Live results' },
+  createmeet:   { page: 'orgcreate.html',      title: 'Create meet' },
+  organizer:    { page: 'orgdashboard.html',   title: 'Organizer dashboard' },
+  override:     { page: 'saoverride.html',     title: 'Universal override' },
+};
+const TOOL_BY_PAGE = Object.fromEntries(Object.entries(TOOLS).map(([k, t]) => [t.page, k]));
+window.SA_TOOL_PAGES = TOOL_BY_PAGE;      // read by embed.js inside the frame
+window.SA_CONSOLE_PAGE = 'superadmin.html';
+
+// New history entry per section so Back works; the first visit just fills in the hash
+function setHash(key) {
+  if (location.hash === '#' + key) return;
+  if (location.hash) history.pushState(null, '', '#' + key);
+  else history.replaceState(null, '', '#' + key);
+}
+
+// Show a tool in the frame. `src` keeps any ?t=… or #… the link carried.
+function openTool(key, src) {
+  const tool = TOOLS[key];
+  if (!tool) return switchTab('dashboard');
+  const frame = $('saToolFrame');
+  const url = new URL(src || tool.page, location.href);
+  url.searchParams.set('embed', '1');
+  const current = frame.contentWindow && frame.src ? frame.src : '';
+  if (current !== url.href) frame.src = url.href;
+
+  $('saContainer').hidden = true;
+  $('saTool').hidden = false;
+  document.querySelectorAll('.sa-nav-tab[data-tab]').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.sa-side-sub [data-queue]').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.sa-side-link[data-tool]').forEach(a => a.classList.toggle('active', a.dataset.tool === key));
+  document.title = `${tool.title} — SwimFest Super Admin`;
+  setHash(key);
+  try { localStorage.setItem('swimfest_sa_return', 'superadmin.html#' + key); } catch (_) {}
+}
+window.openTool = openTool;
+
+// Called by embed.js when a link inside the frame leads to a tool or a console tab
+window.openToolFromFrame = function (href) {
+  const u = new URL(href, location.href);
+  const page = u.pathname.split('/').pop();
+  if (page === 'superadmin.html') {
+    const key = u.hash.replace('#', '');
+    if (TOOLS[key]) return openTool(key);
+    return switchTab(key);
+  }
+  if (TOOL_BY_PAGE[page]) openTool(TOOL_BY_PAGE[page], u.href);
+};
+
 function switchTab(tabKey) {
+  if (TOOLS[tabKey]) return openTool(tabKey);
   if (!VALID_TABS.includes(tabKey)) tabKey = 'dashboard';
+  $('saContainer').hidden = false;
+  $('saTool').hidden = true;
+  document.querySelectorAll('.sa-side-link[data-tool]').forEach(a => a.classList.remove('active'));
+  document.title = 'Super Admin Console — SwimFest';
 
   document.querySelectorAll('.sa-nav-tab[data-tab]').forEach(t => {
     t.classList.toggle('active', t.getAttribute('data-tab') === tabKey);
@@ -786,15 +872,18 @@ function switchTab(tabKey) {
   const titleEl = $('saPageTitle');
   if (titleEl) titleEl.textContent = title;
 
+  // Header buttons follow the tab: academies get Add academy / Add coach, the rest Create meet
+  document.querySelectorAll('[data-head-for]').forEach(b => {
+    b.hidden = b.dataset.headFor !== (tabKey === 'academies' ? 'academies' : 'other');
+  });
+
   if (tabKey === 'dashboard') {
     switchQueue(ACTIVE_QUEUE);
   } else {
     document.querySelectorAll('.sa-side-sub [data-queue]').forEach(b => b.classList.remove('active'));
   }
 
-  if (history.replaceState) {
-    history.replaceState(null, '', '#' + tabKey);
-  }
+  setHash(tabKey);
   // Remembered so Back on other pages returns to this section (see auth.js)
   try { localStorage.setItem('swimfest_sa_return', 'superadmin.html#' + tabKey); } catch (_) {}
 }
@@ -866,8 +955,33 @@ function initTabs() {
   if (scrim) scrim.addEventListener('click', () => setNavOpen(false));
   document.addEventListener('keydown', e => { if (e.key === 'Escape') setNavOpen(false); });
 
-  const hash = (location.hash || '').replace('#', '');
-  switchTab(VALID_TABS.includes(hash) ? hash : 'dashboard');
+  // Tool links open inside the console; Ctrl/Cmd-click still opens the page in a new tab
+  document.querySelectorAll('a[data-tool]').forEach(a => {
+    a.addEventListener('click', e => {
+      if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+      e.preventDefault();
+      openTool(a.dataset.tool, a.getAttribute('href'));
+      setNavOpen(false);
+    });
+  });
+
+  // Inside the frame the address can change (e.g. heat generation → race control)
+  $('saToolFrame').addEventListener('load', () => {
+    let w;
+    try { w = $('saToolFrame').contentWindow.location; } catch (_) { return; }
+    const page = w.pathname.split('/').pop();
+    if (page === 'login.html') { location.href = w.href.replace(/[?&]embed=1/, ''); return; }
+    const key = TOOL_BY_PAGE[page];
+    if (key && location.hash !== '#' + key) {
+      history.replaceState(null, '', '#' + key);
+      document.querySelectorAll('.sa-side-link[data-tool]').forEach(a => a.classList.toggle('active', a.dataset.tool === key));
+    }
+  });
+
+  // Browser Back / Forward moves between console sections and tools
+  window.addEventListener('popstate', () => switchTab((location.hash || '').replace('#', '') || 'dashboard'));
+
+  switchTab((location.hash || '').replace('#', '') || 'dashboard');
 }
 
 // Signed-in user in the sidebar footer
@@ -909,41 +1023,74 @@ document.addEventListener('input', e => {
 })();
 
 // ── Bootstrap ─────────────────────────────────────────────────
-function refreshLiveData() {
+// Which data each table feeds, so a change reloads only what it affects
+const LOADERS = {
+  tournaments:     [loadTournaments],
+  bookings:        [loadMetrics],
+  swimmers:        [loadVerificationQueue, loadPeopleMetrics],
+  academies:       [loadVerificationQueue, loadPeopleMetrics],
+  coaches:         [loadVerificationQueue],
+  organizers:      [loadVerificationQueue],
+  reopen_requests: [loadReopenQueue],
+};
+const ALL_LOADERS = [loadTournaments, loadMetrics, loadPeopleMetrics, loadVerificationQueue, loadReopenQueue];
+
+function refreshLiveData(loaders = ALL_LOADERS) {
   // Skip while a modal is open so an in-progress action isn't disrupted
   if (document.querySelector('.modal-overlay.active')) return;
-  loadMetrics();
-  loadAllMeets();
-  loadMeetQueues();
-  loadVerificationQueue();
-  loadReopenQueue();
+  new Set(loaders).forEach(load => load());
 }
 
-// Realtime: refresh as soon as any watched table changes. Bursts of
-// changes (e.g. a bulk insert) are collapsed into a single refresh.
-const REALTIME_TABLES = ['tournaments','swimmers','academies','coaches','organizers','reopen_requests','bookings'];
+// Realtime: when a watched table changes, reload just what it feeds.
+// Bursts of changes (e.g. a bulk insert) are collapsed into one refresh.
+let realtimeLive = false;
+let pendingTables = new Set();
 let realtimeTimer = null;
 function subscribeRealtime() {
   if (!window.sb || !window.sb.channel) return;
   const channel = window.sb.channel('superadmin-live');
-  REALTIME_TABLES.forEach(table => {
+  Object.keys(LOADERS).forEach(table => {
     channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => {
+      pendingTables.add(table);
       clearTimeout(realtimeTimer);
-      realtimeTimer = setTimeout(refreshLiveData, 300);
+      realtimeTimer = setTimeout(() => {
+        const loaders = [...pendingTables].flatMap(t => LOADERS[t]);
+        pendingTables = new Set();
+        refreshLiveData(loaders);
+      }, 1000);
     });
   });
-  channel.subscribe(status => console.log('[SwimFest] realtime:', status));
+  channel.subscribe(status => {
+    const wasLive = realtimeLive;
+    realtimeLive = status === 'SUBSCRIBED';
+    console.log('[SwimFest] realtime:', status);
+    if (realtimeLive && !wasLive && lastRefresh) refreshLiveData();   // reconnected: catch up once
+  });
 }
+
+// Fallback only: refresh every 2 minutes while realtime isn't connected
+const FALLBACK_MS = 2 * 60 * 1000;
+const STALE_AFTER_MS = 2 * 60 * 1000;
+let lastRefresh = 0;
+let hiddenSince = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
   initTabs();
   renderSidebarUser();
   subscribeRealtime();
-  // Live data + 30s fallback refresh, only while the tab is visible
   refreshLiveData();
-  setInterval(() => { if (!document.hidden) refreshLiveData(); }, 30000);
-  // Catch up immediately when the user returns to the tab
+  lastRefresh = Date.now();
+  setInterval(() => {
+    if (document.hidden || realtimeLive) return;
+    refreshLiveData();
+    lastRefresh = Date.now();
+  }, FALLBACK_MS);
+  // Back on the tab after a while (realtime may have paused): catch up once
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) refreshLiveData();
+    if (document.hidden) { hiddenSince = Date.now(); return; }
+    if (hiddenSince && Date.now() - hiddenSince > STALE_AFTER_MS) {
+      refreshLiveData();
+      lastRefresh = Date.now();
+    }
   });
 });

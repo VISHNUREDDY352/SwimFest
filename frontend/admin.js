@@ -23,6 +23,7 @@ let MEETS = [];
 let MEET = null;
 let pendingDeleteId = null;
 let SESSION = null;
+let LOADING = true;   // meets or entries still on their way: show placeholders, not zeros
 
 // ─── Utilities ────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -142,16 +143,13 @@ async function loadAdminTournaments() {
   if (error || !data || !data.length) {
     sel.innerHTML = '<option value="">No approved meets yet</option>';
     sel.disabled = true;
-    MEET = null; ROSTER = []; renderStatus(); renderGrid();
+    MEET = null; ROSTER = []; LOADING = false; renderStatus(); renderGrid();
     return;
   }
   MEETS = data;
-  const fmt = d => d ? new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '';
-  sel.innerHTML = data.map(t => `<option value="${t.tournament_id}">${escHtml(t.title)}${t.start_date ? ' · ' + fmt(t.start_date) : ''}</option>`).join('');
-
-  // Honor ?t=<tournament_id> deep links from the dashboards
-  const wanted = new URLSearchParams(location.search).get('t');
-  if (wanted && data.some(t => t.tournament_id === wanted)) sel.value = wanted;
+  // Current & upcoming first, finished meets last; ?t=<id> deep links win
+  sel.innerHTML = SwimNav.meetOptions(data);
+  sel.value = SwimNav.pickMeet(data).tournament_id;
   await loadRoster(sel.value);
 }
 
@@ -160,20 +158,21 @@ async function loadRoster(tournamentId, silent = false) {
   MEET = MEETS.find(m => m.tournament_id === tournamentId) || null;
   if (!silent && MEET) history.replaceState(null, '', `${location.pathname}?t=${encodeURIComponent(tournamentId)}`);
   renderStatus();
-  if (!window.sb || !MEET) { ROSTER = []; renderGrid(); return; }
+  if (!window.sb || !MEET) { LOADING = false; ROSTER = []; renderGrid(); return; }
+  if (!silent) { LOADING = true; ROSTER = []; renderGrid(); }
 
   const { data, error } = await window.sb
     .from('event_entries')
     .select('entry_id, event_name, category, gender, seed_time_ms, swimmer_id, is_relay')
     .eq('tournament_id', tournamentId);
-  if (error) { console.error('[SwimFest] roster load:', error.message); ROSTER = []; renderGrid(); return; }
+  if (error) { console.error('[SwimFest] roster load:', error.message); LOADING = false; ROSTER = []; renderGrid(); return; }
 
   const entries = data || [];
   const swimmerIds = [...new Set(entries.map(e => e.swimmer_id).filter(Boolean))];
   const swimmers = {};
   if (swimmerIds.length) {
     const { data: sw } = await window.sb.from('swimmers')
-      .select('swimmer_id, full_name, gender, date_of_birth, status, academy_id, sfi_serial_no')
+      .select('*')  // '*' so a database without swimmers.status still loads
       .in('swimmer_id', swimmerIds);
     (sw || []).forEach(s => { swimmers[s.swimmer_id] = s; });
     // Academy names (and a fallback name source if swimmers is restricted)
@@ -207,6 +206,7 @@ async function loadRoster(tournamentId, silent = false) {
       flags: [],
     };
   });
+  LOADING = false;
   computeFlags();
   populateAcademyFilter();
   renderGrid();
@@ -269,10 +269,11 @@ function renderStatus() {
 function updateBanner() {
   const uniqueSwimmers = new Set(ROSTER.map(r => r.swimmerId)).size;
   const flaggedCount   = ROSTER.filter(r => r.flags.length > 0).length;
-  $('totalEntries').textContent   = uniqueSwimmers;
-  $('totalEventRows').textContent = ROSTER.length;
-  $('statFlagged').textContent    = flaggedCount;
-  $('statClean').textContent      = ROSTER.length - flaggedCount;
+  const show = n => LOADING ? '—' : n;
+  $('totalEntries').textContent   = show(uniqueSwimmers);
+  $('totalEventRows').textContent = show(ROSTER.length);
+  $('statFlagged').textContent    = show(flaggedCount);
+  $('statClean').textContent      = show(ROSTER.length - flaggedCount);
 }
 
 // ─── Academy filter ───────────────────────────────────────────
@@ -318,9 +319,11 @@ function renderGrid() {
   const empty = $('adminEmpty');
   tbody.innerHTML = '';
   updateBanner();
+  if (!LOADING && window.SwimReady) window.SwimReady();   // first data is in: show the page
 
   if (rows.length === 0) {
-    empty.textContent = !MEET ? 'Pick a meet to see its entries.'
+    empty.textContent = LOADING ? 'Loading entries…'
+      : !MEET ? 'Pick a meet to see its entries.'
       : ROSTER.length ? 'No entries match your filters.' : 'This meet has no entries yet.';
     empty.style.display = '';
     return;
@@ -440,6 +443,10 @@ async function confirmDelete() {
 async function openManualModal() {
   if (isReadOnly()) return;
   ['mFullName','mDob','mSeedTime','mContact'].forEach(id => { $(id).value = ''; });
+  // Only birth years that fit an age group (8–15 in the meet year)
+  const y = meetYear();
+  $('mDob').min = `${y - 15}-01-01`;
+  $('mDob').max = `${y - 8}-12-31`;
   $('mGender').value = 'Boy';
   $('mEvent').innerHTML = '<option value="">Pick gender and date of birth first</option>';
   $('mDerivedRow').style.display = 'none';
@@ -515,6 +522,10 @@ function getEventMasterLocal() {
 
 async function saveManualEntry() {
   const err = msg => { $('mError').textContent = msg; };
+  // A dropped connection or a blocking extension surfaces as "Failed to fetch"
+  const why = e => /failed to fetch|network/i.test(e.message || '')
+    ? 'could not reach the server. Check your internet (or turn off ad blockers for this site), wait a moment and try again.'
+    : e.message;
   const name     = $('mFullName').value.trim();
   const gender   = $('mGender').value;
   const dob      = $('mDob').value;
@@ -537,11 +548,16 @@ async function saveManualEntry() {
   btn.disabled = true;
 
   // 1. The swimmer (entered by staff at the pool, so already verified)
-  const { data: sw, error: swErr } = await window.sb.from('swimmers').insert({
+  const row = {
     full_name: name, gender, date_of_birth: dob, category: cat.label,
     parent_phone: phone, academy_id: academy || null, status: 'APPROVED_ACTIVE',
-  }).select('swimmer_id').single();
-  if (swErr || !sw) { btn.disabled = false; return err(`Could not add the swimmer: ${swErr ? swErr.message : 'not allowed'}`); }
+  };
+  let { data: sw, error: swErr } = await window.sb.from('swimmers').insert(row).select('swimmer_id').single();
+  if (swErr && /status/i.test(swErr.message)) {   // database without swimmers.status
+    delete row.status;
+    ({ data: sw, error: swErr } = await window.sb.from('swimmers').insert(row).select('swimmer_id').single());
+  }
+  if (swErr || !sw) { btn.disabled = false; return err(`Could not add the swimmer: ${swErr ? why(swErr) : 'not allowed'}`); }
 
   // 2. Their entry in this meet
   const distance = parseInt(event, 10);
@@ -555,7 +571,7 @@ async function saveManualEntry() {
   if (enErr) {
     // Don't leave a swimmer behind with no entry
     await window.sb.from('swimmers').delete().eq('swimmer_id', sw.swimmer_id);
-    return err(`Could not add the entry: ${enErr.message}`);
+    return err(`Could not add the entry: ${why(enErr)}`);
   }
 
   closeModal('manualEntryModal');

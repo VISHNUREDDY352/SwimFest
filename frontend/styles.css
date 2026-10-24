@@ -1025,22 +1025,56 @@ a.btn-profile i { font-size: 0.85rem; color: inherit; }
     max-height: 60vh;
 }
 
-.state-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 8px;
+/* State picker: search, states with meets first, then the rest */
+.state-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 14px;
+    height: 46px;
+    border: 1px solid var(--gray-light);
+    border-radius: var(--radius-sm);
+    margin-bottom: 16px;
+    color: var(--gray);
 }
+.state-search:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--accent-light); }
+.state-search input { flex: 1; min-width: 0; border: 0; outline: none; font: inherit; font-size: 0.95rem; background: transparent; color: var(--dark); }
+
+.state-grid { display: flex; flex-direction: column; gap: 8px; }
+.state-section-label {
+    margin: 4px 0 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--gray);
+}
+.state-list { display: grid; gap: 8px; }
+.state-list-main { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.state-list-other { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.state-empty { margin: 8px 0; color: var(--gray); font-size: 0.9rem; }
 
 .state-option {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
     padding: 10px 14px;
     border: 1px solid var(--gray-light);
     border-radius: var(--radius-sm);
+    background: var(--white);
+    color: var(--dark);
     cursor: pointer;
+    font: inherit;
     font-size: 0.85rem;
     font-weight: 500;
     transition: var(--transition);
-    text-align: center;
+    text-align: left;
 }
+.state-list-main .state-option { padding: 12px 16px; font-size: 0.95rem; font-weight: 600; }
+.state-list-other .state-option { padding: 8px 12px; color: var(--gray); }
+.state-option small { font-size: 0.75rem; font-weight: 600; color: var(--primary); }
+.state-option.active small { color: var(--white); }
 
 .state-option:hover {
     border-color: var(--primary);
@@ -1110,7 +1144,7 @@ a.btn-profile i { font-size: 0.85rem; color: inherit; }
         gap: 24px;
     }
 
-    .state-grid {
+    .state-list-main, .state-list-other {
         grid-template-columns: repeat(2, 1fr);
     }
 

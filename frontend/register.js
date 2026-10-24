@@ -278,6 +278,7 @@ function goToStep(n) {
 
 // ─── STEP 1 ───────────────────────────────────────────────────
 function initStep1() {
+  $('dob').min = `${TOURNAMENT_YEAR - 15}-01-01`;
   $('dob').max = `${TOURNAMENT_YEAR - 8}-12-31`;
 
   $$('.gender-btn').forEach(btn => {
@@ -1240,12 +1241,13 @@ async function checkSwimmerVerificationStatus() {
   if (!session || !session.userId) return;
   try {
     const { data: sw } = await window.sb.from('swimmers')
-      .select('swimmer_id, full_name, status')
+      .select('*')  // '*' so a database without swimmers.status still loads
       .eq('owner_id', session.userId)
       .limit(1)
       .maybeSingle();
     if (sw) {
-      state.swimmerStatus = sw.status || 'PENDING_VERIFICATION';
+      // No status column means verification isn't tracked, so don't block the parent
+      state.swimmerStatus = 'status' in sw ? (sw.status || 'PENDING_VERIFICATION') : 'APPROVED_ACTIVE';
     } else {
       state.swimmerStatus = 'PENDING_VERIFICATION';
     }

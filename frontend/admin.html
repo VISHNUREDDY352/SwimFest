@@ -3,15 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="embed.js?v=3"></script>
     <title>Admin Console — SwimFest</title>
-    <script src="guard.js" data-roles="event_manager,super_admin"></script>
+    <script src="guard.js?v=4" data-roles="event_manager,super_admin"></script>
     <link rel="stylesheet" href="styles.css?v=24">
     <link rel="stylesheet" href="admin.css?v=2">
     <link rel="stylesheet" href="dashboard.css?v=2">
     <link rel="stylesheet" href="emdashboard.css?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="console.css?v=2">
+    <link rel="stylesheet" href="console.css?v=4">
 </head>
 <body class="ac-body">
 <div class="ac-shell" id="acShell">
@@ -26,6 +28,9 @@
             </span>
         </a>
 
+        <!-- Shown only to a super admin (see adminconsole.js) -->
+        <a href="superadmin.html#dashboard" class="ac-side-back" id="acBackToSa" hidden><i class="fas fa-arrow-left"></i> Back to Super Admin</a>
+
         <nav class="ac-side-group">
             <a href="#top" class="ac-side-link active" data-nav="top"><i class="fas fa-table-columns"></i> Overview</a>
             <a href="#verificationQueues" class="ac-side-link" data-nav="verificationQueues"><i class="fas fa-clipboard-check"></i> Approvals
@@ -35,15 +40,15 @@
         <nav class="ac-side-group" aria-label="Meets">
             <div class="ac-side-label">Meets</div>
             <a href="#myMeets" class="ac-side-link" data-nav="myMeets"><i class="fas fa-trophy"></i> My meets <span class="ac-side-mini" id="acMeetsCount">0</span></a>
-            <a href="playerlist.html" class="ac-side-link"><i class="fas fa-list-check"></i> Master player list</a>
-            <a href="heatgen.html" class="ac-side-link"><i class="fas fa-bolt"></i> Heat generation</a>
-            <a href="results.html" class="ac-side-link"><i class="fas fa-broadcast-tower"></i> Live results</a>
-            <a href="orgracecontrol.html" class="ac-side-link"><i class="fas fa-flag-checkered"></i> Race control</a>
+            <a href="playerlist.html" data-tool="playerlist" class="ac-side-link"><i class="fas fa-list-check"></i> Master player list</a>
+            <a href="heatgen.html" data-tool="heatgen" class="ac-side-link"><i class="fas fa-bolt"></i> Heat generation</a>
+            <a href="results.html" data-tool="results" class="ac-side-link"><i class="fas fa-broadcast-tower"></i> Live results</a>
+            <a href="orgracecontrol.html" data-tool="racecontrol" class="ac-side-link"><i class="fas fa-flag-checkered"></i> Race control</a>
         </nav>
 
         <nav class="ac-side-group" aria-label="Create">
             <div class="ac-side-label">Create</div>
-            <a href="orgcreate.html" class="ac-side-link"><i class="fas fa-plus"></i> Add meet</a>
+            <a href="orgcreate.html" data-tool="createmeet" class="ac-side-link"><i class="fas fa-plus"></i> Add meet</a>
             <button type="button" class="ac-side-link" onclick="openAddAcademyModal()"><i class="fas fa-building"></i> Add academy</button>
             <button type="button" class="ac-side-link" onclick="openAddCoachModal()"><i class="fas fa-chalkboard-teacher"></i> Add coach</button>
         </nav>
@@ -74,7 +79,7 @@
                     <p class="ac-page-sub">Your meets, entries and pending approvals</p>
                 </div>
                 <div class="ac-head-actions">
-                    <a href="orgcreate.html" class="ac-btn ac-btn-primary"><i class="fas fa-plus"></i> Add meet</a>
+                    <a href="orgcreate.html" data-tool="createmeet" class="ac-btn ac-btn-primary"><i class="fas fa-plus"></i> Add meet</a>
                 </div>
             </div>
 
@@ -175,6 +180,12 @@
                 </div>
             </section>
         </main>
+
+        <!-- Tools (player list, heat generation…) open here, inside the Admin
+             console, so the address stays admin.html#<tool> -->
+        <div class="ac-tool" id="acTool" hidden>
+            <iframe id="acToolFrame" title="Tool"></iframe>
+        </div>
     </div>
 </div>
 
@@ -251,6 +262,6 @@
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
     <script src="assistant.js?v=2"></script>
-    <script src="adminconsole.js?v=6"></script>
+    <script src="adminconsole.js?v=11"></script>
 </body>
 </html>

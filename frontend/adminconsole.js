@@ -249,7 +249,9 @@ async function loadAllQueues() {
   // 1. Load Pending Swimmers
   try {
     const swRes = await window.sb.from('swimmers').select('*');
-    PENDING_SWIMMERS = (!swRes.error && swRes.data) ? swRes.data.filter(s => s && isPending(s.status)) : [];
+    // A database without swimmers.status doesn't track verification, so nobody is pending
+    // (same rule as the super admin Verifications queue)
+    PENDING_SWIMMERS = (!swRes.error && swRes.data) ? swRes.data.filter(s => s && 'status' in s && isPending(s.status)) : [];
   } catch (e) {
     console.warn('[AdminConsole] swimmers load error:', e.message);
     PENDING_SWIMMERS = [];
@@ -279,7 +281,9 @@ async function loadAllQueues() {
     PENDING_EVENTS = (!evRes.error && evRes.data) ? evRes.data.filter(e => {
       if (!e) return false;
       const st = String(e.status || '').toUpperCase();
-      return st === 'PENDING_APPROVAL' || st === 'PENDING' || st === 'DRAFT' || st === 'REJECTED_DRAFT';
+      // Only meets actually sent for review. A DRAFT is still being written and a
+      // REJECTED_DRAFT was already sent back to its organizer (same rule as the super admin queues)
+      return st === 'PENDING_APPROVAL' || st === 'PENDING';
     }) : [];
   } catch (e) {
     console.warn('[AdminConsole] events load error:', e.message);
@@ -602,11 +606,99 @@ function setNavOpen(open) {
   $('acMenuBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
+// ── Tools open inside the console, at admin.html#<key> ────────
+const TOOLS = {
+  playerlist:  { page: 'playerlist.html',     title: 'Master player list' },
+  heatgen:     { page: 'heatgen.html',        title: 'Heat generation' },
+  results:     { page: 'results.html',        title: 'Live results' },
+  racecontrol: { page: 'orgracecontrol.html', title: 'Race control' },
+  createmeet:  { page: 'orgcreate.html',      title: 'Add meet' },
+};
+const TOOL_BY_PAGE = Object.fromEntries(Object.entries(TOOLS).map(([k, t]) => [t.page, k]));
+window.SA_TOOL_PAGES = TOOL_BY_PAGE;      // read by embed.js inside the frame
+window.SA_CONSOLE_PAGE = 'admin.html';
+
+function markToolNav(key) {
+  document.querySelectorAll('.ac-side-link[data-tool]').forEach(a => a.classList.toggle('active', a.dataset.tool === key));
+  if (key) document.querySelectorAll('.ac-side-link[data-nav]').forEach(l => l.classList.remove('active'));
+}
+
+// `src` keeps any ?t=… the link carried; `push` adds a Back step
+function openTool(key, src, push = true) {
+  const tool = TOOLS[key];
+  if (!tool) return closeTool();
+  const frame = $('acToolFrame');
+  const url = new URL(src || tool.page, location.href);
+  url.searchParams.set('embed', '1');
+  if (frame.src !== url.href) frame.src = url.href;
+  $('top').hidden = true;
+  $('acTool').hidden = false;
+  markToolNav(key);
+  document.title = `${tool.title} — SwimFest Admin`;
+  if (location.hash !== '#' + key) history[push && location.hash ? 'pushState' : 'replaceState'](null, '', '#' + key);
+  setNavOpen(false);
+}
+
+function closeTool() {
+  if ($('acTool').hidden) return;
+  $('acTool').hidden = true;
+  $('top').hidden = false;
+  markToolNav(null);
+  document.title = 'Admin Console — SwimFest';
+  if (TOOLS[location.hash.replace('#', '')]) history.pushState(null, '', location.pathname);
+}
+
+// Called by embed.js when a link inside the frame leads to another tool or back here
+window.openToolFromFrame = function (href) {
+  const u = new URL(href, location.href);
+  const page = u.pathname.split('/').pop();
+  if (TOOL_BY_PAGE[page]) return openTool(TOOL_BY_PAGE[page], u.href);
+  closeTool();
+  const section = u.hash && document.getElementById(u.hash.slice(1));
+  if (section) section.scrollIntoView({ block: 'start' });
+};
+
+function initTools() {
+  // Any link to a tool (sidebar, Add meet, links in My meets) opens in the frame;
+  // Ctrl/Cmd-click still opens the page on its own in a new tab
+  document.addEventListener('click', e => {
+    const a = e.target.closest('a[href]');
+    if (!a || a.target === '_blank' || e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+    const u = new URL(a.href, location.href);
+    const key = u.origin === location.origin && TOOL_BY_PAGE[u.pathname.split('/').pop()];
+    if (!key) return;
+    e.preventDefault();
+    openTool(key, a.getAttribute('href'));
+  });
+
+  // Inside the frame the address can change (e.g. heat generation → race control)
+  $('acToolFrame').addEventListener('load', () => {
+    let w;
+    try { w = $('acToolFrame').contentWindow.location; } catch (_) { return; }
+    const page = w.pathname.split('/').pop();
+    if (page === 'login.html') { location.href = w.href.replace(/[?&]embed=1/, ''); return; }
+    const key = TOOL_BY_PAGE[page];
+    if (key && location.hash !== '#' + key) { history.replaceState(null, '', '#' + key); markToolNav(key); }
+  });
+
+  // Browser Back / Forward between the overview and tools
+  window.addEventListener('popstate', () => {
+    const key = location.hash.replace('#', '');
+    if (TOOLS[key]) openTool(key, null, false); else closeTool();
+  });
+
+  const key = location.hash.replace('#', '');
+  if (TOOLS[key]) openTool(key, null, false);
+}
+
 function initNav() {
+  initTools();
+
   // In-page links: smooth-scroll and mark the active item
   document.querySelectorAll('.ac-side-link[data-nav]').forEach(link => {
     link.addEventListener('click', e => {
       e.preventDefault();
+      closeTool();
       const target = link.getAttribute('data-nav');
       document.querySelectorAll('.ac-side-link[data-nav]').forEach(l => l.classList.toggle('active', l === link));
       if (target === 'top') window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -639,6 +731,13 @@ function renderSidebarUser() {
   if (!session) return;
   const name = session.name || (session.role === 'super_admin' ? 'Super Admin' : 'Admin');
   $('acUserName').textContent = name;
+  // A super admin gets a way back to the section of their console they came from
+  if (session.role === 'super_admin') {
+    let back = 'superadmin.html#dashboard';
+    try { back = localStorage.getItem('swimfest_sa_return') || back; } catch (_) {}
+    $('acBackToSa').href = back;
+    $('acBackToSa').hidden = false;
+  }
   $('acUserInitials').textContent = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'AD';
 }
 
@@ -664,6 +763,10 @@ function renderSidebarUser() {
 document.addEventListener('DOMContentLoaded', () => {
   initNav();
   renderSidebarUser();
+
+  // Opened from the super admin "Add academy" / "Add coach" buttons
+  if (location.hash === '#add-academy') openAddAcademyModal();
+  if (location.hash === '#add-coach') openAddCoachModal();
 
   const searchInput = $('adminConsoleSearch');
   const clearBtn    = $('adminConsoleSearchClear');

@@ -37,69 +37,88 @@ const searchInput = document.getElementById('searchInput');
 const categoryFilter = document.getElementById('categoryFilter');
 const statusFilter = document.getElementById('statusFilter');
 
-// ===== Fetch the states that actually host tournaments =====
-async function getActiveStates() {
-    // Only show states that have at least one visible tournament.
-    if (!window.sb) return null;
+// ===== How many meets each state has =====
+async function getStateMeetCounts() {
+    if (!window.sb) return {};
     try {
         const { data, error } = await window.sb
             .from('tournaments')
             .select('state')
             .in('status', ['PUBLISHED', 'CLOSED', 'LOCKED', 'COMPLETED']);
-        if (error || !data) return null;
-        const distinct = [...new Set(data.map(t => (t.state || '').trim()).filter(Boolean))].sort();
-        return distinct.length ? distinct : null;
-    } catch (_) { return null; }
+        if (error || !data) return {};
+        const counts = {};
+        data.forEach(t => {
+            const st = (t.state || '').trim();
+            if (st) counts[st] = (counts[st] || 0) + 1;
+        });
+        return counts;
+    } catch (_) { return {}; }
 }
 
-// ===== Initialize State Grid (auto-populated from active states) =====
-async function initStateGrid() {
-    // Auto-populate from states that have events; fall back to full list.
-    const activeStates = await getActiveStates();
-    // Always show ALL states — never restrict the picker to only states with
-    // active events (the list would be tiny when the DB is sparse).
-    const list = states;
+// ===== State picker: search + states with meets first =====
+let stateCounts = {};
+const stateSearch = document.getElementById('stateSearch');
 
-    // Smart default: pick the first state that has events, then the saved
-    // state, then Tamil Nadu.
+function chooseState(selected) {
+    localStorage.setItem('swimfest_state', selected);
+    currentStateEl.textContent = selected;
+    const stateTag = document.querySelector('.state-tag');
+    if (stateTag) stateTag.textContent = `(${selected})`;
+    stateModal.classList.remove('active');
+    // Reload the events for the newly selected state
+    if (typeof window.loadTournaments === 'function') window.loadTournaments();
+}
+
+function renderStatePicker() {
+    const saved = localStorage.getItem('swimfest_state');
+    const q = (stateSearch ? stateSearch.value : '').trim().toLowerCase();
+    const match = st => !q || st.toLowerCase().includes(q);
+    const withMeets = states.filter(st => stateCounts[st] && match(st))
+        .sort((a, b) => stateCounts[b] - stateCounts[a] || a.localeCompare(b));
+    const others = states.filter(st => !stateCounts[st] && match(st));
+    const btn = st => `<button type="button" class="state-option ${st === saved ? 'active' : ''}" data-state="${st}"${st === saved ? ' aria-current="true"' : ''}>
+            <span>${st}</span>${stateCounts[st] ? `<small>${stateCounts[st]} meet${stateCounts[st] === 1 ? '' : 's'}</small>` : ''}
+        </button>`;
+
+    stateGrid.innerHTML = (withMeets.length ? `
+        <p class="state-section-label">States with meets</p>
+        <div class="state-list state-list-main">${withMeets.map(btn).join('')}</div>` : '')
+        + (others.length ? `
+        <p class="state-section-label">${withMeets.length ? 'Other states (no meets yet)' : 'All states'}</p>
+        <div class="state-list state-list-other">${others.map(btn).join('')}</div>` : '')
+        + (!withMeets.length && !others.length ? `<p class="state-empty">No state matches "${q.replace(/[<>&"]/g, '')}".</p>` : '');
+}
+
+async function initStateGrid() {
+    stateCounts = await getStateMeetCounts();
+
+    // Default: the saved state, else the state with the most meets, else Tamil Nadu
     let savedState = localStorage.getItem('swimfest_state');
-    const preferredDefault = (activeStates && activeStates[0]) || savedState || 'Tamil Nadu';
-    if (!savedState || !list.includes(savedState)) savedState = preferredDefault;
+    const busiest = Object.keys(stateCounts).sort((a, b) => stateCounts[b] - stateCounts[a])[0];
+    if (!savedState || !states.includes(savedState)) savedState = busiest || 'Tamil Nadu';
     currentStateEl.textContent = savedState;
     localStorage.setItem('swimfest_state', savedState);
     const stateTag = document.querySelector('.state-tag');
     if (stateTag) stateTag.textContent = `(${savedState})`;
 
-    stateGrid.innerHTML = list.map(state => `
-        <div class="state-option ${state === savedState ? 'active' : ''}" data-state="${state}">
-            ${state}
-        </div>
-    `).join('');
+    renderStatePicker();
 
     // Ensure events match the finalized state (in case the default changed)
     if (typeof window.loadTournaments === 'function') window.loadTournaments();
+}
 
-    // Add click handlers to state options
-    stateGrid.querySelectorAll('.state-option').forEach(option => {
-        option.addEventListener('click', () => {
-            const selected = option.dataset.state;
-            localStorage.setItem('swimfest_state', selected);
-            currentStateEl.textContent = selected;
-
-            // Update active state
-            stateGrid.querySelectorAll('.state-option').forEach(o => o.classList.remove('active'));
-            option.classList.add('active');
-
-            // Update section title
-            const stateTag = document.querySelector('.state-tag');
-            if (stateTag) stateTag.textContent = `(${selected})`;
-
-            // Close modal
-            stateModal.classList.remove('active');
-
-            // Reload the events for the newly selected state
-            if (typeof window.loadTournaments === 'function') window.loadTournaments();
-        });
+stateGrid.addEventListener('click', e => {
+    const option = e.target.closest('.state-option');
+    if (option) chooseState(option.dataset.state);
+});
+if (stateSearch) {
+    stateSearch.addEventListener('input', renderStatePicker);
+    // Enter picks the first match
+    stateSearch.addEventListener('keydown', e => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const first = stateGrid.querySelector('.state-option');
+        if (first) chooseState(first.dataset.state);
     });
 }
 
@@ -150,6 +169,11 @@ statusFilter.addEventListener('change', filterTournaments);
 // State selector modal
 stateSelector.addEventListener('click', () => {
     stateModal.classList.add('active');
+    if (stateSearch) {
+        stateSearch.value = '';
+        renderStatePicker();
+        stateSearch.focus();
+    }
 });
 
 modalClose.addEventListener('click', () => {
