@@ -892,7 +892,7 @@ function renderAllMeets() {
 }
 
 // ── Sidebar navigation (tabs + approval queues) ──────────────
-const VALID_TABS = ['dashboard', 'meets', 'academies', 'financials'];
+const VALID_TABS = ['dashboard', 'meets', 'academies', 'financials', 'team'];
 
 // `sub` is shown under the tabs; it also becomes each tab's hover tooltip (see initTabs)
 const QUEUE_META = {
@@ -983,6 +983,9 @@ function switchTab(tabKey) {
 
   // The four number boxes belong to Approvals only
   $('saKpis').hidden = tabKey !== 'dashboard';
+  // Team is about people, not meets: no Emergency notice / Create meet buttons there
+  document.querySelector('.sa-head-actions').hidden = tabKey === 'team';
+  if (tabKey === 'team') loadTeam();
 
   // Header buttons follow the tab: academies get Add academy / Add coach, the rest Create meet
   document.querySelectorAll('[data-head-for]').forEach(b => {
@@ -1114,6 +1117,9 @@ function renderSidebarUser() {
   if (window.SwimGov) SwimGov.isOwner().then(owner => {
     IS_OWNER = owner !== false;
     $('saUserEmail').textContent = `${IS_OWNER ? 'Owner' : 'Co-Super Admin'}${session.email ? ' · ' + session.email : ''}`;
+    // Only the Owner manages the team
+    $('saTeamNav').hidden = !IS_OWNER;
+    if (!IS_OWNER && location.hash === '#team') switchTab('dashboard');
   });
 }
 let IS_OWNER = true;
@@ -1279,3 +1285,123 @@ window.openAssignAdmins = async function (tid) {
   };
 };
 document.addEventListener('DOMContentLoaded', () => setTimeout(loadAssignments, 1500));
+
+// ── Team (Owner only): super admins and Admins ────────────────
+// Uses team_list / team_find / team_set_role (backend/db/team_management.sql),
+// which check in the database that the caller is the Owner.
+const ROLE_LABEL = { owner: 'Owner', co: 'Co-Super Admin', admin: 'Admin' };
+function teamRole(p) {
+  if (p.role === 'super_admin') return p.is_master_owner ? 'owner' : 'co';
+  if (p.role === 'event_manager') return 'admin';
+  return 'other';
+}
+const roleChip = p => {
+  const r = teamRole(p);
+  const label = ROLE_LABEL[r] || (p.role === 'organizer' ? 'Organizer' : 'Swimmer / parent');
+  return `<span class="tm-role ${r}">${label}</span>`;
+};
+const personCell = p => `<div class="sa-meet-title">${escHtml(p.full_name || '(no name)')}</div><div style="font-size:0.75rem;color:var(--gray);">${escHtml(p.email || '')}</div>`;
+
+// Buttons for every role this person could move to
+function roleButtons(p) {
+  const me = (window.SwimAuth.getSession() || {}).userId;
+  if (p.id === me) return '<span class="tm-you">This is you</span>';
+  const now = teamRole(p);
+  const opts = [['owner', 'Make Owner'], ['co_super_admin', 'Make Co-Super Admin'], ['admin', 'Make Admin']]
+    .filter(([k]) => ({ owner: 'owner', co_super_admin: 'co', admin: 'admin' })[k] !== now);
+  const btns = opts.map(([k, label]) => `<button type="button" class="tm-btn" data-role="${k}" data-user="${p.id}">${label}</button>`);
+  if (now !== 'other') btns.push(`<button type="button" class="tm-btn danger" data-role="remove" data-user="${p.id}">Remove from team</button>`);
+  return `<div class="tm-btns">${btns.join('')}</div>`;
+}
+
+const TEAM_PEOPLE = {};
+async function loadTeam() {
+  const body = $('teamBody');
+  if (!window.sb || !body) return;
+  const { data, error } = await window.sb.rpc('team_list');
+  if (error) {
+    body.innerHTML = `<tr><td colspan="3" class="sa-empty-cell">${/function|schema cache/i.test(error.message)
+      ? 'The Team tab needs the database update: run backend/db/team_management.sql in Supabase.'
+      : escHtml(error.message)}</td></tr>`;
+    return;
+  }
+  (data || []).forEach(p => { TEAM_PEOPLE[p.id] = p; });
+  $('teamCount').textContent = `${(data || []).length} people`;
+  body.innerHTML = (data || []).map(p => `<tr><td>${personCell(p)}</td><td>${roleChip(p)}</td><td>${roleButtons(p)}</td></tr>`).join('')
+    || '<tr><td colspan="3" class="sa-empty-cell">No team members yet.</td></tr>';
+}
+
+let teamFindTimer;
+async function findPeople() {
+  const q = $('teamSearch').value.trim();
+  const body = $('teamFindBody');
+  if (q.length < 2) { body.innerHTML = '<tr><td colspan="3" class="sa-empty-cell">Type a name or email above.</td></tr>'; return; }
+  const { data, error } = await window.sb.rpc('team_find', { q });
+  if (error) { body.innerHTML = `<tr><td colspan="3" class="sa-empty-cell">${escHtml(error.message)}</td></tr>`; return; }
+  (data || []).forEach(p => { TEAM_PEOPLE[p.id] = p; });
+  body.innerHTML = (data || []).map(p => `<tr><td>${personCell(p)}</td><td>${roleChip(p)}</td><td>${roleButtons(p)}</td></tr>`).join('')
+    || '<tr><td colspan="3" class="sa-empty-cell">Nobody found. They need to sign up for a SwimFest account first.</td></tr>';
+}
+
+// Confirmation box. Removing someone, or making them an Owner, can't be done by a
+// stray click: the button only works after typing the phrase (like the player list lock).
+const TEAM_PHRASE = { remove: 'REMOVE', owner: 'MAKE OWNER' };
+function confirmTeamChange(p, role) {
+  const name = p.full_name || p.email || 'this person';
+  const now = ROLE_LABEL[teamRole(p)] || 'Swimmer / parent';
+  const copy = {
+    remove: ['Remove from the team?', `<b>${escHtml(name)}</b> stops being ${escHtml(now)} straight away. They lose access to the console${teamRole(p) === 'admin' ? ' and are taken off every meet they run' : ''}.`],
+    owner: ['Make this person an Owner?', `<b>${escHtml(name)}</b> gets full control of SwimFest, including this Team tab: they could change or remove anyone, even you.`],
+    co_super_admin: ['Make this person a Co-Super Admin?', `<b>${escHtml(name)}</b> can approve, override and run every meet. Reopening a meet needs a written reason.`],
+    admin: ['Make this person an Admin?', `<b>${escHtml(name)}</b> can run the meets you assign to them in All meets. They can't approve anything.`],
+  }[role];
+  const phrase = TEAM_PHRASE[role];
+  return new Promise(resolve => {
+    const back = document.createElement('div');
+    back.className = 'srn-back';
+    back.innerHTML = `<div class="srn-box" role="dialog" aria-modal="true" aria-labelledby="tmcTitle">
+      <div class="srn-head" id="tmcTitle">${copy[0]}</div>
+      <div class="srn-sub">${copy[1]}<br><span style="font-size:0.78rem;">${escHtml(p.email || '')} · now ${escHtml(now)}. This is recorded in the audit log.</span></div>
+      ${phrase ? `<div class="srn-body"><label for="tmcPhrase" style="font-size:0.85rem;">Type <b>${phrase}</b> to confirm:</label>
+        <input id="tmcPhrase" autocomplete="off" spellcheck="false" placeholder="${phrase}"
+          style="width:100%;box-sizing:border-box;margin-top:6px;height:2.5rem;border:1px solid #cbd5e1;border-radius:10px;padding:0 12px;font:inherit;"></div>` : '<div class="srn-body"></div>'}
+      <div class="srn-foot"><button type="button" class="srn-cancel">Cancel</button>
+        <button type="button" class="srn-ok"${role === 'remove' || role === 'owner' ? '' : ' style="background:#0077b6;border-color:#0077b6;"'}>${role === 'remove' ? 'Remove' : 'Confirm'}</button></div>
+    </div>`;
+    document.body.appendChild(back);
+    const ok = back.querySelector('.srn-ok'), input = back.querySelector('#tmcPhrase');
+    const ready = () => !phrase || (input && input.value.trim().toUpperCase() === phrase);
+    const sync = () => { ok.disabled = !ready(); ok.style.opacity = ready() ? '1' : '0.45'; ok.style.cursor = ready() ? 'pointer' : 'not-allowed'; };
+    const done = v => { back.remove(); document.removeEventListener('keydown', onKey); resolve(v); };
+    const onKey = e => { if (e.key === 'Escape') done(false); };
+    sync();
+    if (input) { input.addEventListener('input', sync); input.focus(); } else ok.focus();
+    document.addEventListener('keydown', onKey);
+    back.querySelector('.srn-cancel').addEventListener('click', () => done(false));
+    back.addEventListener('click', e => { if (e.target === back) done(false); });
+    ok.addEventListener('click', () => { if (ready()) done(true); });
+  });
+}
+
+async function changeRole(userId, role) {
+  const p = TEAM_PEOPLE[userId] || {};
+  const name = p.full_name || p.email || 'this person';
+  const what = { owner: 'an Owner (full control, including the team)', co_super_admin: 'a Co-Super Admin', admin: 'an Admin', remove: 'removed from the team' }[role];
+  if (!(await confirmTeamChange(p, role))) return;
+  const { error } = await window.sb.rpc('team_set_role', { p_user: userId, p_role: role });
+  if (error) { showToast(error.message, 'warn'); return; }
+  showToast(role === 'remove' ? `${name} removed from the team` : `${name} is now ${what.split(' (')[0]}`, 'success');
+  ADMIN_USERS = null;   // the Admins list for meet assignments changed
+  await loadTeam();
+  if ($('teamSearch').value.trim().length >= 2) findPeople();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const search = $('teamSearch');
+  if (search) search.addEventListener('input', () => { clearTimeout(teamFindTimer); teamFindTimer = setTimeout(findPeople, 300); });
+  const panel = $('panel-team');
+  if (panel) panel.addEventListener('click', e => {
+    const b = e.target.closest('[data-role][data-user]');
+    if (b) changeRole(b.dataset.user, b.dataset.role);
+  });
+});

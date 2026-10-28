@@ -263,7 +263,18 @@
             .sa-head-actions .sa-btn { flex:1; justify-content:center; }
             .sa-queue-table th, .sa-queue-table td { padding:0.625rem 0.75rem; }
         }
-        .sa-head-actions [hidden], .sa-metrics-grid[hidden] { display: none !important; }
+        .sa-head-actions[hidden], .sa-head-actions [hidden], .sa-metrics-grid[hidden], .sa-side-link[hidden] { display: none !important; }
+        .tm-intro { font-size:0.82rem; color:var(--gray); line-height:1.55; margin:0.25rem 1.25rem 0.75rem; }
+        .tm-role { display:inline-block; font-size:0.72rem; font-weight:700; border-radius:999px; padding:3px 10px; }
+        .tm-role.owner { background:#0f2942; color:#fff; }
+        .tm-role.co { background:#e0e7ff; color:#3730a3; }
+        .tm-role.admin { background:#e0f2fe; color:#075985; }
+        .tm-role.other { background:#f1f5f9; color:#475569; }
+        .tm-btns { display:flex; flex-wrap:wrap; gap:6px; }
+        .tm-btn { border:1px solid #cbd5e1; background:#fff; border-radius:8px; padding:5px 10px; font:inherit; font-size:0.78rem; font-weight:600; cursor:pointer; color:#0f172a; }
+        .tm-btn:hover { border-color:#0077b6; color:#0077b6; }
+        .tm-btn.danger:hover { border-color:#dc2626; color:#dc2626; }
+        .tm-you { font-size:0.78rem; color:var(--gray); }
         .sa-meet-select { height:2.5rem; padding:0 0.75rem; border:1px solid #cbd5e1; border-radius:0.625rem; background:#fff;
             font:inherit; font-size:0.85rem; color:#1e293b; max-width:12rem; }
         /* Reason a meet was sent back: red-accented callout */
@@ -303,6 +314,8 @@
             <button class="sa-side-link sa-nav-tab" data-tab="meets"><i class="fas fa-trophy"></i> All meets</button>
             <button class="sa-side-link sa-nav-tab" data-tab="academies"><i class="fas fa-building"></i> Academies &amp; coaches</button>
             <button class="sa-side-link sa-nav-tab" data-tab="financials"><i class="fas fa-indian-rupee-sign"></i> Financials</button>
+            <!-- Owner only (shown by superadmin.js) -->
+            <button class="sa-side-link sa-nav-tab" data-tab="team" id="saTeamNav" hidden><i class="fas fa-user-shield"></i> Team</button>
         </nav>
 
         <nav class="sa-side-group" aria-label="Tools">
@@ -505,6 +518,35 @@
             </div>
 
             <!-- TAB 4: FINANCIALS -->
+            <!-- TEAM: who runs SwimFest (Owner only) -->
+            <div class="sa-tab-panel" id="panel-team" data-tab-panel="team" data-title="Team">
+                <section class="sa-section">
+                    <div class="sa-section-header">
+                        <span class="sa-section-title"><i class="fas fa-user-shield"></i> Super admins &amp; Admins</span>
+                        <span class="sa-badge" id="teamCount">—</span>
+                    </div>
+                    <p class="tm-intro"><b>Owner</b>: everything, and the only one who can change the team.
+                        <b>Co-Super Admin</b>: runs the platform; reopening a meet needs a written reason; financials read-only.
+                        <b>Admin</b>: runs the meets you assign in <i>All meets</i>; can't approve. Every change is in the audit log.</p>
+                    <div class="sa-table-wrap"><table class="sa-queue-table">
+                        <thead><tr><th>Person</th><th>Role</th><th>Change role</th></tr></thead>
+                        <tbody id="teamBody"><tr><td colspan="3" class="sa-empty-cell">Loading…</td></tr></tbody>
+                    </table></div>
+                </section>
+                <section class="sa-section" style="margin-top:1rem;">
+                    <div class="sa-section-header"><span class="sa-section-title"><i class="fas fa-user-plus"></i> Add someone to the team</span></div>
+                    <p class="tm-intro">They need a SwimFest account first. Search by name or email, then choose their role.</p>
+                    <label class="sa-search-wrap" style="max-width:28rem;">
+                        <i class="fas fa-search" aria-hidden="true"></i>
+                        <input type="search" id="teamSearch" placeholder="Name or email (at least 2 letters)" aria-label="Find a person by name or email">
+                    </label>
+                    <div class="sa-table-wrap" style="margin-top:0.75rem;"><table class="sa-queue-table">
+                        <thead><tr><th>Person</th><th>Now</th><th>Make them</th></tr></thead>
+                        <tbody id="teamFindBody"><tr><td colspan="3" class="sa-empty-cell">Type a name or email above.</td></tr></tbody>
+                    </table></div>
+                </section>
+            </div>
+
             <div class="sa-tab-panel" id="panel-financials" data-tab-panel="financials" data-title="Financials">
                 <section class="sa-section">
                     <div class="sa-section-header">
@@ -593,6 +635,6 @@
     <script src="assistant.js?v=2"></script>
     <script src="reason.js?v=1"></script>
     <script src="governance.js?v=1"></script>
-    <script src="superadmin.js?v=21"></script>
+    <script src="superadmin.js?v=24"></script>
 </body>
 </html>
