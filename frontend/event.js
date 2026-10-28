@@ -87,9 +87,15 @@ document.addEventListener('keydown', (e) => {
     setText('evTitle', t.title);
     setText('evBannerTitle', t.title);
     if (t.host_organization) setText('evHostedBy', 'Hosted by: ' + t.host_organization);
-    setText('evStatusBadge', STATUS_LABEL[t.status] || t.status);
+    // Badge from the meet's dates and the clock, not just its stored status
+    const MS = window.SwimMeetState;
+    const badge = MS ? MS.badge(t) : { label: STATUS_LABEL[t.status] || t.status, cls: 'status-open' };
+    setText('evStatusBadge', badge.label);
+    const badgeEl = document.getElementById('evStatusBadge');
+    if (badgeEl) badgeEl.className = `event-status-badge ${badge.cls}`;
     setText('evVenue', `${t.venue_name || ''}${t.city ? ', ' + t.city : ''}`);
-    setText('evSpecs', `${t.pool_length === '25m' ? '25 m pool' : '50 m pool'} | ${t.lane_count || 8} lanes`);
+    const pools = Array.isArray(t.pool_lengths) && t.pool_lengths.length ? t.pool_lengths : [t.pool_length || '50m'];
+    setText('evSpecs', `${pools.map(p => p === '25m' ? '25 m' : '50 m').join(' + ')} pool${pools.length > 1 ? 's' : ''} | ${t.lane_count || 8} lanes`);
     setText('evResultsNote', `Results will be published live during the event (${fmtDate(t.start_date)} – ${fmtDate(t.end_date)}).`);
 
     // Poster uploaded by the organizer
@@ -134,7 +140,34 @@ document.addEventListener('keydown', (e) => {
     if (btnM) btnM.setAttribute('href', regUrl);
     if (btnC) btnC.setAttribute('href', regUrl);
 
+    // Entries closed (deadline passed, racing started or finished): no Register buttons
+    if (MS && !MS.entriesOpen(t)) {
+      const phase = MS.phase(t);
+      const why = phase === 'past' ? 'Meet finished' : phase === 'ongoing' ? 'Racing now · entries closed' : 'Entries closed';
+      [btn, btnM, btnC].forEach(b => {
+        if (!b) return;
+        b.removeAttribute('href');
+        b.setAttribute('aria-disabled', 'true');
+        b.style.cssText += ';opacity:0.55;pointer-events:none;cursor:default;';
+        b.innerHTML = `<i class="fas fa-lock"></i> ${why}`;
+      });
+    }
+
     document.title = `${t.title} | SwimFest`;
+
+    // Racing (or finished): link to the public live timing board
+    const live = document.getElementById('evLiveBtn');
+    const phaseNow = MS ? MS.phase(t) : null;
+    const racing = ['LOCKED', 'CLOSURE_REQUESTED'].includes(t.status);
+    if (live && (phaseNow === 'ongoing' || phaseNow === 'past' || racing)) {
+      live.href = `live.html?t=${encodeURIComponent(t.tournament_id)}`;
+      if (phaseNow === 'past') document.getElementById('evLiveText').textContent = 'Official results';
+      live.hidden = false;
+      live.style.display = 'inline-flex';
+    }
+
+    // Results tab: ranked results per race once racing has started
+    if (window.SwimResults) window.SwimResults.load(t);
   }
 
   document.addEventListener('DOMContentLoaded', loadEvent);

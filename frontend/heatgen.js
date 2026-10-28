@@ -40,19 +40,22 @@ async function loadTournamentOptions() {
 
   const { data, error } = await window.sb
     .from('tournaments')
-    .select('tournament_id, title, status, start_date, end_date, lane_count')
+    .select('*')   // includes pool_lengths: meets set up with a 50 m and a 25 m pool
     .in('status', Object.keys(STATUS_PILL))
     .order('start_date', { ascending: false });
 
-  if (error || !data || !data.length) {
-    sel.innerHTML = `<option value="">${error ? 'Could not load meets' : 'No approved meets yet'}</option>`;
+  const mine = window.SwimGov ? await window.SwimGov.assignedMeetIds() : null;   // Admins: assigned meets only
+  const rows = mine && data ? data.filter(t => mine.has(t.tournament_id)) : data;
+  if (error || !rows || !rows.length) {
+    sel.innerHTML = `<option value="">${error ? 'Could not load meets' : mine ? 'No meets assigned to you yet' : 'No approved meets yet'}</option>`;
     sel.disabled = true;
     return;
   }
-  MEETS = data;
+  const data2 = rows;
+  MEETS = data2;
   // Current & upcoming first, finished last; ?t=<id> wins, then a meet whose player list is locked
-  sel.innerHTML = SwimNav.meetOptions(data);
-  const pick = SwimNav.pickMeet(data, t => t.status === 'LOCKED');
+  sel.innerHTML = SwimNav.meetOptions(data2);
+  const pick = SwimNav.pickMeet(data2, t => t.status === 'LOCKED');
   sel.value = pick.tournament_id;
   sel.addEventListener('change', () => loadRosterForTournament(sel.value));
   await loadRosterForTournament(sel.value);
@@ -77,6 +80,15 @@ function renderMeetState() {
   chip.className = `ac-pill ${cls}`;
   chip.textContent = label;
   $('statSavedHeats').textContent = MEET ? SAVED.heats : '—';
+
+  // Results can be imported once heats are saved for this meet
+  const imp = $('importResultsBtn');
+  const canImport = MEET && SAVED.heats > 0;
+  imp.classList.toggle('is-off', !canImport);
+  imp.setAttribute('aria-disabled', canImport ? 'false' : 'true');
+  imp.href = canImport ? `results.html?t=${encodeURIComponent(MEET.tournament_id)}&import=1` : 'results.html';
+  imp.title = canImport ? 'Load finish times from the timing system (Excel or CSV) into Live results'
+                        : 'Save heats first, then import results from the timing system';
 
   const blocker = generateBlocker();
   $('generateBtn').disabled = !!blocker;
@@ -116,6 +128,13 @@ async function loadRosterForTournament(tournamentId) {
   if (MEET && MEET.lane_count) {
     const r1 = document.querySelector(`input[name="pool1Lanes"][value="${MEET.lane_count}"]`);
     if (r1) { r1.checked = true; r1.dispatchEvent(new Event('change')); }
+  }
+  // A meet created with two pools (Create meet: 50 m + 25 m) starts with both pools on
+  const lengths = MEET && Array.isArray(MEET.pool_lengths) ? MEET.pool_lengths : [];
+  if (lengths.length === 2) {
+    $('pool1Name').value = '50 m pool';
+    $('pool2Name').value = '25 m pool';
+    if (!$('pool2Active').checked) { $('pool2Active').checked = true; $('pool2Active').dispatchEvent(new Event('change')); }
   }
 
   // What is already saved: heats, and lanes that already have results
@@ -243,6 +262,8 @@ async function saveHeatsToDB() {
   if (error) { console.error('[SwimFest] save heats:', error.message); showToast('Save failed: ' + error.message, 'warn'); return false; }
 
   SAVED.heats = generatedHeats.reduce((n, ev) => n + ev.heats.length, 0);
+  if (window.SwimGov) SwimGov.audit('HEATS_SAVED', 'TOURNAMENT', currentTournamentId,
+    `${MEET ? MEET.title : ''}: saved ${SAVED.heats} heats (${rows.length} swimmers)`);
   renderMeetState();
   showToast(`Saved ${SAVED.heats} heats (${rows.length} swimmers).`, 'success');
   return true;
@@ -777,15 +798,27 @@ function showToast(msg, type = 'info') {
 })();
 
 // ─── Pool toggle cards ────────────────────────────────────────
+// At least one pool must stay on: the last pool still on can't be switched off
+const LAST_POOL_TIP = 'At least one pool must stay on. Turn on the other pool first, then you can turn this one off.';
+function syncPoolToggles() {
+  const toggles = [$('pool1Active'), $('pool2Active')];
+  const on = toggles.filter(t => t.checked).length;
+  toggles.forEach((t, i) => {
+    $(`pool${i + 1}Card`).classList.toggle('disabled', !t.checked);
+    const locked = t.checked && on === 1;
+    t.disabled = locked;
+    const label = t.closest('.hg-pool-toggle');
+    label.classList.toggle('is-locked', locked);
+    label.title = locked ? LAST_POOL_TIP : (t.checked ? 'Turn this pool off' : 'Turn this pool on');
+  });
+}
+
 function initPoolToggles() {
-  $('pool1Active').addEventListener('change', function () {
-    $('pool1Card').classList.toggle('disabled', !this.checked);
+  ['pool1Active', 'pool2Active'].forEach(id => $(id).addEventListener('change', () => {
+    syncPoolToggles();
     refreshUnrouted();
-  });
-  $('pool2Active').addEventListener('change', function () {
-    $('pool2Card').classList.toggle('disabled', !this.checked);
-    refreshUnrouted();
-  });
+  }));
+  syncPoolToggles();
   document.querySelectorAll('#pool1Categories input, #pool2Categories input').forEach(cb => cb.addEventListener('change', refreshUnrouted));
 
   // Radio label active state

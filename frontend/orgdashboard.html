@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="console.css?v=4">
+    <link rel="stylesheet" href="console.css?v=6">
 </head>
 <body class="ac-body">
 <div class="ac-shell" id="acShell">
@@ -113,6 +113,17 @@
                     <div class="ac-empty">Loading meets…</div>
                 </div>
             </section>
+
+            <!-- Entry fees for this organizer's own meets (role matrix: owned payout summary) -->
+            <section class="ac-card" id="payouts" aria-labelledby="payoutsTitle" style="margin-top:1.25rem;">
+                <div class="ac-card-head">
+                    <div>
+                        <h2 class="ac-card-title" id="payoutsTitle">Payouts</h2>
+                        <p class="ac-card-sub">Entry fees for your meets: what's been paid and what's still outstanding</p>
+                    </div>
+                </div>
+                <div id="payoutBody"><div class="ac-empty">Loading payouts…</div></div>
+            </section>
         </main>
     </div>
 </div>
@@ -140,6 +151,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
-    <script src="orgdashboard.js?v=5"></script>
+    <script src="orgdashboard.js?v=7"></script>
 </body>
 </html>

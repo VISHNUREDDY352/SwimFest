@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="console.css?v=4">
+    <link rel="stylesheet" href="console.css?v=6">
     <style>
         /* ── Player list: page-specific pieces on top of console.css ── */
         .pl-head-row { display:flex; flex-wrap:wrap; align-items:center; gap:0.625rem; }
@@ -23,6 +23,13 @@
         .pl-toolbar .ac-search { margin:0; flex:1 1 16rem; }
         .pl-filter { height:2.625rem; padding:0 0.625rem; border:1px solid #cbd5e1; border-radius:0.625rem; background:#fff; font:inherit; font-size:0.82rem; color:var(--ac-ink); }
         .pl-name { font-weight:700; }
+        .pl-race-list { border:1px solid #e2e8f0; border-radius:0.625rem; padding:0.375rem; max-height:15rem; overflow-y:auto; }
+        .pl-race { display:flex; align-items:center; gap:0.625rem; padding:0.375rem 0.5rem; border-radius:0.5rem; font-size:0.86rem; }
+        .pl-race:hover { background:#f8fafc; }
+        .pl-race.is-off { opacity:0.45; }
+        .pl-race label { flex:1; display:flex; align-items:center; gap:0.5rem; cursor:pointer; }
+        .pl-race input[type=text] { width:7rem; height:2rem; padding:0 0.5rem; border:1px solid #cbd5e1; border-radius:0.5rem; font:inherit; font-size:0.82rem; }
+        .pl-race-im { border-top:1px dashed #e2e8f0; margin-top:0.25rem; padding-top:0.5rem; }
         .pl-sub { font-size:0.72rem; color:var(--ac-muted); margin-top:2px; }
         .pl-tag { display:inline-flex; align-items:center; gap:0.25rem; font-size:0.66rem; font-weight:700; padding:2px 0.5rem; border-radius:999px; margin-left:0.25rem; vertical-align:1px; }
         .pl-tag-wait { background:#fef3c7; color:#92400e; }
@@ -107,6 +114,7 @@
                 </div>
                 <div class="ac-head-actions">
                     <button type="button" class="ac-btn ac-btn-ghost" id="exportBtn"><i class="fas fa-file-csv"></i> Export CSV</button>
+                    <button type="button" class="ac-btn ac-btn-ghost" id="bulkBtn"><i class="fas fa-file-arrow-up"></i> Upload walk-ins</button>
                     <button type="button" class="ac-btn ac-btn-primary" id="addManualBtn"><i class="fas fa-user-plus"></i> Add walk-in swimmer</button>
                 </div>
             </div>
@@ -226,18 +234,13 @@
                         </select>
                     </div>
                     <div class="admin-field">
-                        <label class="admin-label req" for="mEvent">Event</label>
-                        <select id="mEvent" class="admin-input">
-                            <option value="">Pick gender and date of birth first</option>
-                        </select>
-                    </div>
-                    <div class="admin-field">
-                        <label class="admin-label req" for="mSeedTime">Seed time</label>
-                        <input type="text" id="mSeedTime" class="admin-input" placeholder="MM:SS.ss or NT" maxlength="10">
-                    </div>
-                    <div class="admin-field">
                         <label class="admin-label req" for="mContact">Parent phone</label>
                         <input type="tel" id="mContact" class="admin-input" placeholder="+91 98765 43210">
+                    </div>
+                    <!-- Up to 3 individual races (Rule 4.4) plus the optional medley, each with a seed time -->
+                    <div class="admin-field full-width">
+                        <span class="admin-label req">Races <span id="mEventCount" class="pl-sub" style="text-transform:none;letter-spacing:0;">(up to 3, plus the medley)</span></span>
+                        <div id="mEvents" class="pl-race-list"><p class="pl-sub" style="margin:0;">Pick gender and date of birth first.</p></div>
                     </div>
                 </div>
                 <div class="admin-derived-row" id="mDerivedRow" style="display:none;">
@@ -272,6 +275,31 @@
     </div>
 
     <!-- Confirm lock -->
+    <!-- Bulk walk-in upload (bulkwalkin.js) -->
+    <div class="modal-overlay" id="bulkModal">
+        <div class="modal admin-modal" style="max-width:760px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-file-arrow-up"></i> Upload walk-in swimmers</h3>
+                <button class="modal-close" id="bulkClose" aria-label="Close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body admin-modal-body">
+                <ol class="pl-sub" style="font-size:0.84rem;line-height:1.7;margin:0 0 12px;padding-left:1.1rem;color:var(--ac-ink);">
+                    <li><button type="button" class="ac-btn ac-btn-ghost" id="bulkTemplate" style="height:2rem;padding:0 0.75rem;font-size:0.8rem;"><i class="fas fa-download"></i> Download the template</button>
+                        and fill in one swimmer per row in Excel. Up to 3 races each, plus "Yes" in Medley for the medley.</li>
+                    <li>Save it (Excel or CSV) and choose it here. Nothing is saved until you press Add.</li>
+                </ol>
+                <input type="file" id="bulkFile" accept=".xlsx,.xls,.csv" class="admin-input" style="padding:8px;">
+                <p class="pl-sub" id="bulkError" style="color:#b91c1c;font-size:0.82rem;margin:8px 0 0;"></p>
+                <p class="pl-sub" id="bulkSummary" style="font-size:0.85rem;margin:10px 0 6px;color:var(--ac-ink);"></p>
+                <div id="bulkPreview" style="max-height:20rem;overflow:auto;"></div>
+            </div>
+            <div class="modal-footer admin-modal-footer">
+                <button class="admin-btn admin-btn-outline" id="bulkCancel">Close</button>
+                <button class="admin-btn admin-btn-primary" id="bulkAddBtn" disabled><i class="fas fa-users"></i> Add 0 swimmers</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="lockConfirmModal">
         <div class="modal admin-modal" style="max-width:460px;">
             <div class="modal-header">
@@ -294,6 +322,9 @@
     <script src="auth.js?v=14"></script>
     <script src="assistant.js?v=2"></script>
     <script src="consolenav.js?v=5"></script>
-    <script src="admin.js?v=15"></script>
+    <script src="events.js?v=1"></script>
+    <script src="governance.js?v=1"></script>
+    <script src="admin.js?v=18"></script>
+    <script src="bulkwalkin.js?v=2"></script>
 </body>
 </html>

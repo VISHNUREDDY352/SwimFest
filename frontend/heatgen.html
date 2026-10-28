@@ -8,13 +8,14 @@
     <script src="guard.js?v=5" data-roles="event_manager,super_admin"></script>
     <link rel="stylesheet" href="styles.css?v=24">
     <link rel="stylesheet" href="admin.css?v=2">
-    <link rel="stylesheet" href="heatgen.css">
+    <link rel="stylesheet" href="heatgen.css?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="console.css?v=4">
+    <link rel="stylesheet" href="console.css?v=6">
     <style>
         /* ── Heat generation: page-specific pieces on top of console.css + heatgen.css ── */
+        .ac-btn.is-off { opacity:0.5; pointer-events:none; }
         .hg2-head-row { display:flex; flex-wrap:wrap; align-items:center; gap:0.625rem; }
         .hg2-label { display:flex; align-items:center; gap:0.5rem; font-size:0.8rem; font-weight:600; color:var(--ac-muted); flex-wrap:wrap; }
         .hg2-select { height:2.625rem; max-width:100%; min-width:22rem; padding:0 0.75rem; border:1px solid #cbd5e1; border-radius:0.625rem; background:#fff; font:inherit; font-size:0.86rem; font-weight:600; color:var(--ac-ink); }
@@ -108,6 +109,9 @@
                 </div>
                 <div class="ac-head-actions">
                     <button type="button" class="ac-btn ac-btn-ghost" id="exportCTSBtn" disabled><i class="fas fa-file-csv"></i> Export for timing system</button>
+                    <!-- The way back: timing system results (Excel) into Live results -->
+                    <a class="ac-btn ac-btn-ghost is-off" id="importResultsBtn" href="results.html" aria-disabled="true"
+                       title="Save heats first, then import the timing system's results"><i class="fas fa-file-excel"></i> Import timing results</a>
                     <button type="button" class="ac-btn ac-btn-primary" id="generateBtn" disabled><i class="fas fa-bolt"></i> Generate heats</button>
                 </div>
             </div>
@@ -275,6 +279,7 @@
     <script src="auth.js?v=14"></script>
     <script src="assistant.js?v=2"></script>
     <script src="consolenav.js?v=5"></script>
-    <script src="heatgen.js?v=5"></script>
+    <script src="governance.js?v=1"></script>
+    <script src="heatgen.js?v=8"></script>
 </body>
 </html>

@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="console.css?v=4">
+    <link rel="stylesheet" href="console.css?v=6">
     <style>
         /* ── Race control: page-specific pieces on top of console.css ── */
         .rc-meet-row { display:flex; flex-wrap:wrap; align-items:center; gap:0.625rem; }
@@ -34,6 +34,7 @@
         .rc-action { min-height:2.75rem; padding:0 0.875rem; border-radius:0.625rem; border:1px solid #cbd5e1; background:#fff; color:var(--ac-ink);
             text-decoration:none; font:inherit; font-size:0.86rem; font-weight:600; display:flex; align-items:center; gap:0.625rem; cursor:pointer; text-align:left; }
         .rc-action i { color:var(--ac-blue); width:1rem; text-align:center; }
+        .rc-action[hidden] { display:none; }
         .rc-action:hover { border-color:var(--ac-blue); color:var(--ac-blue); }
         .rc-action.primary { background:var(--ac-blue); border-color:var(--ac-blue); color:#fff; }
         .rc-action.primary i { color:#fff; }
@@ -154,7 +155,7 @@
                     <div class="rc-actions">
                         <a href="playerlist.html" class="rc-action"><i class="fas fa-list-check"></i> Open player list <span class="rc-hint">Add, edit, remove entries</span></a>
                         <button type="button" class="rc-action" onclick="downloadEntries()"><i class="fas fa-download"></i> Download entries (CSV) <span class="rc-hint">All race entries</span></button>
-                        <div class="rc-soon">Upload bulk roster (Excel) <span class="rc-soon-tag">Coming soon</span></div>
+                        <a href="playerlist.html" class="rc-action" id="rcBulkLink"><i class="fas fa-file-arrow-up"></i> Upload walk-ins (Excel) <span class="rc-hint">Many swimmers in one go</span></a>
                     </div>
                 </section>
 
@@ -174,7 +175,7 @@
                     <p class="rc-help" id="rcMethodHelp"></p>
                     <div class="rc-actions">
                         <button type="button" class="rc-action primary" onclick="downloadHeatSheet()"><i class="fas fa-download"></i> <span id="rcMethodDownload"></span> <span class="rc-hint">CSV, opens in Excel</span></button>
-                        <div class="rc-soon"><span id="rcMethodUpload"></span> <span class="rc-soon-tag">Coming soon</span></div>
+                        <a href="results.html" class="rc-action" id="rcImportLink"><i class="fas fa-file-excel"></i> <span id="rcMethodUpload"></span> <span class="rc-hint">Excel or CSV, checked before saving</span></a>
                     </div>
                 </section>
             </div>
@@ -204,10 +205,10 @@
                     </table>
                 </div>
                 <div class="rc-foot">
-                    <span class="rc-foot-note">Entering and publishing times on this page comes with result import.</span>
+                    <span class="rc-foot-note">Times are typed or imported, checked and published in Live results; the public live board updates on its own.</span>
                     <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-                        <a href="results.html" class="ac-cta ac-cta-ghost"><i class="fas fa-broadcast-tower"></i> Open live results</a>
-                        <button type="button" class="ac-cta" disabled style="background:var(--ac-line);color:#64748b;border:0;">Publish results · coming soon</button>
+                        <a href="live.html" class="ac-cta ac-cta-ghost" id="rcLiveLink" target="_blank" rel="noopener"><i class="fas fa-tower-broadcast"></i> Public live board</a>
+                        <a href="results.html" class="ac-cta" id="rcPublishLink"><i class="fas fa-paper-plane"></i> Enter &amp; publish results</a>
                     </div>
                 </div>
             </section>
@@ -246,6 +247,6 @@
     <script src="auth.js?v=14"></script>
     <script src="assistant.js?v=2"></script>
     <script src="consolenav.js?v=5"></script>
-    <script src="orgracecontrol.js?v=6"></script>
+    <script src="orgracecontrol.js?v=8"></script>
 </body>
 </html>

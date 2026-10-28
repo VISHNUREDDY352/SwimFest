@@ -40,6 +40,7 @@ function setQueueCount(key, n, label) {
   }
   document.querySelectorAll(`[data-count-for="${key}"]`).forEach(el => { el.textContent = n; });
   const total = Object.values(QUEUE_COUNTS).reduce((a, b) => a + b, 0);
+  if ($('kpiPending')) $('kpiPending').textContent = total;
   const totalEl = $('saTotalPending');
   if (totalEl) {
     totalEl.textContent = total;
@@ -86,20 +87,56 @@ async function loadPeopleMetrics() {
   if (!window.sb) return;
   const cards = document.querySelectorAll('.sa-metric-value');
   try {
-    const [swimmers, acads] = await Promise.all([
-      window.sb.from('swimmer_directory').select('swimmer_id', { count:'exact', head:true }),
-      window.sb.from('academies').select('academy_id', { count:'exact', head:true }),
-    ]);
+    const swimmers = await window.sb.from('swimmer_directory').select('swimmer_id', { count:'exact', head:true });
     if (cards[1]) cards[1].textContent = (swimmers.count ?? 0).toLocaleString('en-IN');
-    if (cards[2]) cards[2].textContent = acads.count ?? 0;
   } catch (e) { console.warn('[SwimFest] people metrics:', e.message); }
+}
+
+// Average time from a submission arriving to the first approve / reject
+// decision on it, over the last 30 days (read from the audit log)
+const REVIEW_TABLES = {
+  TOURNAMENT: ['tournaments', 'tournament_id'], SWIMMER: ['swimmers', 'swimmer_id'],
+  ACADEMY: ['academies', 'academy_id'], COACH: ['coaches', 'coach_id'], ORGANIZER: ['organizers', 'organizer_id'],
+};
+async function loadTurnaround() {
+  const el = $('kpiTurnaround');
+  if (!window.sb || !el) return;
+  try {
+    const since = new Date(Date.now() - 30 * 864e5).toISOString();
+    const { data: logs } = await window.sb.from('system_audit_logs')
+      .select('action_type, target_entity, target_entity_id, created_at')
+      .gte('created_at', since)
+      .or('action_type.like.%_VERIFIED,action_type.like.%_REJECTED,action_type.eq.EVENT_APPROVED')
+      .order('created_at', { ascending: true });
+    // First decision per submission
+    const first = {};
+    (logs || []).forEach(l => {
+      const key = `${l.target_entity}:${l.target_entity_id}`;
+      if (REVIEW_TABLES[l.target_entity] && l.target_entity_id && !first[key]) first[key] = l;
+    });
+    const byEntity = {};
+    Object.values(first).forEach(l => (byEntity[l.target_entity] = byEntity[l.target_entity] || []).push(l));
+    const hours = [];
+    await Promise.all(Object.entries(byEntity).map(async ([entity, list]) => {
+      const [table, idCol] = REVIEW_TABLES[entity];
+      const { data } = await window.sb.from(table).select(`${idCol}, created_at`).in(idCol, list.map(l => l.target_entity_id));
+      const created = Object.fromEntries((data || []).map(r => [String(r[idCol]), r.created_at]));
+      list.forEach(l => {
+        const c = created[String(l.target_entity_id)];
+        const h = c ? (new Date(l.created_at) - new Date(c)) / 36e5 : NaN;
+        if (h >= 0) hours.push(h);
+      });
+    }));
+    if (!hours.length) { el.textContent = '—'; el.title = 'No decisions in the last 30 days'; return; }
+    const avg = hours.reduce((a, b) => a + b, 0) / hours.length;
+    el.textContent = avg < 1 ? `${Math.max(1, Math.round(avg * 60))} min` : avg < 48 ? `${avg.toFixed(1)} hrs` : `${(avg / 24).toFixed(1)} days`;
+    el.title = `Based on ${hours.length} decision${hours.length === 1 ? '' : 's'} in the last 30 days`;
+  } catch (e) { console.warn('[SwimFest] review turnaround:', e.message); }
 }
 
 // Money: registrations, paid and not paid yet
 async function loadMetrics() {
   if (!window.sb) return;
-  const cards = document.querySelectorAll('.sa-metric-value');
-  // cards: [Active Meets, Total Athletes, Academies, Entry fees paid]
   try {
     const bookings = await window.sb.from('bookings').select('total_amount, payment_status');
 
@@ -108,7 +145,6 @@ async function loadMetrics() {
     const sum = list => list.reduce((s, b) => s + Number(b.total_amount || 0), 0);
     const paid = rows.filter(b => b.payment_status === 'PAID');
     const unpaid = rows.filter(b => b.payment_status !== 'PAID');
-    if (cards[3]) cards[3].textContent = money(sum(paid));
     $('saTotalTxns').textContent = rows.length.toLocaleString('en-IN');
     $('saGrossRevenue').textContent = `${money(sum(paid))} · ${paid.length} booking${paid.length === 1 ? '' : 's'}`;
     $('saPendingFees').textContent = `${money(sum(unpaid))} · ${unpaid.length} booking${unpaid.length === 1 ? '' : 's'}`;
@@ -151,7 +187,22 @@ async function buildMeetQueues() {
   SENT_BACK = ALL_MEETS.filter(t => t.status === 'REJECTED_DRAFT')
     .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
   renderSentBack();
+
+  // Meets sent back before reasons were saved on the meet: take the reason from the audit log
+  const legacy = SENT_BACK.filter(t => !t.rejection_notes && !(t.tournament_id in AUDIT_REASONS)).map(t => t.tournament_id);
+  if (legacy.length) {
+    const { data } = await window.sb.from('system_audit_logs')
+      .select('target_entity_id, notes, created_at').eq('action_type', 'EVENT_REJECTED')
+      .in('target_entity_id', legacy).order('created_at', { ascending: false });
+    legacy.forEach(id => { AUDIT_REASONS[id] = null; });
+    (data || []).forEach(r => {
+      const m = /Reason:\s*([\s\S]+)/.exec(r.notes || '');
+      if (m && !AUDIT_REASONS[r.target_entity_id]) AUDIT_REASONS[r.target_entity_id] = m[1].trim();
+    });
+    renderSentBack();
+  }
 }
+const AUDIT_REASONS = {};   // tournament id → reason found in the audit log (null: none recorded)
 
 // Sent back meets wait on the organizer, not on you, so they don't add to the Approvals total
 function renderSentBack() {
@@ -165,15 +216,16 @@ function renderSentBack() {
   }
   $('sentbackBody').innerHTML = SENT_BACK.map((t, i) => {
     const host = t.host_organization || '—';
-    const pay = t.gateway_option === 'OPTION_A_PLATFORM_GATEWAY'
-      ? `<span class="pay-chip pay-chip-a"><i class="fas fa-credit-card"></i> Option A (Platform GW)</span>`
-      : `<span class="pay-chip pay-chip-b"><i class="fas fa-file-excel"></i> Option B (No Gateway)</span>`;
+    const reason = t.rejection_notes || AUDIT_REASONS[t.tournament_id];
+    const reasonHtml = reason
+      ? `<div class="sa-reason">${escHtml(reason)}</div>`
+      : `<span style="font-size:0.78rem;color:var(--gray);">No reason recorded (sent back before reasons were required)</span>`;
     return `<tr>
       <td><div class="sa-person">${avatarHtml(host, i)}<div><div class="sa-meet-title">${escHtml(host)}</div>
         <div style="font-size:0.72rem;color:var(--gray);margin-top:2px;">Waiting on organizer</div></div></div></td>
       <td><div class="sa-meet-title">${escHtml(t.title)}</div></td>
       <td>${escHtml(fmtDateRange(t.start_date, t.end_date))}<div style="font-size:0.75rem;color:var(--gray);">${escHtml(`${t.venue_name || ''}${t.city ? ', ' + t.city : ''}`)}</div></td>
-      <td>${pay}</td>
+      <td style="max-width:22rem;">${reasonHtml}</td>
       <td><button class="sa-btn-approve" onclick="approveSentBack(${i})"><i class="fas fa-check"></i> Approve &amp; publish</button></td>
     </tr>`;
   }).join('');
@@ -278,9 +330,16 @@ function renderReopenQueue() {
 window.approveReopen = async function(i) {
   const r = REOPEN_QUEUE[i];
   if (!r || !window.sb) return;
+  // Role matrix: the Owner reopens by right; a Co-Super Admin must give a justification
+  let why = '';
+  if (!IS_OWNER) {
+    why = await SwimReason.ask({ title: 'Why reopen this meet?', subject: r.tournament_title, action: 'Reopen',
+      placeholder: 'e.g. A timing error in the 50m Freestyle heat 2 was confirmed by the referee; results must be corrected.' });
+    if (!why) return;
+  }
   const { error } = await window.sb.rpc('approve_reopen', { p_request_id: r.request_id });
   if (error) { console.error('[SwimFest] approve reopen:', error.message); showToast('Approve failed: ' + error.message, 'warn'); return; }
-  await writeAudit('MEET_REOPENED', 'TOURNAMENT', r.tournament_id, `Reopen approved: ${r.tournament_title}`);
+  await writeAudit('MEET_REOPENED', 'TOURNAMENT', r.tournament_id, `Reopen approved: ${r.tournament_title}${why ? `\nReason: ${why}` : ''}`);
   const act = $(`reopen-act-${i}`);
   if (act) act.innerHTML = `<span class="sa-action-done approved-tag"><i class="fas fa-check-circle"></i> Reopened</span>`;
   showToast(`Meet reopened: ${r.tournament_title}`, 'success');
@@ -456,14 +515,12 @@ window.doApprove = async function(section, idx) {
 
   let ok = false;
   if (section === 's1a' || section === 's1b') {
-    const { error } = await window.sb.from('tournaments')
-      .update({ status: 'PUBLISHED' }).eq('tournament_id', item.id);
+    const { error } = await SwimReason.update('tournaments', 'tournament_id', item.id, { status: 'PUBLISHED', rejection_notes: null });
     ok = !error;
     if (ok) await writeAudit('EVENT_APPROVED', 'TOURNAMENT', item.id, `Approved & published: ${name}`);
     if (error) console.error('[SwimFest] approve meet:', error.message);
   } else {
-    const { error } = await window.sb.from(item.table)
-      .update({ status: 'APPROVED_ACTIVE' }).eq(item.idCol, item.id);
+    const { error } = await SwimReason.update(item.table, item.idCol, item.id, { status: 'APPROVED_ACTIVE', rejection_notes: null });
     ok = !error;
     if (ok) await writeAudit(item.entityType + '_VERIFIED', item.entityType, item.id, `Verified: ${name}`);
     if (error) console.error('[SwimFest] approve entity:', error.message);
@@ -473,6 +530,7 @@ window.doApprove = async function(section, idx) {
   actEl.innerHTML = `<span class="sa-action-done approved-tag"><i class="fas fa-check-circle"></i> Approved</span>`;
   showToast(`Approved: ${name}`, 'success');
   recountBadge(section);
+  loadTurnaround();
 };
 
 window.doReject = async function(section, idx) {
@@ -480,24 +538,28 @@ window.doReject = async function(section, idx) {
   if (!item) return;
   const actEl = $(`${section}-act-${idx}`);
   const name = item.title || item.name;
+  const isMeet = section === 's1a' || section === 's1b';
 
-  let ok = false;
-  if (section === 's1a' || section === 's1b') {
-    const { error } = await window.sb.from('tournaments')
-      .update({ status: 'REJECTED_DRAFT' }).eq('tournament_id', item.id);
-    ok = !error;
-    if (ok) await writeAudit('EVENT_REJECTED', 'TOURNAMENT', item.id, `Rejected: ${name}`);
-  } else {
-    const { error } = await window.sb.from(item.table)
-      .update({ status: 'REJECTED' }).eq(item.idCol, item.id);
-    ok = !error;
-    if (ok) await writeAudit(item.entityType + '_REJECTED', item.entityType, item.id, `Rejected: ${name}`);
-  }
+  // A reason is required: it's shown to whoever submitted it
+  const reason = await SwimReason.ask({
+    title: isMeet ? 'Send this meet back' : 'Reject this submission',
+    subject: name,
+    action: isMeet ? 'Send back' : 'Reject',
+  });
+  if (!reason) return;
 
-  if (!ok) { showToast('Reject failed — check permissions.', 'warn'); return; }
+  const { error } = isMeet
+    ? await SwimReason.update('tournaments', 'tournament_id', item.id, { status: 'REJECTED_DRAFT', rejection_notes: reason })
+    : await SwimReason.update(item.table, item.idCol, item.id, { status: 'REJECTED', rejection_notes: reason });
+  if (error) { console.error('[SwimFest] reject:', error.message); showToast('Reject failed: ' + error.message, 'warn'); return; }
+  await writeAudit(isMeet ? 'EVENT_REJECTED' : item.entityType + '_REJECTED', isMeet ? 'TOURNAMENT' : item.entityType, item.id,
+    `Rejected: ${name}
+Reason: ${reason}`);
+  if (isMeet) loadTournaments();   // it moves to Sent back
   actEl.innerHTML = `<span class="sa-action-done rejected-tag"><i class="fas fa-times-circle"></i> Rejected</span>`;
   showToast(`Rejected: ${name} — Returned to submitter.`, 'warn');
   recountBadge(section);
+  loadTurnaround();
 };
 
 function recountBadge(section) {
@@ -586,6 +648,47 @@ function showEmergencyBanner(title, msg) {
 let ALL_MEETS = [];
 let ALL_MEETS_FILTER = 'ALL';
 let ALL_MEETS_SEARCH = '';
+let ALL_MEETS_STATE = '';
+let ALL_MEETS_CITY = '';
+
+// State and city dropdowns, built from the meets themselves.
+// Picking a state narrows the city list to that state's cities.
+function fillPlaceFilters() {
+  const stateSel = $('allMeetsState'), citySel = $('allMeetsCity');
+  if (!stateSel || !citySel) return;
+  const clean = v => String(v || '').trim();
+  const sortU = list => [...new Set(list.filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const opt = (v, label, n) => `<option value="${escHtml(v)}">${escHtml(label)}${n != null ? ` (${n})` : ''}</option>`;
+  const count = (key, v) => ALL_MEETS.filter(t => clean(t[key]) === v).length;
+
+  const states = sortU(ALL_MEETS.map(t => clean(t.state)));
+  if (ALL_MEETS_STATE && !states.includes(ALL_MEETS_STATE)) ALL_MEETS_STATE = '';
+  stateSel.innerHTML = opt('', 'All states') + states.map(s => opt(s, s, count('state', s))).join('');
+  stateSel.value = ALL_MEETS_STATE;
+
+  const inState = ALL_MEETS.filter(t => !ALL_MEETS_STATE || clean(t.state) === ALL_MEETS_STATE);
+  const cities = sortU(inState.map(t => clean(t.city)));
+  if (ALL_MEETS_CITY && !cities.includes(ALL_MEETS_CITY)) ALL_MEETS_CITY = '';
+  citySel.innerHTML = opt('', ALL_MEETS_STATE ? `All cities in ${ALL_MEETS_STATE}` : 'All cities')
+    + cities.map(c => opt(c, c, inState.filter(t => clean(t.city) === c).length)).join('');
+  citySel.value = ALL_MEETS_CITY;
+}
+
+function initPlaceFilters() {
+  const stateSel = $('allMeetsState'), citySel = $('allMeetsCity');
+  if (!stateSel || !citySel) return;
+  stateSel.addEventListener('change', () => { ALL_MEETS_STATE = stateSel.value; ALL_MEETS_CITY = ''; fillPlaceFilters(); renderAllMeets(); });
+  citySel.addEventListener('change', () => { ALL_MEETS_CITY = citySel.value; renderAllMeets(); });
+}
+document.addEventListener('DOMContentLoaded', initPlaceFilters);
+
+// Total race entries across all meets (the All meets headline number)
+async function loadEntryTotal() {
+  const badge = $('allMeetsEntriesBadge');
+  if (!window.sb || !badge) return;
+  const { count, error } = await window.sb.from('event_entries').select('entry_id', { count: 'exact', head: true });
+  if (!error) badge.textContent = `${(count ?? 0).toLocaleString('en-IN')} race entr${count === 1 ? 'y' : 'ies'}`;
+}
 
 // One request for every meet; the All meets tab, the meet approval
 // queues and the meet numbers are all built from it.
@@ -652,8 +755,7 @@ window.approveClosure = async function(tid, title) {
 
 window.approveMeetDirect = async function(tid, title) {
   if (!window.sb) return;
-  const { error } = await window.sb.from('tournaments')
-    .update({ status: 'PUBLISHED' }).eq('tournament_id', tid);
+  const { error } = await SwimReason.update('tournaments', 'tournament_id', tid, { status: 'PUBLISHED', rejection_notes: null });
   if (error) {
     showToast('Approve failed: ' + error.message, 'warn');
     return;
@@ -668,8 +770,11 @@ function renderAllMeets() {
   const body  = $('allMeetsBody');
   if (badge) badge.textContent = `${ALL_MEETS.length} Total Meets`;
   if (!body) return;
+  fillPlaceFilters();
 
   let filtered = ALL_MEETS;
+  if (ALL_MEETS_STATE) filtered = filtered.filter(t => String(t.state || '').trim() === ALL_MEETS_STATE);
+  if (ALL_MEETS_CITY)  filtered = filtered.filter(t => String(t.city || '').trim() === ALL_MEETS_CITY);
   if (ALL_MEETS_FILTER !== 'ALL') {
     if (ALL_MEETS_FILTER === 'DRAFT') {
       filtered = filtered.filter(t => t.status === 'DRAFT' || t.status === 'REJECTED_DRAFT');
@@ -767,6 +872,9 @@ function renderAllMeets() {
             <a href="saoverride.html?id=${tid}" target="_blank" class="em-action-btn em-btn-edit" title="Universal Override">
               <i class="fas fa-unlock-alt"></i> Override
             </a>
+            <button type="button" onclick="openAssignAdmins('${t.tournament_id}')" class="em-action-btn em-btn-manage" title="Choose which Admins run this meet">
+              <i class="fas fa-user-gear"></i> Admins${ASSIGNED[t.tournament_id] ? ` (${ASSIGNED[t.tournament_id].length})` : ''}
+            </button>
             <button onclick="openAllMeetSites('${escHtml(t.title.replace(/'/g, "\\'"))}', '${t.tournament_id}')" class="em-action-btn em-btn-all-sites" title="Open all associated pages for this meet in new tabs">
               <i class="fas fa-external-link-square-alt"></i> Open All Sites
             </button>
@@ -786,12 +894,13 @@ function renderAllMeets() {
 // ── Sidebar navigation (tabs + approval queues) ──────────────
 const VALID_TABS = ['dashboard', 'meets', 'academies', 'financials'];
 
+// `sub` is shown under the tabs; it also becomes each tab's hover tooltip (see initTabs)
 const QUEUE_META = {
-  s2:     { title: 'Swimmers, academies, coaches & organizers', sub: 'Submitted by swimmers, Admins and organizers' },
-  s1a:    { title: 'Internal meets', sub: 'Submitted by Admins — approving publishes the meet' },
-  s1b:    { title: 'Third-party meets', sub: 'Submitted by organizers — upfront fee must be paid before approval' },
-  reopen: { title: 'Reopen requests', sub: 'Organizers asking to reopen a completed meet' },
-  sentback: { title: 'Sent back', sub: 'Meets you returned to their organizer for changes. They come back to Third-party or Internal meets when resubmitted' },
+  s2:       { title: 'Swimmers, academies, coaches & organizers', sub: 'New sign-ups waiting to be verified. Approve once their details and documents check out.' },
+  s1a:      { title: 'Internal meets', sub: 'Meets created by SwimFest Admins. No software fee. Approving publishes the meet.' },
+  s1b:      { title: 'Third-party meets', sub: 'External clubs and hosts running their own meet on SwimFest under a paid software licence (₹5,000 when they collect entry fees offline). Approving publishes the meet.' },
+  reopen:   { title: 'Reopen requests', sub: 'Organizers asking to reopen a finished meet after the event, usually to fix a disputed result.' },
+  sentback: { title: 'Sent back', sub: 'Meets you returned to their organizer, with the reason. They move back to Internal or Third-party meets when resubmitted.' },
 };
 let ACTIVE_QUEUE = 's2';
 
@@ -872,6 +981,9 @@ function switchTab(tabKey) {
   const titleEl = $('saPageTitle');
   if (titleEl) titleEl.textContent = title;
 
+  // The four number boxes belong to Approvals only
+  $('saKpis').hidden = tabKey !== 'dashboard';
+
   // Header buttons follow the tab: academies get Add academy / Add coach, the rest Create meet
   document.querySelectorAll('[data-head-for]').forEach(b => {
     b.hidden = b.dataset.headFor !== (tabKey === 'academies' ? 'academies' : 'other');
@@ -929,6 +1041,12 @@ function setNavOpen(open) {
 }
 
 function initTabs() {
+  // Every queue tab explains itself on hover
+  document.querySelectorAll('[data-queue]').forEach(el => {
+    const meta = QUEUE_META[el.getAttribute('data-queue')];
+    if (meta) el.title = meta.sub;
+  });
+
   document.querySelectorAll('.sa-nav-tab[data-tab]').forEach(tab => {
     tab.addEventListener('click', function(e) {
       e.preventDefault();
@@ -992,7 +1110,13 @@ function renderSidebarUser() {
   $('saUserName').textContent = name;
   $('saUserEmail').textContent = session.email || '';
   $('saUserInitials').textContent = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'SA';
+  // Role matrix: Master Owner or Co-Super Admin
+  if (window.SwimGov) SwimGov.isOwner().then(owner => {
+    IS_OWNER = owner !== false;
+    $('saUserEmail').textContent = `${IS_OWNER ? 'Owner' : 'Co-Super Admin'}${session.email ? ' · ' + session.email : ''}`;
+  });
 }
+let IS_OWNER = true;
 
 // Live preview for notice modal
 document.addEventListener('input', e => {
@@ -1032,8 +1156,9 @@ const LOADERS = {
   coaches:         [loadVerificationQueue],
   organizers:      [loadVerificationQueue],
   reopen_requests: [loadReopenQueue],
+  event_entries:   [loadEntryTotal],
 };
-const ALL_LOADERS = [loadTournaments, loadMetrics, loadPeopleMetrics, loadVerificationQueue, loadReopenQueue];
+const ALL_LOADERS = [loadTournaments, loadMetrics, loadPeopleMetrics, loadVerificationQueue, loadReopenQueue, loadTurnaround, loadEntryTotal];
 
 function refreshLiveData(loaders = ALL_LOADERS) {
   // Skip while a modal is open so an in-progress action isn't disrupted
@@ -1094,3 +1219,63 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+// ── Assign Admins to meets (role matrix: Admins run assigned meets only) ──
+let ASSIGNED = {};        // tournament id → [admin ids]
+let ADMIN_USERS = null;   // event_manager profiles
+
+async function loadAssignments() {
+  if (!window.sb) return;
+  const { data, error } = await window.sb.from('tournament_admins').select('tournament_id, admin_id');
+  if (error) return;   // table not created yet (rbac_governance.sql)
+  ASSIGNED = {};
+  (data || []).forEach(r => { (ASSIGNED[r.tournament_id] = ASSIGNED[r.tournament_id] || []).push(r.admin_id); });
+  renderAllMeets();
+}
+
+window.openAssignAdmins = async function (tid) {
+  const meet = ALL_MEETS.find(t => t.tournament_id === tid);
+  if (!meet) return;
+  if (!ADMIN_USERS) {
+    const { data } = await window.sb.from('profiles').select('id, full_name, role').eq('role', 'event_manager').order('full_name');
+    ADMIN_USERS = data || [];
+  }
+  const chosen = new Set(ASSIGNED[tid] || []);
+  const back = document.createElement('div');
+  back.className = 'srn-back';
+  back.innerHTML = `<div class="srn-box" role="dialog" aria-modal="true" aria-labelledby="asgTitle">
+    <div class="srn-head" id="asgTitle">Admins for this meet</div>
+    <div class="srn-sub"><b>${escHtml(meet.title)}</b><br>Ticked Admins can run its player list and heat generation. Super admins can always run every meet.</div>
+    <div class="srn-body" style="max-height:18rem;overflow-y:auto;">
+      ${ADMIN_USERS.length ? ADMIN_USERS.map(a => `<label style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid #f1f5f9;cursor:pointer;">
+        <input type="checkbox" value="${a.id}" ${chosen.has(a.id) ? 'checked' : ''}> ${escHtml(a.full_name || 'Admin ' + a.id.slice(0, 6))}</label>`).join('')
+        : '<p style="margin:0;color:#64748b;">No Admin accounts yet.</p>'}
+    </div>
+    <div class="srn-err" id="asgErr"></div>
+    <div class="srn-foot"><button type="button" class="srn-cancel">Cancel</button><button type="button" class="srn-ok" style="background:#0077b6;border-color:#0077b6;">Save</button></div>
+  </div>`;
+  document.body.appendChild(back);
+  const close = () => back.remove();
+  back.querySelector('.srn-cancel').onclick = close;
+  back.addEventListener('click', e => { if (e.target === back) close(); });
+  back.querySelector('.srn-ok').onclick = async () => {
+    const now = new Set([...back.querySelectorAll('input:checked')].map(i => i.value));
+    const add = [...now].filter(id => !chosen.has(id)), remove = [...chosen].filter(id => !now.has(id));
+    const session = window.SwimAuth.getSession() || {};
+    let res = { error: null };
+    if (add.length) res = await window.sb.from('tournament_admins').insert(add.map(admin_id => ({ tournament_id: tid, admin_id, assigned_by: session.userId })));
+    if (!res.error && remove.length) res = await window.sb.from('tournament_admins').delete().eq('tournament_id', tid).in('admin_id', remove);
+    if (res.error) {
+      back.querySelector('#asgErr').textContent = /relation|schema cache/i.test(res.error.message)
+        ? 'Assigning Admins needs the database update (backend/db/rbac_governance.sql).' : res.error.message;
+      return;
+    }
+    const names = id => (ADMIN_USERS.find(a => a.id === id) || {}).full_name || id.slice(0, 6);
+    await writeAudit('MEET_ADMINS_CHANGED', 'TOURNAMENT', tid,
+      `${meet.title}${add.length ? `\nAssigned: ${add.map(names).join(', ')}` : ''}${remove.length ? `\nRemoved: ${remove.map(names).join(', ')}` : ''}`);
+    close();
+    showToast('Admins for this meet saved.', 'success');
+    loadAssignments();
+  };
+};
+document.addEventListener('DOMContentLoaded', () => setTimeout(loadAssignments, 1500));

@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="console.css?v=4">
+    <link rel="stylesheet" href="console.css?v=6">
     <style>
         /* ── Live results: page-specific pieces on top of console.css ── */
         .lr-head-row { display:flex; flex-wrap:wrap; align-items:center; gap:0.625rem; }
@@ -132,6 +132,8 @@
                 <div class="ac-head-actions">
                     <button type="button" class="ac-btn ac-btn-ghost" id="refreshBtn"><i class="fas fa-rotate"></i> Reload</button>
                     <button type="button" class="ac-btn ac-btn-ghost" id="viewLeaderboardBtn"><i class="fas fa-chart-bar"></i> Academy leaderboard</button>
+                    <!-- What parents and spectators see: opens in a new tab so it can be put on a big screen -->
+                    <a class="ac-btn ac-btn-ghost" id="liveBoardBtn" href="live.html" target="_blank" rel="noopener"><i class="fas fa-tower-broadcast"></i> Public live board</a>
                 </div>
             </div>
 
@@ -163,7 +165,7 @@
                     </div>
                     <div class="ac-seg" role="group" aria-label="How to enter times" id="modeSeg">
                         <button type="button" class="active" data-mode="type"><i class="fas fa-keyboard"></i> Type times</button>
-                        <button type="button" data-mode="upload"><i class="fas fa-file-csv"></i> Upload result sheet</button>
+                        <button type="button" data-mode="upload"><i class="fas fa-file-excel"></i> Import from Excel</button>
                     </div>
                 </div>
 
@@ -176,13 +178,13 @@
                 </div>
                 <div class="lr-heats" id="heatChips"></div>
 
-                <!-- Upload (CSV result sheet from Race control) -->
+                <!-- Import results from the timing system or Race control (Excel or CSV, every tab) -->
                 <div class="lr-upload" id="uploadBlock" style="display:none;">
-                    <p class="ac-card-sub" style="margin:0;">Upload the <strong>result sheet CSV</strong> downloaded from Race control (manual timing), with the Finish time, Status and DQ code columns filled in. Times load into the table below so you can check them, then <strong>Save</strong>. Excel files: save as CSV first.</p>
+                    <p class="ac-card-sub" style="margin:0;">Import times from the <strong>timing system</strong> (Excel, every tab is read) or the <strong>result sheet</strong> from Race control. The file needs <strong>Event no</strong>, <strong>Heat</strong>, <strong>Lane</strong> and <strong>Finish time</strong> (or <strong>Time</strong>) columns; <strong>Status</strong> (OK, DQ, DNS, DNF) and <strong>DQ code</strong> are optional. The heat file from <em>Export for timing system</em> works once times are added. Times load into the table below so you can check them, then <strong>Save</strong>.</p>
                     <div class="lr-drop" id="dropZone" role="button" tabindex="0">
                         <i class="fas fa-cloud-arrow-up"></i>
-                        <span id="dropZoneText">Choose a .csv file or drop it here</span>
-                        <input type="file" id="ctxFileInput" accept=".csv,text/csv" style="display:none;">
+                        <span id="dropZoneText">Choose an Excel (.xlsx) or .csv file, or drop it here</span>
+                        <input type="file" id="ctxFileInput" accept=".xlsx,.xls,.csv,text/csv" style="display:none;">
                     </div>
                     <div class="lr-msg" id="uploadStatus" style="display:none;"></div>
                 </div>
@@ -269,6 +271,7 @@
     <script src="auth.js?v=14"></script>
     <script src="assistant.js?v=2"></script>
     <script src="consolenav.js?v=5"></script>
-    <script src="results.js?v=8"></script>
+    <script src="governance.js?v=1"></script>
+    <script src="results.js?v=12"></script>
 </body>
 </html>

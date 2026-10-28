@@ -65,10 +65,14 @@
 
 .hg-pool-card:hover { border-color: var(--accent); }
 
-.hg-pool-card.disabled {
+/* A switched-off pool is greyed out, but its header (with the on/off switch)
+   stays clickable so it can be switched back on */
+.hg-pool-card.disabled > :not(.hg-pool-header) {
     opacity: 0.45;
     pointer-events: none;
 }
+.hg-pool-card.disabled .hg-pool-header > :not(.hg-pool-toggle) { opacity: 0.55; }
+.hg-pool-toggle.is-locked { cursor: not-allowed; opacity: 0.6; }
 
 .hg-pool-header {
     display: flex;

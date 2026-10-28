@@ -24,18 +24,14 @@
   function card(t, idx, isPast) {
     const theme = isPast ? PAST_THEMES[idx % PAST_THEMES.length] : POSTER_THEMES[idx % 2];
     const shortName = t.title.length > 24 ? t.title.slice(0, 22) + '…' : t.title;
-    const statusMap = {
-      PUBLISHED: { cls:'status-open', label:'Entries Open', filter:'entries-open' },
-      CLOSED:    { cls:'status-closing-soon', label:'Closing Soon', filter:'closing-soon' },
-      LOCKED:    { cls:'status-live', label:'Live Now', filter:'live-now' },
-      COMPLETED: { cls:'status-completed', label:'Completed', filter:'completed' },
-    };
-    const st = statusMap[t.status] || statusMap.PUBLISHED;
-    const regParam = encodeURIComponent(t.title);
+    // Where the meet is right now, from its dates and the clock (meetstate.js)
+    const st = window.SwimMeetState.badge(t);
+    const phase = window.SwimMeetState.phase(t);
+    const id = encodeURIComponent(t.tournament_id);
 
     // Data attributes used by the home-page search/category/status filter
     const dataCats = 'U-10,U-12,U-14,U-16';
-    const dataStatus = st.filter;
+    const dataStatus = st.key;
 
     const catBadges = ['U10','U12','U14','U16'].map(c => `<span class="cat-badge">${c}</span>`).join('');
 
@@ -55,8 +51,8 @@
             <p><i class="fas fa-swimming-pool"></i> <strong>Pool:</strong> ${esc(t.pool_length)} · ${t.lane_count} Lanes</p>
           </div>
           <div class="card-actions">
-            <a href="heatsheets.html?tournament=${regParam}" class="btn-card btn-details">View Final Results</a>
-            <a href="heatsheets.html?tournament=${regParam}" class="btn-card btn-download"><i class="fas fa-file-pdf"></i> Result Book</a>
+            <a href="live.html?t=${id}" class="btn-card btn-details">View Final Results</a>
+            <a href="heatsheets.html?t=${id}" class="btn-card btn-download"><i class="fas fa-list-ol"></i> Heat Sheets</a>
           </div>
         </div>
       </div>`;
@@ -81,7 +77,11 @@
             <p><i class="fas fa-gavel"></i> <strong>Rules:</strong> ${t.allow_swim_up ? 'Swim-Up Enabled' : 'Single Category Only'}</p>
           </div>
           <div class="card-actions">
-            <a href="event.html?id=${encodeURIComponent(t.tournament_id)}" class="btn-card btn-register" style="flex:1;">Register Now <i class="fas fa-arrow-right"></i></a>
+            ${phase === 'ongoing'
+              ? `<a href="live.html?t=${id}" class="btn-card btn-register" style="flex:1;"><i class="fas fa-tower-broadcast"></i> Watch Live</a>`
+              : window.SwimMeetState.entriesOpen(t)
+                ? `<a href="event.html?id=${id}" class="btn-card btn-register" style="flex:1;">Register Now <i class="fas fa-arrow-right"></i></a>`
+                : `<a href="event.html?id=${id}" class="btn-card btn-details" style="flex:1;">Entries closed · View details</a>`}
           </div>
         </div>
       </div>`;
@@ -193,16 +193,27 @@
       return;
     }
 
-    const rows = data || [];
-    const upcoming = rows.filter(t => ['PUBLISHED','CLOSED','DRAFT','PENDING_APPROVAL'].includes(t.status) && t.status !== 'COMPLETED');
-    const live     = rows.filter(t => t.status === 'LOCKED');
-    const past     = rows.filter(t => t.status === 'COMPLETED');
+    ROWS = data || [];
+    STATE_NAME = selectedState;
+    renderSections();
+  }
+
+  let ROWS = [], STATE_NAME = '', SIGNATURE = '';
+
+  // Upcoming / Ongoing / Past from each meet's dates and the current time
+  function renderSections() {
+    const rows = ROWS, selectedState = STATE_NAME;
+    const phaseOf = t => window.SwimMeetState.phase(t);
+    const upcoming = rows.filter(t => phaseOf(t) === 'upcoming');
+    const live     = rows.filter(t => phaseOf(t) === 'ongoing');
+    // Most recent first
+    const past     = rows.filter(t => phaseOf(t) === 'past').reverse();
+    SIGNATURE = signature();
 
     // Upcoming
     const upEl = document.getElementById('upcomingCards');
     if (upEl) {
-      const cards = upcoming.filter(t => t.status !== 'DRAFT' && t.status !== 'PENDING_APPROVAL')
-                            .map((t,i) => card(t, i, false));
+      const cards = upcoming.map((t,i) => card(t, i, false));
       if (!cards.length) {
         upEl.innerHTML = `
           <div class="empty-state-inline" style="grid-column:1/-1; width:100%; text-align:center; padding:32px 16px;">
@@ -241,8 +252,16 @@
       }
     }
 
-    console.info(`[SwimFest] Loaded ${rows.length} tournaments for "${selectedState}" (${upcoming.length} upcoming, ${past.length} past).`);
+    console.info(`[SwimFest] ${rows.length} tournaments for "${selectedState}": ${upcoming.length} upcoming, ${live.length} ongoing, ${past.length} past.`);
   }
+
+  // What every card would show right now; when it changes (a deadline or a start
+  // date passes while the page is open) the sections are drawn again
+  function signature() {
+    return ROWS.map(t => `${t.tournament_id}:${window.SwimMeetState.badge(t).key}`).join('|');
+  }
+  setInterval(() => { if (ROWS.length && !document.hidden && signature() !== SIGNATURE) renderSections(); }, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && ROWS.length && signature() !== SIGNATURE) renderSections(); });
 
   // Expose so the state selector (script.js) can reload events on change
   window.loadTournaments = loadTournaments;

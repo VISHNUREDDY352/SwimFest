@@ -31,7 +31,7 @@ async function loadOrgPipeline() {
   // An organizer is an outsider — this dashboard ALWAYS shows only the
   // meets they personally created. (Global view lives in Super Admin.)
   const { data, error } = await window.sb.from('tournaments')
-    .select('tournament_id, title, venue_name, city, start_date, end_date, gateway_option, status, created_by')
+    .select('*')   // '*' so the sent-back reason comes along once rejection_notes exists
     .eq('created_by', userId)
     .order('start_date', { ascending: false });
   if (error) {
@@ -76,6 +76,7 @@ async function loadOrgPipeline() {
     status: t.status,
     entries: counts[t.tournament_id] || 0,
     reopenPending: pendingReopen.has(t.tournament_id),
+    reason: t.status === 'REJECTED_DRAFT' ? (t.rejection_notes || '') : '',
   }));
 
   // ── Header metrics ──
@@ -164,9 +165,8 @@ function actionsHtml(t) {
       return `<a href="orgracecontrol.html?t=${encodeURIComponent(t.id)}" class="ac-cta ac-cta-primary"><i class="fas fa-flag-checkered"></i> Race control</a>`
         + more(t.status === 'LOCKED' ? [results, sheets, roster] : [roster, results, publicPage]);
     case 'COMPLETED': {
-      const reopen = t.reopenPending
-        ? `<span class="ac-cta-note"><i class="fas fa-clock"></i> Reopen requested</span>`
-        : `<button type="button" class="ac-cta ac-cta-ghost" onclick="openReopenModal('${t.id}')"><i class="fas fa-unlock-alt"></i> Request reopen</button>`;
+      // Role matrix: an organizer requests closure only; reopening a finished meet is the super admin's call
+      const reopen = t.reopenPending ? `<span class="ac-cta-note"><i class="fas fa-clock"></i> Reopen requested</span>` : '';
       return `<a href="heatsheets.html?tournament=${title}" class="ac-cta ac-cta-ghost"><i class="fas fa-box-archive"></i> View archive</a>${reopen}`;
     }
     case 'REJECTED_DRAFT':
@@ -199,6 +199,7 @@ function renderPipeline() {
         </div>
         <span class="ac-meet-meta">${escHtml(t.dates)}${t.venue ? ' · ' + escHtml(t.venue) : ''}</span>
         <span class="ac-meet-meta-2">${t.entries} ${t.entries === 1 ? 'entry' : 'entries'} · ${payment}</span>
+        ${t.reason ? `<div class="ac-reason"><b>What to fix:</b> ${escHtml(t.reason)}</div>` : ''}
       </div>
       ${trackHtml(t)}
       <div class="ac-meet-actions">${actionsHtml(t)}</div>
@@ -307,9 +308,43 @@ window.showToast = showToast;
   document.head.appendChild(s);
 })();
 
+// ── Payouts: entry fees for this organizer's own meets ─────────
+// Totals come from organizer_payout_summary() (rbac_governance.sql), which
+// adds up bookings for meets this account created without exposing them.
+async function loadPayouts() {
+  const body = $('payoutBody');
+  if (!body || !window.sb) return;
+  const { data, error } = await window.sb.rpc('organizer_payout_summary');
+  if (error) {
+    body.innerHTML = `<div class="ac-empty">${/function|schema cache/i.test(error.message)
+      ? 'Payout totals appear here once the database update is applied.' : 'Couldn\'t load payouts: ' + escHtml(error.message)}</div>`;
+    return;
+  }
+  const rows = data || [];
+  if (!rows.length) { body.innerHTML = '<div class="ac-empty">No meets yet.</div>'; return; }
+  const money = n => '₹' + Number(n || 0).toLocaleString('en-IN');
+  const paidTotal = rows.reduce((s, r) => s + Number(r.paid_amount || 0), 0);
+  body.innerHTML = `<div class="ac-table-wrap"><table class="ac-table">
+    <thead><tr><th>Meet</th><th>Payments</th><th>Paid entries</th><th>Paid</th><th>Not paid yet</th><th>Who pays you</th></tr></thead>
+    <tbody>${rows.map(r => {
+      const online = r.gateway_option === 'OPTION_A_PLATFORM_GATEWAY';
+      return `<tr>
+        <td><strong>${escHtml(r.title)}</strong></td>
+        <td>${online ? 'Online (SwimFest)' : 'Offline (you collect)'}</td>
+        <td>${r.paid_bookings}</td>
+        <td><strong>${money(r.paid_amount)}</strong></td>
+        <td>${r.unpaid_bookings ? `${r.unpaid_bookings} · ${money(r.unpaid_amount)}` : '—'}</td>
+        <td style="font-size:0.8rem;color:var(--ac-muted);">${online ? 'SwimFest pays out after the meet' : 'Collected by you at the pool'}</td>
+      </tr>`;
+    }).join('')}</tbody>
+    <tfoot><tr><td colspan="3"><strong>Total paid</strong></td><td><strong>${money(paidTotal)}</strong></td><td colspan="2"></td></tr></tfoot>
+  </table></div>`;
+}
+
 document.addEventListener('DOMContentLoaded', ()=>{
   initNav();
   const sess = window.SwimAuth ? window.SwimAuth.getSession() : null;
   if (sess && sess.userId) $('orgIdBadge').textContent = 'Organizer · ID ' + String(sess.userId).slice(0, 8).toUpperCase();
   loadOrgPipeline();
+  loadPayouts();
 });

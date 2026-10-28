@@ -32,6 +32,17 @@ const poster = { file: null, url: null, preview: null };   // url = saved poster
 const $ = id => document.getElementById(id);
 const val = id => ($(id).value || '').trim();
 const segValue = name => document.querySelector(`[data-seg="${name}"] .on`).dataset.v;
+// Pool lengths at the venue: 50 m, 25 m or both
+const poolsOn = () => [...document.querySelectorAll('#fPools button.on')].map(b => b.dataset.v);
+function setPools(list) {
+  document.querySelectorAll('#fPools button').forEach(b => {
+    const on = list.includes(b.dataset.v);
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on);
+    b.querySelector('i').className = on ? 'fas fa-square-check' : 'far fa-square';
+  });
+}
+const poolText = list => list.map(v => v === '50m' ? '50 m' : '25 m').join(' + ') || '—';
 const gateway = () => document.querySelector('.oc-opt.on').dataset.gw;
 const isSuperAdmin = () => SESSION && SESSION.role === 'super_admin';
 
@@ -127,6 +138,7 @@ function problemsFor(s) {
     if (!val('fHost')) p.push(['fHost', 'Enter the host club']);
     if (!val('fCity')) p.push(['fCity', 'Enter the city']);
     if (!val('fVenue')) p.push(['fVenue', 'Enter the venue']);
+    if (!poolsOn().length) p.push(['fPools', 'Tick at least one pool']);
     const st = val('fStart'), en = val('fEnd'), dl = val('fDeadline');
     if (!st) p.push(['fStart', 'Pick the first race day']);
     else if (st < today()) p.push(['fStart', 'The first race day is in the past']);
@@ -170,13 +182,13 @@ function updateDateHint() {
 
 // ─── Summary ──────────────────────────────────────────────────
 function renderSummary() {
-  const pool = segValue('pool') === '50m' ? '50 m' : '25 m';
+  const pools = poolsOn();
   const races = racesOn().length;
   const rows = [
     ['Meet', val('fTitle')],
     ['Host', val('fHost')],
     ['Where', [val('fVenue'), val('fCity')].filter(Boolean).join(', ')],
-    ['Pool', `${pool} · ${segValue('lanes')} lanes`],
+    ['Pool', `${poolText(pools)} · ${segValue('lanes')} lanes${pools.length > 1 ? ' (main)' : ''}`],
     ['Dates', val('fStart') && val('fEnd') ? (val('fStart') === val('fEnd') ? fmtDate(val('fStart')) : `${fmtDate(val('fStart'))} – ${fmtDate(val('fEnd'))}`) : ''],
     ['Entries close', fmtDate(val('fDeadline'))],
     ['Races', races ? `${races} race${races === 1 ? '' : 's'}` : ''],
@@ -233,7 +245,8 @@ function collect(status) {
     state:                 val('fState'),
     city:                  val('fCity'),
     venue_name:            val('fVenue'),
-    pool_length:           segValue('pool'),
+    pool_length:           poolsOn().includes('50m') ? '50m' : '25m',   // the main (competition) pool
+    pool_lengths:          poolsOn(),
     lane_count:            Number(segValue('lanes')),
     start_date:            val('fStart'),
     end_date:              val('fEnd'),
@@ -264,6 +277,10 @@ async function saveMeet(status) {
   let res;
   if (draftId) {
     res = await window.sb.from('tournaments').update(row).eq('tournament_id', draftId).select('tournament_id');
+    if (res.error && /pool_lengths/.test(res.error.message || '')) {
+      delete row.pool_lengths;
+      res = await window.sb.from('tournaments').update(row).eq('tournament_id', draftId).select('tournament_id');
+    }
     if (!res.error && (!res.data || !res.data.length)) {
       showToast('This draft could not be updated. It may have been deleted or already sent.', 'warn');
       return null;
@@ -271,6 +288,10 @@ async function saveMeet(status) {
   } else {
     row.created_by = SESSION.userId;
     res = await window.sb.from('tournaments').insert(row).select('tournament_id');
+    if (res.error && /pool_lengths/.test(res.error.message || '')) {
+      delete row.pool_lengths;
+      res = await window.sb.from('tournaments').insert(row).select('tournament_id');
+    }
   }
 
   if (res.error) {
@@ -399,7 +420,8 @@ async function loadExistingMeet() {
   const id = new URLSearchParams(location.search).get('id');
   if (!id || !window.sb || !SESSION) return;
   let q = window.sb.from('tournaments').select('*').eq('tournament_id', id);
-  if (!isSuperAdmin()) q = q.eq('created_by', SESSION.userId);
+  const mine = window.SwimGov ? await window.SwimGov.assignedMeetIds() : null;   // Admin: own + assigned meets
+  if (!isSuperAdmin() && !(mine && mine.has(id))) q = q.eq('created_by', SESSION.userId);
   const { data: t, error } = await q.maybeSingle();
   if (error || !t) { showToast('That meet could not be opened. It may belong to another account.', 'warn'); return; }
   if (!['DRAFT', 'REJECTED_DRAFT'].includes(t.status)) {
@@ -419,7 +441,7 @@ async function loadExistingMeet() {
   set('fDeadline', t.registration_deadline ? String(t.registration_deadline).slice(0, 10) : '');
   set('fBase', t.reg_fee_amount); set('fRelay', t.relay_add_on_fee);
   const pick = (seg, v) => document.querySelectorAll(`[data-seg="${seg}"] button`).forEach(b => b.classList.toggle('on', b.dataset.v === String(v)));
-  if (t.pool_length) pick('pool', t.pool_length);
+  setPools(Array.isArray(t.pool_lengths) && t.pool_lengths.length ? t.pool_lengths : [t.pool_length || '50m']);
   if (t.lane_count) pick('lanes', t.lane_count);
   const sw = (sid, on) => { $(sid).classList.toggle('on', !!on); $(sid).setAttribute('aria-pressed', !!on); };
   sw('swNonMedal', t.non_medalist_rule);
@@ -438,7 +460,9 @@ async function loadExistingMeet() {
   const returned = t.status === 'REJECTED_DRAFT';
   $('ocHeading').textContent = returned ? 'Fix and resend' : 'Edit draft';
   $('ocSubheading').textContent = returned
-    ? 'The super admin sent this meet back. Make your changes, then send it for approval again.'
+    ? (t.rejection_notes
+        ? `The super admin sent this meet back: "${t.rejection_notes}" Make your changes, then send it for approval again.`
+        : 'The super admin sent this meet back. Make your changes, then send it for approval again.')
     : isSuperAdmin()
       ? 'Carry on where you left off, then publish it.'
       : 'Carry on where you left off, then send it to the super admin for approval.';
@@ -570,6 +594,17 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   $('fTitle').addEventListener('blur', () => { clearTimeout(nameTimer); checkName(); });
 
+  $('fPools').addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    const next = b.classList.contains('on') ? poolsOn().filter(v => v !== b.dataset.v) : [...poolsOn(), b.dataset.v];
+    setPools(next);
+    $('fPools').classList.toggle('bad', !next.length);
+    markDirty();
+    renderSummary();
+  });
+  initPickers();
+
   document.querySelectorAll('.oc-seg').forEach(seg => seg.addEventListener('click', e => {
     const b = e.target.closest('button');
     if (!b) return;
@@ -607,3 +642,41 @@ document.addEventListener('DOMContentLoaded', () => {
     e.returnValue = '';
   });
 });
+
+// ─── Host club and Venue pickers (ocpickers.js) ───────────────
+// Host: registered organizations. Venue: known pools, which also fill in
+// City, State, pool lengths and lanes. Something new can always be typed.
+async function initPickers() {
+  if (!window.SwimPickers || !window.sb) return;
+  let data = { hosts: [], venues: [] };
+  SwimPickers.attach($('fHost'), {
+    items: () => data.hosts,
+    describe: h => h.sub,
+    group: h => h.kind,
+    newLabel: 'New organization',
+    onPick: h => {
+      $('hostHint').textContent = h ? '' : 'New organization: it is saved with this meet.';
+      $('fHost').classList.remove('bad'); markDirty(); renderSummary();
+    },
+  });
+  SwimPickers.attach($('fVenue'), {
+    items: () => data.venues,
+    describe: v => [v.city, v.state, v.pools.length ? poolText(v.pools) : '', v.lanes ? `${v.lanes} lanes` : '', v.type].filter(Boolean).join(' · '),
+    group: v => v.kind,
+    newLabel: 'New venue',
+    onPick: v => {
+      if (v) {
+        if (v.city) $('fCity').value = v.city;
+        if (v.state && [...$('fState').options].some(o => o.value === v.state)) $('fState').value = v.state;
+        if (v.pools.length) setPools(v.pools);
+        if (v.lanes) document.querySelectorAll('[data-seg="lanes"] button').forEach(b => b.classList.toggle('on', b.dataset.v === String(v.lanes)));
+        $('venueHint').textContent = 'City, state, pool and lanes filled in from this venue. Change them if needed.';
+        ['fVenue', 'fCity'].forEach(id => $(id).classList.remove('bad'));
+      } else {
+        $('venueHint').textContent = 'New venue: fill in the city, state and pools below.';
+      }
+      markDirty(); renderSummary(); updateDateHint();
+    },
+  });
+  try { data = await SwimPickers.load(); } catch (e) { console.warn('[SwimFest] pickers:', e.message); }
+}

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live timing | SwimFest</title>
+    <meta name="description" content="Live race-by-race timing for SwimFest swimming meets: the heat in the water, lane by lane, and published results.">
+    <link rel="stylesheet" href="styles.css?v=24">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* ── Public live timing board ── */
+        :root { --lv-navy:#0f2942; --lv-cyan:#22d3ee; --lv-ink:#0f172a; --lv-muted:#64748b; --lv-line:#e2e8f0; --lv-ground:#f1f5f9; }
+        body.lv-page { background:var(--lv-ground); color:var(--lv-ink); font-family:Inter, system-ui, sans-serif; margin:0; }
+        .lv-top { background:var(--lv-navy); color:#fff; }
+        .lv-top-inner { max-width:72rem; margin:0 auto; padding:0.875rem 1rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
+        .lv-logo { color:#fff; text-decoration:none; font-weight:800; font-size:1.15rem; display:flex; align-items:center; gap:0.5rem; }
+        .lv-top a.lv-back { color:#cbd5e1; text-decoration:none; font-size:0.85rem; margin-left:auto; }
+        .lv-top a.lv-back:hover { color:#fff; }
+        .lv-wrap { max-width:72rem; margin:0 auto; padding:1.25rem 1rem 4rem; }
+        .lv-meet { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:0.5rem 1rem; margin-bottom:1rem; }
+        .lv-meet h1 { margin:0; font-size:clamp(1.3rem, 3vw, 1.9rem); font-weight:800; }
+        .lv-meet .lv-sub { color:var(--lv-muted); font-size:0.88rem; }
+        .lv-tick { display:inline-flex; align-items:center; gap:0.5rem; font-size:0.82rem; color:var(--lv-muted); }
+        .lv-dot { width:0.6rem; height:0.6rem; border-radius:50%; background:#22c55e; box-shadow:0 0 0 0 rgba(34,197,94,.6); animation:lvPulse 1.8s infinite; }
+        @keyframes lvPulse { 70% { box-shadow:0 0 0 0.6rem rgba(34,197,94,0); } 100% { box-shadow:0 0 0 0 rgba(34,197,94,0); } }
+        @media (prefers-reduced-motion: reduce) { .lv-dot { animation:none; } }
+        .lv-refresh { border:1px solid var(--lv-line); background:#fff; border-radius:999px; padding:0.25rem 0.75rem; font:inherit; font-size:0.78rem; cursor:pointer; }
+
+        .lv-now { background:var(--lv-navy); color:#fff; border-radius:1rem; padding:1.1rem 1.25rem; margin-bottom:0.75rem;
+            border:2px solid var(--lv-cyan); box-shadow:0 0 0 4px rgba(34,211,238,.15); }
+        .lv-now-label { font-size:0.75rem; font-weight:800; letter-spacing:0.08em; color:var(--lv-cyan); text-transform:uppercase; }
+        .lv-now-title { font-size:clamp(1.1rem, 2.6vw, 1.5rem); font-weight:800; margin:0.25rem 0 0; }
+        .lv-now-meta { font-size:0.85rem; color:#cbd5e1; margin-top:0.25rem; }
+
+        .lv-lanes { background:#fff; border:1px solid var(--lv-line); border-radius:1rem; overflow:hidden; margin-bottom:0.75rem; }
+        .lv-lane { display:grid; grid-template-columns:3.25rem 1fr auto; align-items:center; gap:0.75rem; padding:0.7rem 1rem; border-top:1px solid #f1f5f9; }
+        .lv-lane:first-child { border-top:0; }
+        .lv-lane-no { width:2.5rem; height:2.5rem; border-radius:0.6rem; background:var(--lv-ground); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.05rem; color:var(--lv-navy); }
+        .lv-lane.is-empty { color:#94a3b8; }
+        .lv-lane.is-empty .lv-lane-no { background:#f8fafc; color:#cbd5e1; }
+        .lv-name { font-weight:700; }
+        .lv-acad { font-size:0.8rem; color:var(--lv-muted); }
+        .lv-time { font-variant-numeric:tabular-nums; font-weight:800; font-size:1.05rem; text-align:right; white-space:nowrap; }
+        .lv-time.is-wait { color:#94a3b8; font-weight:600; font-size:0.85rem; }
+        .lv-time.is-new { color:#15803d; }
+        .lv-time .lv-place { display:block; font-size:0.72rem; color:var(--lv-muted); font-weight:600; }
+        .lv-flag { font-size:0.75rem; font-weight:700; border-radius:999px; padding:2px 8px; background:#fee2e2; color:#991b1b; }
+        .lv-flag.is-muted { background:#f1f5f9; color:#475569; }
+        .lv-next { font-size:0.88rem; color:var(--lv-muted); margin:0 0 1.75rem; }
+
+        .lv-section-title { font-size:1.1rem; font-weight:800; margin:1.5rem 0 0.75rem; display:flex; align-items:center; gap:0.5rem; }
+        .lv-book { display:flex; align-items:center; justify-content:space-between; gap:0.75rem; flex-wrap:wrap; }
+        .lv-pdf { border:1px solid var(--lv-line); background:#fff; border-radius:0.6rem; padding:0.35rem 0.75rem; font:inherit; font-size:0.8rem; font-weight:600; cursor:pointer; color:var(--lv-navy); }
+        .lv-pdf:hover { border-color:var(--lv-navy); }
+        .lv-state { background:#fff; border:1px solid var(--lv-line); border-radius:1rem; padding:2.25rem 1.25rem; text-align:center; color:var(--lv-muted); }
+        .lv-state i { font-size:2rem; color:var(--lv-navy); margin-bottom:0.75rem; display:block; }
+        .lv-state strong { display:block; color:var(--lv-ink); font-size:1.05rem; margin-bottom:0.35rem; }
+        .lv-pool-tag { font-size:0.72rem; font-weight:700; color:var(--lv-navy); background:#e0f2fe; border-radius:999px; padding:2px 8px; margin-left:0.5rem; vertical-align:middle; }
+        @media (max-width: 560px) { .lv-lane { grid-template-columns:2.75rem 1fr auto; padding:0.6rem 0.75rem; } .lv-lane-no { width:2.1rem; height:2.1rem; } }
+    </style>
+</head>
+<body class="lv-page">
+    <header class="lv-top">
+        <div class="lv-top-inner">
+            <a href="index.html" class="lv-logo"><i class="fas fa-swimmer"></i> SwimFest</a>
+            <a href="index.html" class="lv-back" id="lvBack"><i class="fas fa-arrow-left"></i> Meet page</a>
+        </div>
+    </header>
+
+    <main class="lv-wrap">
+        <div class="lv-meet">
+            <div>
+                <h1 id="lvTitle">Live timing</h1>
+                <div class="lv-sub" id="lvSub"></div>
+            </div>
+            <div class="lv-tick" id="lvTick" hidden>
+                <span class="lv-dot" aria-hidden="true"></span>
+                <span id="lvTickText" title="Times are checked every 10 seconds">Live</span>
+                <button type="button" class="lv-refresh" id="lvRefresh"><i class="fas fa-rotate"></i> Refresh</button>
+            </div>
+        </div>
+
+        <div id="lvBody" aria-live="polite">
+            <div class="lv-state"><i class="fas fa-spinner fa-spin"></i>Loading…</div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js?v=7"></script>
+    <script src="auth.js?v=14"></script>
+    <script src="assistant.js?v=2" data-mode="public"></script>
+    <script src="meetstate.js?v=1"></script>
+    <script src="eventresults.js?v=2"></script>
+    <script src="live.js?v=3"></script>
+</body>
+</html>

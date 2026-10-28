@@ -70,7 +70,9 @@ function formatDate(dob) {
 function openModal(id)  { const m=$(id); m.classList.add('active'); m.style.display='flex'; }
 function closeModal(id) { const m=$(id); m.classList.remove('active'); m.style.display='none'; }
 
-function isReadOnly() { return !MEET || READ_ONLY_STATUSES.includes(MEET.status); }
+// Role matrix: an organizer may view and export the list, not change it
+const isViewOnlyRole = () => !!(SESSION && SESSION.role === 'organizer');
+function isReadOnly() { return !MEET || READ_ONLY_STATUSES.includes(MEET.status) || isViewOnlyRole(); }
 
 // ─── Sidebar: links depend on the signed-in role ──────────────
 function sideLink(href, icon, label, active) {
@@ -135,13 +137,14 @@ async function loadAdminTournaments() {
   const sel = $('adminTournamentSelect');
   if (!window.sb) { sel.innerHTML = '<option value="">Database not connected</option>'; return; }
   let query = window.sb.from('tournaments')
-    .select('tournament_id, title, status, start_date, end_date')
+    .select('*')   // needs registration_deadline, allow_swim_up and events_offered too
     .in('status', ['PUBLISHED', 'CLOSED', 'LOCKED', 'CLOSURE_REQUESTED', 'COMPLETED'])
     .order('start_date', { ascending: false });
   if (SESSION && SESSION.role === 'organizer') query = query.eq('created_by', SESSION.userId);
-  const { data, error } = await query;
+  const [{ data: rows, error }, mine] = await Promise.all([query, window.SwimGov ? window.SwimGov.assignedMeetIds() : null]);
+  const data = mine ? (rows || []).filter(t => mine.has(t.tournament_id)) : rows;
   if (error || !data || !data.length) {
-    sel.innerHTML = '<option value="">No approved meets yet</option>';
+    sel.innerHTML = `<option value="">${mine ? 'No meets assigned to you yet' : 'No approved meets yet'}</option>`;
     sel.disabled = true;
     MEET = null; ROSTER = []; LOADING = false; renderStatus(); renderGrid();
     return;
@@ -163,7 +166,7 @@ async function loadRoster(tournamentId, silent = false) {
 
   const { data, error } = await window.sb
     .from('event_entries')
-    .select('entry_id, event_name, category, gender, seed_time_ms, swimmer_id, is_relay')
+    .select('*')   // includes is_im: the medley doesn't count toward the 3-race limit
     .eq('tournament_id', tournamentId);
   if (error) { console.error('[SwimFest] roster load:', error.message); LOADING = false; ROSTER = []; renderGrid(); return; }
 
@@ -200,6 +203,8 @@ async function loadRoster(tournamentId, silent = false) {
       academy: s.academy_name || 'Unattached',
       event: e.event_name,
       isRelay: !!e.is_relay,
+      row_version: e.row_version,   // checked when saving (another admin may have changed it)
+      isIm: !!e.is_im || /individual medley/i.test(e.event_name || ''),
       seedMs: e.seed_time_ms,
       seedTime: msToSeed(e.seed_time_ms),
       status: s.status || '',
@@ -213,14 +218,22 @@ async function loadRoster(tournamentId, silent = false) {
   if (!silent && !ROSTER.length) showToast('This meet has no entries yet.', 'info');
 }
 
+// A meet with swim-up lets a swimmer race one age group above their own
+function isSwimUp(own, entered) {
+  if (!MEET || !MEET.allow_swim_up) return false;
+  const i = CATEGORIES.findIndex(c => c.label === own);
+  return i >= 0 && CATEGORIES[i + 1] && CATEGORIES[i + 1].label === entered;
+}
+
 // Things worth a second look before locking
 function computeFlags() {
+  // The 3-race limit is for individual races; relays and the medley (IM) are extra
   const individualCount = {};
-  ROSTER.forEach(r => { if (!r.isRelay) individualCount[r.swimmerId] = (individualCount[r.swimmerId] || 0) + 1; });
+  ROSTER.forEach(r => { if (!r.isRelay && !r.isIm) individualCount[r.swimmerId] = (individualCount[r.swimmerId] || 0) + 1; });
   ROSTER.forEach(r => {
     r.flags = [];
-    const cat = deriveCategoryFromDob(r.dob);
-    if (r.dob && (!cat || cat.label !== r.category)) {
+    const cat = deriveCategoryFromDob(r.dob);   // age on 31 December of the meet year
+    if (r.dob && (!cat || (cat.label !== r.category && !isSwimUp(cat.label, r.category)))) {
       r.flags.push({ type: 'dob_conflict', msg: cat ? `Age says ${cat.label}, entered in ${r.category}` : `Age ${r.age} is outside U-10 to U-16` });
     }
     if (r.swimmerGender && r.swimmerGender !== r.gender) r.flags.push({ type: 'gender', msg: `${r.swimmerGender} entered in a ${r.gender === 'Girl' ? 'girls' : 'boys'} event` });
@@ -235,24 +248,35 @@ const STATUS_PILL = {
   PENDING_APPROVAL:  { cls: 'ac-pill-wait',  label: 'Pending approval' },
   PUBLISHED:         { cls: 'ac-pill-live',  label: 'Registration open' },
   CLOSED:            { cls: 'ac-pill-wait',  label: 'Registration closed' },
-  LOCKED:            { cls: 'ac-pill-done',  label: 'Player list locked' },
+  LOCKED:            { cls: 'ac-pill-done',  label: 'Roster locked · heats ready' },
   CLOSURE_REQUESTED: { cls: 'ac-pill-wait',  label: 'Closure requested' },
-  COMPLETED:         { cls: 'ac-pill-done',  label: 'Completed' },
+  COMPLETED:         { cls: 'ac-pill-done',  label: 'Completed · archived' },
   REJECTED_DRAFT:    { cls: 'ac-pill-bad',   label: 'Rejected' },
   DRAFT:             { cls: 'ac-pill-draft', label: 'Draft' },
 };
+
+// The badge follows the meet's real state, not just its stored status:
+// a published meet whose entry deadline has passed is "Registration closed"
+function statusPill(m) {
+  const today = new Date().toLocaleDateString('en-CA');   // YYYY-MM-DD, local
+  const deadline = m.registration_deadline ? String(m.registration_deadline).slice(0, 10) : '';
+  if (m.status === 'PUBLISHED' && deadline && today > deadline) return STATUS_PILL.CLOSED;
+  return STATUS_PILL[m.status] || STATUS_PILL.DRAFT;
+}
 
 function renderStatus() {
   const chip = $('regStatusChip');
   if (!MEET) { chip.className = 'ac-pill ac-pill-draft'; chip.textContent = '—'; }
   else {
-    const p = STATUS_PILL[MEET.status] || STATUS_PILL.DRAFT;
+    const p = statusPill(MEET);
     chip.className = `ac-pill ${p.cls}`;
     chip.textContent = p.label;
   }
   const ro = isReadOnly();
-  $('addManualBtn').disabled = ro;
-  $('addManualBtn').title = ro ? 'This meet is locked' : '';
+  ['addManualBtn', 'bulkBtn'].forEach(id => {
+    $(id).disabled = ro;
+    $(id).title = ro ? (isViewOnlyRole() ? 'Organizers can view and export this list' : 'This meet is locked') : '';
+  });
 
   const locked = MEET && READ_ONLY_STATUSES.includes(MEET.status);
   $('lockIcon').className = `pl-lock-icon${locked ? ' done' : ''}`;
@@ -261,7 +285,11 @@ function renderStatus() {
   $('lockText').textContent = locked
     ? 'Entries are read-only. The meet has moved on to heat generation and racing.'
     : 'When every entry is right, lock the list. Entries become read-only and the meet moves on to heat generation. This can\'t be undone.';
-  $('lockActions').style.display = locked || !MEET ? 'none' : '';
+  $('lockActions').style.display = locked || !MEET || isViewOnlyRole() ? 'none' : '';
+  if (isViewOnlyRole() && !locked) {
+    $('lockTitle').textContent = 'View only';
+    $('lockText').textContent = 'You can view and export this list. The meet\'s Admin checks, edits and locks it.';
+  }
   if (locked) $('auditResults').style.display = 'none';
 }
 
@@ -398,13 +426,18 @@ async function saveEdit(rowId) {
   const ms = seedToMs(seedText);
   if (ms === undefined) { showToast('Seed time must look like 00:39.20, or NT for no time.', 'warn'); return; }
 
-  // .select() returns the changed rows, so a blocked update shows up as 0 rows
-  const { data, error } = await window.sb.from('event_entries')
-    .update({ seed_time_ms: ms, category: newCat }).eq('entry_id', rowId).select('entry_id');
-  if (error || !data || !data.length) {
-    showToast(error ? `Could not save: ${error.message}` : 'Your account is not allowed to change entries.', 'warn');
+  // Saved only if nobody else changed this entry since the list was loaded
+  const before = `${row.seedTime} · ${row.category}`;
+  const { error, conflict } = await SwimGov.save('event_entries', 'entry_id', { entry_id: rowId, row_version: row.row_version },
+    { seed_time_ms: ms, category: newCat });
+  if (error) {
+    showToast(`Could not save: ${error.message}`, 'warn');
+    if (conflict) loadRoster(MEET.tournament_id, true);
     return;
   }
+  row.row_version = row.row_version != null ? row.row_version + 1 : row.row_version;
+  SwimGov.audit('ENTRY_EDITED', 'EVENT_ENTRY', rowId,
+    `${MEET.title}: ${row.name}, ${row.event}\nChange: ${before} → ${msToSeed(ms)} · ${newCat}`);
   row.seedMs = ms;
   row.seedTime = msToSeed(ms);
   row.category = newCat;
@@ -432,6 +465,8 @@ async function confirmDelete() {
   }
   pendingDeleteId = null;
   closeModal('deleteModal');
+  const gone = ROSTER.find(r => r.id === id);
+  if (gone) SwimGov.audit('ENTRY_REMOVED', 'EVENT_ENTRY', id, `${MEET.title}: removed ${gone.name}, ${gone.event}`);
   ROSTER = ROSTER.filter(r => r.id !== id);
   computeFlags();
   populateAcademyFilter();
@@ -442,13 +477,13 @@ async function confirmDelete() {
 // ─── Walk-in swimmer (Rule 7.2) ───────────────────────────────
 async function openManualModal() {
   if (isReadOnly()) return;
-  ['mFullName','mDob','mSeedTime','mContact'].forEach(id => { $(id).value = ''; });
+  ['mFullName','mDob','mContact'].forEach(id => { $(id).value = ''; });
   // Only birth years that fit an age group (8–15 in the meet year)
   const y = meetYear();
   $('mDob').min = `${y - 15}-01-01`;
   $('mDob').max = `${y - 8}-12-31`;
   $('mGender').value = 'Boy';
-  $('mEvent').innerHTML = '<option value="">Pick gender and date of birth first</option>';
+  $('mEvents').innerHTML = '<p class="pl-sub" style="margin:0;">Pick gender and date of birth first.</p>';
   $('mDerivedRow').style.display = 'none';
   $('mError').textContent = '';
 
@@ -471,7 +506,7 @@ function updateManualDerived() {
   const cat = deriveCategoryFromDob(dob);
   if (!dob || !cat) {
     $('mDerivedRow').style.display = 'none';
-    $('mEvent').innerHTML = `<option value="">${dob ? 'Age is outside U-10 to U-16' : 'Pick gender and date of birth first'}</option>`;
+    $('mEvents').innerHTML = `<p class="pl-sub" style="margin:0;">${dob ? 'Age is outside U-10 to U-16.' : 'Pick gender and date of birth first.'}</p>`;
     return;
   }
   const gender = $('mGender').value;
@@ -481,101 +516,123 @@ function updateManualDerived() {
   $('mCategory').textContent = `${gender === 'Girl' ? 'GIRLS' : 'BOYS'} ${cat.label}`;
   $('mDerivedRow').style.display = '';
 
-  const EVENT_MASTER = window.SWIMFEST_EVENT_MASTER || getEventMasterLocal();
-  const events = EVENT_MASTER.filter(e => e.gender === gender && e.category === cat.label);
-  $('mEvent').innerHTML = '<option value="">Select event</option>' +
-    events.map(e => `<option value="${escHtml(e.name)}">${escHtml(e.name)}</option>`).join('');
+  renderRaceChecklist(gender, cat.label);
 }
 
-function getEventMasterLocal() {
-  // Fallback list used when register.js isn't loaded
-  return [
-    {gender:'Boy',  category:'U-10', name:'25m Freestyle'},
-    {gender:'Boy',  category:'U-10', name:'25m Backstroke'},
-    {gender:'Boy',  category:'U-12', name:'50m Freestyle'},
-    {gender:'Boy',  category:'U-12', name:'100m Freestyle'},
-    {gender:'Boy',  category:'U-12', name:'50m Backstroke'},
-    {gender:'Boy',  category:'U-12', name:'50m Breaststroke'},
-    {gender:'Boy',  category:'U-12', name:'50m Butterfly'},
-    {gender:'Boy',  category:'U-14', name:'50m Freestyle'},
-    {gender:'Boy',  category:'U-14', name:'100m Freestyle'},
-    {gender:'Boy',  category:'U-14', name:'200m Freestyle'},
-    {gender:'Boy',  category:'U-14', name:'50m Backstroke'},
-    {gender:'Boy',  category:'U-14', name:'50m Breaststroke'},
-    {gender:'Boy',  category:'U-14', name:'50m Butterfly'},
-    {gender:'Boy',  category:'U-16', name:'50m Freestyle'},
-    {gender:'Boy',  category:'U-16', name:'100m Freestyle'},
-    {gender:'Boy',  category:'U-16', name:'50m Butterfly'},
-    {gender:'Girl', category:'U-10', name:'25m Freestyle'},
-    {gender:'Girl', category:'U-12', name:'50m Freestyle'},
-    {gender:'Girl', category:'U-12', name:'100m Freestyle'},
-    {gender:'Girl', category:'U-12', name:'50m Backstroke'},
-    {gender:'Girl', category:'U-12', name:'50m Breaststroke'},
-    {gender:'Girl', category:'U-14', name:'50m Freestyle'},
-    {gender:'Girl', category:'U-14', name:'100m Freestyle'},
-    {gender:'Girl', category:'U-14', name:'200m Freestyle'},
-    {gender:'Girl', category:'U-16', name:'100m Freestyle'},
-    {gender:'Girl', category:'U-16', name:'200m Freestyle'},
-    {gender:'Girl', category:'U-16', name:'50m Butterfly'},
-  ];
+// Races this meet offers for a gender and age group (all races when the meet has no list)
+const IM_RACE = '100m Individual Medley';
+function racesFor(gender, category) {
+  const offered = MEET && Array.isArray(MEET.events_offered) && MEET.events_offered.length ? new Set(MEET.events_offered) : null;
+  const races = (window.SWIMFEST_EVENT_MASTER || [])
+    .filter(e => e.gender === gender && e.category === category && (!offered || offered.has(e.name)))
+    .map(e => e.name);
+  return { races, im: !offered || offered.has(IM_RACE) };
 }
 
-async function saveManualEntry() {
-  const err = msg => { $('mError').textContent = msg; };
-  // A dropped connection or a blocking extension surfaces as "Failed to fetch"
-  const why = e => /failed to fetch|network/i.test(e.message || '')
-    ? 'could not reach the server. Check your internet (or turn off ad blockers for this site), wait a moment and try again.'
-    : e.message;
-  const name     = $('mFullName').value.trim();
-  const gender   = $('mGender').value;
-  const dob      = $('mDob').value;
-  const academy  = $('mAcademy').value;
-  const event    = $('mEvent').value;
-  const seedText = $('mSeedTime').value.trim() || 'NT';
-  const phone    = $('mContact').value.trim();
+function renderRaceChecklist(gender, category) {
+  const { races, im } = racesFor(gender, category);
+  const row = (name, isIm) => `
+    <div class="pl-race${isIm ? ' pl-race-im' : ''}">
+      <label><input type="checkbox" data-race="${escHtml(name)}"${isIm ? ' data-im="1"' : ''}> ${escHtml(name)}${isIm ? ' <span class="pl-sub">(extra, not counted in the 3)</span>' : ''}</label>
+      <input type="text" data-seed-for="${escHtml(name)}" placeholder="Seed or NT" maxlength="10" disabled aria-label="Seed time for ${escHtml(name)}">
+    </div>`;
+  $('mEvents').innerHTML = races.length || im
+    ? races.map(n => row(n, false)).join('') + (im ? row(IM_RACE, true) : '')
+    : '<p class="pl-sub" style="margin:0;">This meet has no races for this age group.</p>';
+  syncRaceChecklist();
+}
 
-  if (!name)  return err('Enter the swimmer\'s full name.');
-  if (!dob)   return err('Enter the date of birth.');
-  const cat = deriveCategoryFromDob(dob);
-  if (!cat)   return err('Age is outside U-10 to U-16 for this meet.');
-  if (!event) return err('Pick an event.');
-  if (!phone) return err('Enter a parent phone number.');
-  const ms = seedToMs(seedText);
-  if (ms === undefined) return err('Seed time must look like 00:39.20, or NT for no time.');
-  err('');
+// At most 3 individual races: once 3 are ticked the rest are switched off
+function syncRaceChecklist() {
+  const boxes = [...$('mEvents').querySelectorAll('input[type=checkbox]')];
+  const picked = boxes.filter(b => b.checked && !b.dataset.im).length;
+  boxes.forEach(b => {
+    const off = !b.dataset.im && !b.checked && picked >= MAX_INDIVIDUAL_EVENTS;
+    b.disabled = off;
+    b.closest('.pl-race').classList.toggle('is-off', off);
+    const seed = $('mEvents').querySelector(`[data-seed-for="${CSS.escape(b.dataset.race)}"]`);
+    seed.disabled = !b.checked;
+    if (!b.checked) seed.value = '';
+  });
+  const hasIm = boxes.some(b => b.dataset.im);
+  $('mEventCount').textContent = `(${picked} of ${MAX_INDIVIDUAL_EVENTS} picked${hasIm ? ', plus the medley' : ''})`;
+}
 
-  const btn = $('manualModalSave');
-  btn.disabled = true;
+function pickedRaces() {
+  return [...$('mEvents').querySelectorAll('input[type=checkbox]:checked')].map(b => ({
+    name: b.dataset.race, im: !!b.dataset.im,
+    seed: ($('mEvents').querySelector(`[data-seed-for="${CSS.escape(b.dataset.race)}"]`).value || '').trim() || 'NT',
+  }));
+}
 
-  // 1. The swimmer (entered by staff at the pool, so already verified)
+// A dropped connection or a blocking extension surfaces as "Failed to fetch"
+const whyFailed = e => /failed to fetch|network/i.test(e.message || '')
+  ? 'could not reach the server. Check your internet (or turn off ad blockers for this site), wait a moment and try again.'
+  : e.message;
+
+// Add one walk-in swimmer and their races to this meet. Shared by the form and
+// the bulk spreadsheet upload. races: [{ name, im, ms }]. Returns an error message or ''.
+async function addWalkIn({ name, gender, dob, academyId, phone, category, races }) {
+  // 1. The swimmer (entered by staff, so already verified)
   const row = {
-    full_name: name, gender, date_of_birth: dob, category: cat.label,
-    parent_phone: phone, academy_id: academy || null, status: 'APPROVED_ACTIVE',
+    full_name: name, gender, date_of_birth: dob, category,
+    parent_phone: phone, academy_id: academyId || null, status: 'APPROVED_ACTIVE',
   };
   let { data: sw, error: swErr } = await window.sb.from('swimmers').insert(row).select('swimmer_id').single();
   if (swErr && /status/i.test(swErr.message)) {   // database without swimmers.status
     delete row.status;
     ({ data: sw, error: swErr } = await window.sb.from('swimmers').insert(row).select('swimmer_id').single());
   }
-  if (swErr || !sw) { btn.disabled = false; return err(`Could not add the swimmer: ${swErr ? why(swErr) : 'not allowed'}`); }
+  if (swErr || !sw) return `Could not add the swimmer: ${swErr ? whyFailed(swErr) : 'not allowed'}`;
 
-  // 2. Their entry in this meet
-  const distance = parseInt(event, 10);
-  const { error: enErr } = await window.sb.from('event_entries').insert({
-    tournament_id: MEET.tournament_id, swimmer_id: sw.swimmer_id, event_name: event,
-    stroke: event.replace(/^\d+m\s*/i, '') || null,
-    distance: [25, 50, 100, 200, 400].includes(distance) ? distance : null,
-    category: cat.label, gender, seed_time_ms: ms,
-  });
-  btn.disabled = false;
+  // 2. One entry per race, saved together
+  const { error: enErr } = await window.sb.from('event_entries').insert(races.map(r => {
+    const distance = parseInt(r.name, 10);
+    return {
+      tournament_id: MEET.tournament_id, swimmer_id: sw.swimmer_id, event_name: r.name,
+      stroke: r.im ? 'Medley' : (r.name.replace(/^\d+m\s*/i, '') || null),
+      distance: [25, 50, 100, 200, 400].includes(distance) ? distance : null,
+      category, gender, seed_time_ms: r.ms, is_relay: false, is_im: r.im,
+    };
+  }));
   if (enErr) {
-    // Don't leave a swimmer behind with no entry
+    // Don't leave a swimmer behind with no entries
     await window.sb.from('swimmers').delete().eq('swimmer_id', sw.swimmer_id);
-    return err(`Could not add the entry: ${why(enErr)}`);
+    return `Could not add the races: ${whyFailed(enErr)}`;
   }
+  SwimGov.audit('WALKIN_ADDED', 'SWIMMER', sw.swimmer_id, `${MEET.title}: ${name} (${category}) in ${races.map(r => r.name).join(', ')}`);
+  return '';
+}
+
+async function saveManualEntry() {
+  const err = msg => { $('mError').textContent = msg; };
+  const name    = $('mFullName').value.trim();
+  const gender  = $('mGender').value;
+  const dob     = $('mDob').value;
+  const academy = $('mAcademy').value;
+  const phone   = $('mContact').value.trim();
+
+  if (!name)  return err('Enter the swimmer\'s full name.');
+  if (!dob)   return err('Enter the date of birth.');
+  const cat = deriveCategoryFromDob(dob);
+  if (!cat)   return err('Age is outside U-10 to U-16 for this meet.');
+  if (!phone) return err('Enter a parent phone number.');
+  const races = pickedRaces();
+  if (!races.length) return err('Tick at least one race.');
+  for (const r of races) {
+    r.ms = seedToMs(r.seed);
+    if (r.ms === undefined) return err(`Seed time for ${r.name} must look like 00:39.20, or NT for no time.`);
+  }
+  err('');
+
+  const btn = $('manualModalSave');
+  btn.disabled = true;
+  const problem = await addWalkIn({ name, gender, dob, academyId: academy, phone, category: cat.label, races });
+  btn.disabled = false;
+  if (problem) return err(problem);
 
   closeModal('manualEntryModal');
-  showToast(`Added ${name} — ${event}`, 'success');
+  showToast(`Added ${name} in ${races.length} race${races.length === 1 ? '' : 's'}`, 'success');
   loadRoster(MEET.tournament_id, true);
 }
 
@@ -606,7 +663,7 @@ function runAuditChecks() {
   const withDob = ROSTER.filter(r => r.dob);
   const ageIssues = ROSTER.filter(r => r.flags.some(f => f.type === 'dob_conflict')).length;
   results.push({
-    type: ageIssues ? 'warn' : 'ok', label: 'Age matches category',
+    type: ageIssues ? 'fail' : 'ok', label: 'Age matches category (age on 31 December)',
     detail: ageIssues ? `${ageIssues} entr${ageIssues === 1 ? 'y is' : 'ies are'} in a category that doesn't match the swimmer's age.`
       : withDob.length ? 'Every swimmer is in the right age category.' : 'No dates of birth available to check.',
   });
@@ -636,8 +693,12 @@ function renderAuditResults(results) {
 }
 
 // ─── Final lock (Rule 7.4) ────────────────────────────────────
-function triggerFinalLock() {
+const LOCK_PHRASE = 'CONFIRM LOCK';
+
+async function triggerFinalLock() {
   if (!MEET) return;
+  // Check the list as it is in the database right now, not as it was when the page loaded
+  await loadRoster(MEET.tournament_id, true);
   const results = runAuditChecks();
   const hasFailures = results.some(r => r.type === 'fail');
   renderAuditResults(results);
@@ -649,22 +710,29 @@ function triggerFinalLock() {
       <li><strong>${uniqueSwimmers}</strong> swimmers</li>
       <li><strong>${ROSTER.length}</strong> race entries</li>
     </ul>
-    ${hasFailures ? '<p style="color:#b91c1c;font-weight:600;font-size:0.84rem;margin:0 0 8px;"><i class="fas fa-times-circle"></i> Fix the problems in the check before locking.</p>' : ''}
+    ${hasFailures
+      ? `<div class="pl-audit" style="margin:0 0 10px;">${results.filter(r => r.type === 'fail').map(r =>
+          `<div class="pl-audit-row fail"><i class="fas fa-times-circle"></i><div><strong>${escHtml(r.label)}</strong> <span style="color:var(--ac-muted);">· ${escHtml(r.detail)}</span></div></div>`).join('')}</div>
+         <p style="color:#b91c1c;font-weight:600;font-size:0.84rem;margin:0 0 8px;">Fix these entries before locking. Use "Needs a look" in the filters to find them.</p>`
+      : `<p style="color:#15803d;font-weight:600;font-size:0.84rem;margin:0 0 10px;"><i class="fas fa-check-circle"></i> All checks passed.</p>
+         <label for="lockPhrase" style="display:block;font-size:0.82rem;margin:0 0 6px;">Type <strong>${LOCK_PHRASE}</strong> to lock:</label>
+         <input id="lockPhrase" class="admin-input" autocomplete="off" spellcheck="false" placeholder="${LOCK_PHRASE}" style="margin-bottom:10px;">`}
     <p style="color:var(--ac-muted);font-size:0.8rem;margin:0;">Entries become read-only and the meet moves on to heat generation. This can't be undone.</p>`;
-  $('lockModalConfirm').disabled = hasFailures;
-  $('lockModalConfirm').style.opacity = hasFailures ? '0.5' : '1';
+  const btn = $('lockModalConfirm');
+  const ready = () => !hasFailures && $('lockPhrase') && $('lockPhrase').value.trim().toUpperCase() === LOCK_PHRASE;
+  const sync = () => { btn.disabled = !ready(); btn.style.opacity = ready() ? '1' : '0.5'; };
+  sync();
   openModal('lockConfirmModal');
+  if ($('lockPhrase')) { $('lockPhrase').addEventListener('input', sync); $('lockPhrase').focus(); }
 }
 
 async function executeLock() {
-  if (!MEET) return;
-  const { data, error } = await window.sb.from('tournaments')
-    .update({ status: 'LOCKED' }).eq('tournament_id', MEET.tournament_id).select('tournament_id');
-  if (error || !data || !data.length) {
-    showToast(error ? `Could not lock: ${error.message}` : 'Your account is not allowed to lock this meet.', 'warn');
-    return;
-  }
+  if (!MEET || !$('lockPhrase') || $('lockPhrase').value.trim().toUpperCase() !== LOCK_PHRASE) return;
+  const { error } = await SwimGov.save('tournaments', 'tournament_id', MEET, { status: 'LOCKED' });
+  if (error) { showToast(`Could not lock: ${error.message}`, 'warn'); return; }
   closeModal('lockConfirmModal');
+  SwimGov.audit('PLAYER_LIST_LOCKED', 'TOURNAMENT', MEET.tournament_id,
+    `Locked the player list: ${MEET.title} (${new Set(ROSTER.map(r => r.swimmerId)).size} swimmers, ${ROSTER.length} entries)`);
   MEET.status = 'LOCKED';
   renderStatus();
   renderGrid();
@@ -734,6 +802,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('mDob').addEventListener('change', updateManualDerived);
   $('mGender').addEventListener('change', updateManualDerived);
   $('manualModalSave').addEventListener('click', saveManualEntry);
+  $('mEvents').addEventListener('change', e => { if (e.target.matches('input[type=checkbox]')) syncRaceChecklist(); });
 
   $('exportBtn').addEventListener('click', exportCSV);
 

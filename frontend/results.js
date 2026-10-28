@@ -61,13 +61,14 @@ function fmtTime(ms) {
 
 // "00:39.20" / "0:39.2" / "39.20" → ms; blank → null; anything else → undefined
 function parseTime(text) {
-  const t = String(text ?? '').trim();
+  // Timing exports may add a zero hour ("0:00:31.42") or thousandths ("31.420")
+  const t = String(text ?? '').trim().replace(/^0{1,2}:(?=\d{1,2}:\d{1,2}\.)/, '');
   if (!t) return null;
-  const m = /^(?:(\d{1,2}):)?(\d{1,2})\.(\d{1,2})$/.exec(t);
+  const m = /^(?:(\d{1,2}):)?(\d{1,2})\.(\d{1,3})$/.exec(t);
   if (!m) return undefined;
   if (m[1] != null && m[2].length !== 2) return undefined;   // 1:5.20 is ambiguous
   if (Number(m[2]) > 59 && m[1] != null) return undefined;
-  const frac = m[3].length === 1 ? Number(m[3]) * 100 : Number(m[3]) * 10;
+  const frac = Number((m[3] + '00').slice(0, 2)) * 10;   // hundredths; thousandths are cut off, as in swimming
   return Number(m[1] || 0) * 60000 + Number(m[2]) * 1000 + frac;
 }
 
@@ -294,6 +295,7 @@ function renderStatus() {
   const [label, cls] = MEET ? (STATUS_PILL[MEET.status] || [MEET.status, 'ac-pill-draft']) : ['—', 'ac-pill-draft'];
   chip.className = `ac-pill ${cls}`;
   chip.textContent = label;
+  $('liveBoardBtn').href = MEET ? `live.html?t=${encodeURIComponent(MEET.tournament_id)}` : 'live.html';
 
   const ro = MEET && READ_ONLY_STATUSES.includes(MEET.status);
   $('readOnlyBanner').style.display = ro ? '' : 'none';
@@ -492,12 +494,12 @@ async function saveChanges() {
 
   $('saveHeatBtn').disabled = true;
   const results = await Promise.all(changed.map(([lane, v]) =>
-    window.sb.from('heat_rows').update({
+    unchangedSince(window.sb.from('heat_rows').update({
       finish_time_ms: (v.status === 'OK' || v.status === 'DQ') ? parseTime(v.time) : null,
       status: v.status,
       dq_code: v.status === 'DQ' ? v.dq : null,
       updated_at: new Date().toISOString(),
-    }).eq('heat_row_id', lane.heatRowId).select('heat_row_id')
+    }).eq('heat_row_id', lane.heatRowId), lane).select('heat_row_id')
       .then(r => ({ lane, v, r }))));
 
   let saved = 0, blocked = 0, failed = 0;
@@ -513,8 +515,9 @@ async function saveChanges() {
   });
 
   renderAll();
+  if (saved) SwimGov.audit('RESULTS_SAVED', 'TOURNAMENT', MEET.tournament_id, `${MEET.title}: saved ${saved} lane${saved === 1 ? '' : 's'}`);
   if (failed || blocked) {
-    showToast(`Saved ${saved}. ${failed + blocked} lane${failed + blocked === 1 ? '' : 's'} not saved${blocked ? ' — your account isn\'t allowed to change these results' : ''}.`, 'warn');
+    showToast(`Saved ${saved}. ${failed + blocked} lane${failed + blocked === 1 ? '' : 's'} not saved${blocked ? ': another official changed them first, or your account isn\'t allowed. Press Reload to see the latest times' : ''}.`, 'warn');
     return false;
   }
   showToast(staleEvents.size
@@ -583,14 +586,14 @@ async function executePublish() {
     const rows = [...timed, ...untimed];
     const results = await Promise.all(rows.map(x => {
       const ms = parseTime(x.v.time);
-      return window.sb.from('heat_rows').update({
+      return unchangedSince(window.sb.from('heat_rows').update({
         finish_time_ms: (x.v.status === 'OK' || x.v.status === 'DQ') && ms !== undefined ? ms : null,
         status: x.v.status,
         dq_code: x.v.status === 'DQ' ? x.v.dq : null,
         official_rank: x.rank,
         points_awarded: x.points,
         updated_at: new Date().toISOString(),
-      }).eq('heat_row_id', x.lane.heatRowId).select('heat_row_id').then(r => ({ x, r }));
+      }).eq('heat_row_id', x.lane.heatRowId), x.lane).select('heat_row_id').then(r => ({ x, r }));
     }));
 
     let bad = 0;
@@ -605,8 +608,9 @@ async function executePublish() {
 
     closeModal('publishConfirmModal');
     renderAll();
-    if (bad) showToast(`${bad} of ${rows.length} swimmers couldn't be saved — your account may not be allowed to publish this meet.`, 'warn');
+    if (bad) showToast(`${bad} of ${rows.length} swimmers couldn't be saved: another official changed them first, or your account isn't allowed. Press Reload.`, 'warn');
     else {
+      SwimGov.audit('RESULTS_PUBLISHED', 'TOURNAMENT', MEET.tournament_id, `${MEET.title}: published ${eventTitle(ev)} (${rows.length} swimmers)`);
       showToast(`Published: ${eventTitle(ev)}`, 'success');
       $('resultSheetCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -634,6 +638,15 @@ function renderLeaderboard() {
     ? rows.map(([name, p], i) => `<tr><td><strong>${i + 1}</strong></td><td>${escHtml(name)}</td><td>${p.gold}</td><td>${p.silver}</td><td>${p.bronze}</td><td><strong>${p.total}</strong></td></tr>`).join('')
     : '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--ac-muted);">No results published yet.</td></tr>';
   openModal('leaderboardModal');
+}
+
+// ─── Safe saving ──────────────────────────────────────────────
+// Only update a lane if it still holds what this page last loaded or saved,
+// so two officials can't silently overwrite each other's times.
+function unchangedSince(query, lane) {
+  const s = lane.saved || {};
+  query = s.time == null ? query.is('finish_time_ms', null) : query.eq('finish_time_ms', s.time);
+  return query.eq('status', s.status || 'OK');
 }
 
 // ─── Upload: result-sheet CSV from Race control ───────────────
@@ -665,32 +678,65 @@ function setUploadMsg(cls, html) {
   box.innerHTML = html;
 }
 
-function handleFileUpload(file) {
+// Reads .xlsx / .xls; loaded only when someone uploads an Excel file
+const SHEETJS = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+function loadSheetJs() {
+  if (window.XLSX) return Promise.resolve();
+  return new Promise((ok, fail) => {
+    const s = document.createElement('script');
+    s.src = SHEETJS; s.onload = ok; s.onerror = () => fail(new Error('Could not load the Excel reader. Check your internet connection.'));
+    document.head.appendChild(s);
+  });
+}
+
+async function handleFileUpload(file) {
   if (!file) return;
   if (isReadOnly()) { setUploadMsg('bad', 'This meet is read-only.'); return; }
   if (!EVENTS.length) { setUploadMsg('bad', 'This meet has no heats to load times into.'); return; }
-  if (!/\.csv$/i.test(file.name)) {
-    setUploadMsg('bad', `<i class="fas fa-circle-xmark"></i> ${escHtml(file.name)} isn't a CSV. In Excel use <em>File → Save As → CSV</em>, then upload that.`);
-    return;
-  }
   $('dropZoneText').textContent = file.name;
-  const reader = new FileReader();
-  reader.onload = () => importCsv(reader.result, file.name);
-  reader.onerror = () => setUploadMsg('bad', 'Could not read the file.');
-  reader.readAsText(file);
+  try {
+    if (/\.csv$/i.test(file.name)) {
+      importRows([{ name: '', rows: parseCsv(await file.text()) }], file.name);
+    } else if (/\.xlsx?$/i.test(file.name)) {
+      // Timing systems often put each session or pool on its own tab: read them all
+      await loadSheetJs();
+      const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+      importRows(wb.SheetNames.map(name => ({
+        name, rows: XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: false, defval: '' })
+          .map(r => r.map(c => String(c ?? ''))).filter(r => r.some(c => c.trim())),
+      })), file.name);
+    } else {
+      setUploadMsg('bad', `<i class="fas fa-circle-xmark"></i> ${escHtml(file.name)} isn't an Excel or CSV file.`);
+    }
+  } catch (e) {
+    setUploadMsg('bad', `Could not read ${escHtml(file.name)}: ${escHtml(e.message)}`);
+  }
 }
 
-function importCsv(text, fileName) {
-  const rows = parseCsv(text);
-  if (rows.length < 2) { setUploadMsg('bad', 'The file is empty.'); return; }
-  const head = rows[0].map(h => h.trim().toLowerCase());
-  const col = (...names) => head.findIndex(h => names.some(n => h.startsWith(n)));
-  const c = { pool: col('pool'), ev: col('event no', 'event_no', 'event #'), heat: col('heat'), lane: col('lane'),
-              time: col('finish'), status: col('status'), dq: col('dq') };
-  if (c.ev < 0 || c.heat < 0 || c.lane < 0 || c.time < 0) {
-    setUploadMsg('bad', 'Columns not recognised. Use the result sheet downloaded from Race control — it needs <em>Event no</em>, <em>Heat</em>, <em>Lane</em> and <em>Finish time</em> columns.');
-    return;
-  }
+// Column finder: exact names first (so "Pool_ID" never wins over "Pool_Name"), then prefixes
+function findCols(header) {
+  const head = header.map(h => String(h).trim().toLowerCase().replace(/[\s_#.]+/g, ' ').trim());
+  const col = (exact, prefixes = []) => {
+    let i = head.findIndex(h => exact.includes(h));
+    if (i < 0) i = head.findIndex(h => prefixes.some(p => h.startsWith(p)));
+    return i;
+  };
+  return {
+    pool:   col(['pool name', 'pool label', 'pool']),
+    ev:     col(['event no', 'event number', 'event', 'evt', 'event num'], ['event no']),
+    heat:   col(['heat no', 'heat', 'heat number'], ['heat']),
+    lane:   col(['lane no', 'lane', 'lane number'], ['lane']),
+    time:   col(['finish time', 'finish', 'time', 'final time', 'result', 'result time', 'time ms', 'finish ms', 'finish time ms'], ['finish']),
+    status: col(['status', 'result status'], ['status']),
+    dq:     col(['dq code', 'dq', 'dq reason'], ['dq']),
+  };
+}
+// A time column named in milliseconds ("Time_ms", "Finish ms") holds whole numbers like 31420
+const isMsColumn = (header, i) => i >= 0 && /(^|[\s_])ms$|millisec/i.test(String(header[i]).trim());
+
+function importRows(sheets, fileName) {
+  sheets = sheets.filter(s => s.rows.length >= 2);
+  if (!sheets.length) { setUploadMsg('bad', 'The file is empty.'); return; }
 
   // Rows match on pool + event + heat + lane; files without a Pool column match on event + heat + lane
   const index = new Map();
@@ -700,27 +746,39 @@ function importCsv(text, fileName) {
     index.set(`*|${ev.num}|${h.heatNo}|${l.lane}`, l);
   })));
 
-  let loaded = 0, unchanged = 0;
+  let loaded = 0, unchanged = 0, used = 0;
   const skipped = [], bad = [];
+  sheets.forEach(({ name: tab, rows }) => {
+  const c = findCols(rows[0]);
+  if (c.ev < 0 || c.heat < 0 || c.lane < 0 || c.time < 0) {
+    if (sheets.length === 1) skipped.push('Columns not recognised: the file needs Event no, Heat, Lane and Finish time (or Time) columns.');
+    else skipped.push(`Tab "${tab}" skipped: no Event no / Heat / Lane / Time columns`);
+    return;
+  }
+  used++;
   rows.slice(1).forEach((r, i) => {
-    const line = i + 2;
+    const line = `${tab ? `${tab} row` : 'Row'} ${i + 2}`;
     const get = k => c[k] >= 0 ? String(r[c[k]] ?? '').trim() : '';
     const key = c.pool >= 0 && get('pool')
       ? `${get('pool')}|${Number(get('ev'))}|${Number(get('heat'))}|${Number(get('lane'))}`.toLowerCase()
       : `*|${Number(get('ev'))}|${Number(get('heat'))}|${Number(get('lane'))}`;
     const lane = index.get(key);
-    if (!lane) { skipped.push(`Row ${line}: no swimmer in event ${get('ev')} heat ${get('heat')} lane ${get('lane')}`); return; }
+    if (!lane) { skipped.push(`${line}: no swimmer in event ${get('ev')} heat ${get('heat')} lane ${get('lane')}`); return; }
 
     const status = (get('status').toUpperCase().match(/^(OK|DNS|DNF|DQ)/) || ['OK'])[0];
-    const time = get('time');
+    let time = get('time');
+    // Touch-pad files give milliseconds: 31425 → 00:31.42 (thousandths cut off, as in swimming)
+    if (isMsColumn(rows[0], c.time) && /^\d+$/.test(time)) time = fmtTime(Math.floor(Number(time) / 10) * 10);
     const dq = status === 'DQ' ? (get('dq').toUpperCase().match(/^[A-Z]{2}/) || [''])[0] : '';
     if (!time && status === 'OK') { unchanged++; return; }                 // not swum yet
-    if (time && parseTime(time) === undefined) { bad.push(`Row ${line} (${lane.name}): "${time}" isn't a time`); return; }
-    if (dq && !DQ_CODES[dq]) { bad.push(`Row ${line} (${lane.name}): unknown DQ code "${dq}"`); return; }
+    if (time && parseTime(time) === undefined) { bad.push(`${line} (${lane.name}): "${time}" isn't a time`); return; }
+    if (dq && !DQ_CODES[dq]) { bad.push(`${line} (${lane.name}): unknown DQ code "${dq}"`); return; }
 
     setEdit(lane, { time: (status === 'DNS' || status === 'DNF') ? '' : fmtTime(parseTime(time)) || '', status, dq });
     if (edits.has(lane.heatRowId)) loaded++; else unchanged++;
   });
+  });
+  if (!used) { setUploadMsg('bad', 'Columns not recognised. The file needs <em>Event no</em>, <em>Heat</em>, <em>Lane</em> and <em>Finish time</em> (or <em>Time</em>) columns.'); return; }
 
   renderAll();
   const issues = [...bad, ...skipped];
@@ -799,6 +857,10 @@ document.addEventListener('DOMContentLoaded', () => {
     $('modeSeg').querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
     $('uploadBlock').style.display = state.mode === 'upload' ? '' : 'none';
   });
+  // ?import=1 (from Heat generation's "Import timing results") opens straight on the importer
+  if (new URLSearchParams(location.search).get('import') === '1') {
+    $('modeSeg').querySelector('[data-mode="upload"]').click();
+  }
 
   // Event / heat
   $('eventSelector').addEventListener('change', e => goToEvent(Number(e.target.value)));

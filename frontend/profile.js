@@ -92,6 +92,7 @@ async function loadAccount() {
         PROFILE.parentPhone = sw.parent_phone || PROFILE.parentPhone;
         PROFILE.parentEmail = sw.parent_email || PROFILE.parentEmail;
         PROFILE.status      = sw.status || 'PENDING_VERIFICATION';
+        PROFILE.rejectionNotes = sw.rejection_notes || '';
       }
     } catch (_) { /* table may be empty for a new user — fine */ }
   }
@@ -121,7 +122,8 @@ function renderHeader() {
       vEl.innerHTML = '<i class="fas fa-check-circle"></i> Verified';
     } else if (st === 'REJECTED') {
       vEl.className = 'pf-verified rejected';
-      vEl.title = 'Verification Declined by Admin';
+      // Hovering the pill shows the reason the admin gave
+      vEl.title = PROFILE.rejectionNotes ? `Declined: ${PROFILE.rejectionNotes}` : 'Verification Declined by Admin';
       vEl.style.cssText = 'background:#fde8e8;color:var(--danger);border:1px solid #fca5a5;';
       vEl.innerHTML = '<i class="fas fa-times-circle"></i> Verification Declined';
     } else {

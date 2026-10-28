@@ -60,7 +60,8 @@ async function loadPipeline() {
     window.sb.from('organizer_directory').select('owner_id'),
   ]);
   const organizerIds = new Set((orgs || []).map(o => o.owner_id));
-  const data = (all || []).filter(t => !organizerIds.has(t.created_by));
+  const mine = window.SwimGov ? await window.SwimGov.assignedMeetIds() : null;   // null = no limit
+  const data = (all || []).filter(t => mine ? mine.has(t.tournament_id) : !organizerIds.has(t.created_by));
 
   if (error) {
     console.error('[SwimFest] pipeline:', error.message);
@@ -319,7 +320,14 @@ function docLink(url) {
     : `<span style="font-size:0.75rem;color:var(--ac-muted);">No document</span>`;
 }
 
+// Role matrix: only a super admin approves or rejects. An Admin (event_manager)
+// submits to the queue and sees what is waiting, without the buttons.
+const canDecide = () => ((window.SwimAuth && window.SwimAuth.getSession()) || {}).role === 'super_admin';
+
 function actionCell(prefix, id, approveFn, rejectFn, name, approveLabel = 'Approve') {
+  if (!canDecide()) {
+    return `<td id="${prefix}-act-${id}"><span class="sa-action-done" style="color:var(--ac-muted);"><i class="fas fa-hourglass-half"></i> Waiting for super admin</span></td>`;
+  }
   return `<td id="${prefix}-act-${id}">
     <button class="sa-btn-approve" onclick="${approveFn}('${id}', '${escHtml(name)}')"><i class="fas fa-check"></i> ${approveLabel}</button>
     <button class="sa-btn-reject" onclick="${rejectFn}('${id}', '${escHtml(name)}')"><i class="fas fa-times"></i> Reject</button>
@@ -441,9 +449,8 @@ function renderEvents(q = '') {
 }
 
 function checkAdminAuth() {
-  const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
-  if (!session || (session.role !== 'super_admin' && session.role !== 'event_manager')) {
-    showToast('Admin authorization required to perform verifications.', 'warn');
+  if (!canDecide()) {
+    showToast('Only a super admin can approve or reject. This is waiting in their queue.', 'warn');
     return false;
   }
   return true;
@@ -464,8 +471,17 @@ const QUEUES = {
 async function decide(kind, approve, id, name) {
   if (!checkAdminAuth()) return;
   const q = QUEUES[kind];
-  const { error } = await window.sb.from(q.table)
-    .update({ status: approve ? q.approved : q.rejected }).eq(q.idCol, id);
+  // Rejecting needs a reason: it's shown to whoever submitted it
+  let reason = null;
+  if (!approve) {
+    reason = await SwimReason.ask({
+      title: kind === 'event' ? 'Send this meet back' : `Reject this ${q.label.toLowerCase()}`,
+      subject: name, action: kind === 'event' ? 'Send back' : 'Reject',
+    });
+    if (!reason) return;
+  }
+  const { error } = await SwimReason.update(q.table, q.idCol, id,
+    { status: approve ? q.approved : q.rejected, rejection_notes: reason });
   if (error) {
     showToast(`Failed to ${approve ? 'approve' : 'reject'} ${q.label.toLowerCase()}: ${error.message}`, 'warn');
     return;
@@ -473,7 +489,8 @@ async function decide(kind, approve, id, name) {
   const action = kind === 'event'
     ? (approve ? 'EVENT_APPROVED' : 'EVENT_REJECTED')
     : `${q.entity}_${approve ? 'VERIFIED' : 'REJECTED'}`;
-  await writeAudit(action, q.entity, id, `${approve ? 'Approved' : 'Rejected'} ${q.label.toLowerCase()}: ${name}`);
+  await writeAudit(action, q.entity, id, `${approve ? 'Approved' : 'Rejected'} ${q.label.toLowerCase()}: ${name}${reason ? `
+Reason: ${reason}` : ''}`);
   const cell = $(`${q.prefix}-act-${id}`);
   const doneLabel = approve ? (kind === 'event' ? 'Published' : 'Approved') : 'Rejected';
   if (cell) cell.innerHTML = approve
@@ -739,6 +756,9 @@ function renderSidebarUser() {
     $('acBackToSa').hidden = false;
   }
   $('acUserInitials').textContent = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'AD';
+  if (session.role === 'event_manager') {
+    $('approvalsSub').textContent = 'What is waiting for the super admin. You can add academies and coaches; the super admin approves them.';
+  }
 }
 
 // ── Toast styles ──────────────────────────────────────────────

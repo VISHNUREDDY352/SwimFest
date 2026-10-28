@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="console.css?v=4">
+    <link rel="stylesheet" href="console.css?v=6">
     <style>
         /* ── Create a meet: page-specific pieces on top of console.css ── */
         .oc-wrap { max-width:72rem; margin:0 auto; display:flex; flex-direction:column; gap:1.25rem; }
@@ -49,6 +49,13 @@
         .oc-seg { display:inline-flex; gap:0.25rem; padding:0.25rem; background:var(--ac-line-soft); border-radius:0.625rem; flex-wrap:wrap; align-self:flex-start; }
         .oc-seg button { border:0; background:transparent; padding:0.45rem 0.875rem; border-radius:0.45rem; font:inherit; font-weight:600; font-size:0.84rem; color:var(--ac-muted); cursor:pointer; }
         .oc-seg button.on { background:#fff; color:var(--ac-ink); box-shadow:0 1px 2px rgba(15,23,42,0.1); }
+        .oc-multi { display:inline-flex; gap:0.375rem; flex-wrap:wrap; align-self:flex-start; }
+        .oc-multi button { white-space:nowrap; display:inline-flex; align-items:center; gap:0.45rem; border:1px solid #cbd5e1; background:#fff; padding:0.45rem 0.75rem; border-radius:0.5rem;
+            font:inherit; font-weight:600; font-size:0.84rem; color:var(--ac-muted); cursor:pointer; }
+        .oc-multi button.on { border-color:var(--ac-blue, #0077b6); color:var(--ac-ink); background:#eff6ff; }
+        .oc-multi button.on i { color:var(--ac-blue, #0077b6); }
+        .oc-multi.bad button { border-color:#dc2626; }
+        .oc-label-note { font-weight:400; color:var(--ac-muted); text-transform:none; letter-spacing:0; font-size:0.78rem; margin-left:0.25rem; }
 
         .oc-matrix { width:100%; border-collapse:collapse; font-size:0.86rem; }
         .oc-matrix th { text-align:left; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--ac-muted); padding:0.5rem; border-bottom:1px solid var(--ac-line); }
@@ -198,7 +205,8 @@
                         <div class="ac-card-head"><div><h2 class="ac-card-title">Meet details</h2><p class="ac-card-sub">What swimmers and parents see on the meet page.</p></div></div>
                         <div class="oc-body">
                             <div class="oc-field"><label class="oc-label req" for="fTitle">Meet name</label><input class="oc-input" id="fTitle" maxlength="200" placeholder="e.g. Coimbatore District Swimming Championship 2026" aria-describedby="titleHint"><span class="oc-hint" id="titleHint" aria-live="polite"></span></div>
-                            <div class="oc-field"><label class="oc-label req" for="fHost">Host club</label><input class="oc-input" id="fHost" maxlength="200" placeholder="Club or organization hosting the meet"><span class="oc-hint" id="hostHint"></span></div>
+                            <div class="oc-field"><label class="oc-label req" for="fHost">Host club <span class="oc-label-note">the organization running the meet</span></label><input class="oc-input" id="fHost" maxlength="200" placeholder="Search registered clubs, or type a new one"><span class="oc-hint" id="hostHint"></span></div>
+                            <div class="oc-field"><label class="oc-label req" for="fVenue">Venue <span class="oc-label-note">the pool where races happen</span></label><input class="oc-input" id="fVenue" maxlength="200" placeholder="Search known pools, or type a new one"><span class="oc-hint" id="venueHint"></span></div>
                             <div class="oc-row">
                                 <div class="oc-field"><label class="oc-label req" for="fCity">City</label><input class="oc-input" id="fCity" maxlength="100" placeholder="City"></div>
                                 <div class="oc-field"><label class="oc-label req" for="fState">State</label>
@@ -208,10 +216,12 @@
                                         <option>Gujarat</option><option>Delhi</option><option>West Bengal</option><option>Odisha</option>
                                     </select></div>
                             </div>
-                            <div class="oc-field"><label class="oc-label req" for="fVenue">Venue</label><input class="oc-input" id="fVenue" maxlength="200" placeholder="Pool or aquatic complex name"></div>
                             <div class="oc-row">
-                                <div class="oc-field"><span class="oc-label">Pool length</span>
-                                    <div class="oc-seg" data-seg="pool"><button type="button" class="on" data-v="50m">50 m (long course)</button><button type="button" data-v="25m">25 m (short course)</button></div></div>
+                                <div class="oc-field"><span class="oc-label req" id="poolLabel" title="Tick both if the venue has a 50 m and a 25 m pool">Pools</span>
+                                    <div class="oc-multi" id="fPools" role="group" aria-labelledby="poolLabel">
+                                        <button type="button" class="on" data-v="50m" aria-pressed="true"><i class="fas fa-square-check"></i> 50 m (long course)</button>
+                                        <button type="button" data-v="25m" aria-pressed="false"><i class="far fa-square"></i> 25 m (short course)</button>
+                                    </div></div>
                                 <div class="oc-field"><span class="oc-label">Lanes</span>
                                     <div class="oc-seg" data-seg="lanes"><button type="button" data-v="6">6</button><button type="button" class="on" data-v="8">8</button><button type="button" data-v="10">10</button></div></div>
                             </div>
@@ -304,6 +314,8 @@
     <script src="auth.js?v=14"></script>
     <script src="assistant.js?v=2"></script>
     <script src="consolenav.js?v=5"></script>
-    <script src="orgcreate.js?v=8"></script>
+    <script src="ocpickers.js?v=2"></script>
+    <script src="governance.js?v=1"></script>
+    <script src="orgcreate.js?v=11"></script>
 </body>
 </html>

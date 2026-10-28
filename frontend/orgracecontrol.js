@@ -86,6 +86,16 @@ async function selectMeet(id) {
   pp.hidden = false;
   updateClosureButton();
 
+  // The buttons that were "coming soon" now open the real tools for this meet
+  const t = encodeURIComponent(id);
+  $('rcBulkLink').href = `playerlist.html?t=${t}&bulk=1`;
+  // Role matrix: organizers view and export the player list; the meet's Admin changes it
+  const organizer = ((window.SwimAuth && window.SwimAuth.getSession()) || {}).role === 'organizer';
+  $('rcBulkLink').hidden = organizer;
+  $('rcImportLink').href = `results.html?t=${t}&import=1`;
+  $('rcPublishLink').href = `results.html?t=${t}`;
+  $('rcLiveLink').href = `live.html?t=${t}`;
+
   $('rcLaneBody').innerHTML = '<tr><td colspan="7" class="ac-empty-cell">Loading heats…</td></tr>';
   await Promise.all([loadEntries(), loadHeats()]);
   renderMetrics();
@@ -249,7 +259,7 @@ const METHODS = {
   touchpad: {
     help: 'Electronic timing: export the lane assignments for your timing system, then import the result file it gives back.',
     download: 'Export heat sheet for timing system',
-    upload: 'Import touch-pad result file',
+    upload: 'Import touch-pad results (CTS file)',
   },
   manual: {
     help: 'Stopwatch timing: download a sheet with every heat and lane filled in, write the times on it, then import it.',

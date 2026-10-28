@@ -101,7 +101,9 @@
 .ac-seg { display:flex; gap:0.25rem; background:var(--ac-line-soft); padding:0.25rem; border-radius:0.625rem; flex-wrap:wrap; }
 .ac-seg button { height:2.125rem; padding:0 0.75rem; border:0; border-radius:0.5rem; font:inherit; font-size:0.8rem; font-weight:600;
     cursor:pointer; background:transparent; color:var(--ac-muted); }
-.ac-seg button.active { background:#fff; color:var(--ac-ink); box-shadow:0 1px 2px rgba(15,23,42,0.08); }
+/* High contrast so the chosen option is obvious even poolside in bright sun */
+.ac-seg button.active { background:#0f2942; color:#fff; font-weight:700; box-shadow:0 0 0 2px #22d3ee, 0 0 10px rgba(34,211,238,0.45); }
+.ac-seg button:not(.active):hover { color:var(--ac-ink); }
 
 /* Meet rows */
 .ac-meet { display:flex; flex-wrap:wrap; align-items:center; gap:1rem 1.5rem; padding:1.125rem 1.25rem; border-bottom:1px solid var(--ac-line-soft); }
@@ -223,3 +225,7 @@ html:has(#acTool:not([hidden])), html:has(#acTool:not([hidden])) body { height:1
   border:1px solid var(--ac-navy-line, #23324d); color:#e2e8f0; font-size:0.85rem; font-weight:600; text-decoration:none; }
 .ac-side-back:hover { background:rgba(255,255,255,0.06); color:#fff; }
 .ac-side-back[hidden] { display:none; }
+
+/* Why a submission was sent back, shown to the person who sent it */
+.ac-reason { margin-top:0.5rem; border-left:3px solid #dc2626; background:#fef2f2; color:#7f1d1d; border-radius:0 0.5rem 0.5rem 0;
+  padding:0.5rem 0.75rem; font-size:0.8rem; line-height:1.45; white-space:pre-line; }

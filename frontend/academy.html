@@ -54,6 +54,38 @@
         .dir-results-head { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:8px; }
         .dir-results-head h2 { margin:0; font-size:1.4rem; font-weight:700; }
         .dir-results-head p { margin:0; font-size:0.88rem; color:var(--dir-muted); }
+        .dir-tools { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+        .dir-select { height:36px; padding:0 10px; border:1px solid #cbd5e1; border-radius:10px; background:#fff; font:inherit; font-size:0.85rem; max-width:15rem; }
+        .dir-select[hidden], .dir-table-wrap[hidden] { display:none; }
+        .dir-view { display:inline-flex; background:#e2e8f0; border-radius:10px; padding:3px; gap:2px; }
+        .dir-view button { border:0; background:transparent; border-radius:8px; padding:6px 12px; font:inherit; font-size:0.82rem; font-weight:600; color:#475569; cursor:pointer; }
+        .dir-view button[aria-pressed="true"] { background:#0f2942; color:#fff; }
+        .dir-table-wrap { background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow-x:auto; }
+        .dir-table { width:100%; border-collapse:collapse; font-size:0.86rem; min-width:720px; }
+        .dir-table th { text-align:left; font-size:0.72rem; letter-spacing:0.04em; text-transform:uppercase; color:#64748b; background:#f8fafc; padding:0; white-space:nowrap; border-bottom:1px solid #e2e8f0; }
+        .dir-table th button { all:unset; display:flex; align-items:center; gap:6px; padding:10px 12px; cursor:pointer; width:100%; box-sizing:border-box; }
+        .dir-table th button:focus-visible { outline:2px solid #0077b6; outline-offset:-2px; }
+        .dir-table th .dir-sort { opacity:0.35; font-size:0.7rem; }
+        .dir-table th[aria-sort] .dir-sort { opacity:1; color:#0077b6; }
+        .dir-table td { padding:9px 12px; border-top:1px solid #f1f5f9; vertical-align:middle; }
+        .dir-table tbody tr:hover { background:#f8fafc; }
+        .dir-table .dir-strong { font-weight:700; color:#0f172a; }
+        .dir-table .dir-muted { color:#64748b; font-size:0.78rem; }
+        .dir-mini { display:inline-block; font-size:0.7rem; font-weight:700; border-radius:999px; padding:2px 8px; margin:1px 2px 1px 0; background:#f1f5f9; color:#334155; white-space:nowrap; }
+        .dir-mini.head { background:#0f2942; color:#fff; }
+        .dir-mini.body { background:#e0f2fe; color:#075985; }
+        .dir-link { border:0; background:none; color:#0077b6; font:inherit; font-weight:600; cursor:pointer; padding:0; }
+        /* Staff: a compact header instead of the big banner, and the list at full width */
+        body.dir-staff .dir-hero-inner { padding-block:20px 18px; gap:16px 32px; align-items:center; }
+        body.dir-staff #adTitle { font-size:1.5rem; }
+        body.dir-staff #adSub, body.dir-staff .dir-pool-art, body.dir-staff .dir-glance .dir-eyebrow { display:none; }
+        body.dir-staff .dir-glance { padding:12px; flex:1 1 520px; }
+        body.dir-staff .dir-glance dl { grid-template-columns:repeat(4, minmax(0, 1fr)); gap:8px; }
+        body.dir-staff .dir-glance dl > div { padding:8px 10px; }
+        body.dir-staff .dir-glance dd { font-size:1.4rem; }
+        body.dir-staff .dir-side { display:none; }
+        body.dir-staff .dir-main { grid-template-columns:minmax(0, 1fr) !important; display:block; }
+        .dir-glance a.dir-glance-link { color:inherit; text-decoration:underline; text-underline-offset:3px; }
         .dir-empty { background:#fff; border:1px dashed #b9cdd6; border-radius:16px; padding:40px; text-align:center; color:var(--dir-muted); display:flex; flex-direction:column; align-items:center; gap:12px; }
         .dir-empty[hidden] { display:none; }
 
@@ -192,7 +224,14 @@
             <section class="dir-results" aria-labelledby="resultLine">
                 <div class="dir-results-head">
                     <h2 class="dir-display" id="resultLine">Loading academies…</h2>
-                    <p>Sorted by name</p>
+                    <div class="dir-tools">
+                        <!-- Coaches and swimmers: narrow by academy as well as by name and city -->
+                        <select id="academyFilter" class="dir-select" aria-label="Filter by academy" hidden><option value="">All academies</option></select>
+                        <div class="dir-view" role="group" aria-label="Show as">
+                            <button type="button" data-view="cards" aria-pressed="true"><i class="fas fa-grip"></i> Cards</button>
+                            <button type="button" data-view="table" aria-pressed="false"><i class="fas fa-table-list"></i> Table</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="dir-empty" id="acdEmpty" hidden>
@@ -203,6 +242,8 @@
                 <div id="acdGrid" style="display:flex;flex-direction:column;gap:16px;"></div>
                 <div id="coachGrid" class="dir-people" hidden></div>
                 <div id="swimmerGrid" class="dir-people" hidden></div>
+                <!-- Table view: compact, sortable (default for staff) -->
+                <div id="dirTable" class="dir-table-wrap" hidden></div>
                 <div class="dir-private" id="swimmerPrivate" hidden>
                     <i class="fas fa-user-shield" aria-hidden="true"></i>
                     <div>
@@ -263,6 +304,6 @@
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
     <script src="assistant.js?v=2" data-mode="public"></script>
-    <script src="academy.js?v=7"></script>
+    <script src="academy.js?v=8"></script>
 </body>
 </html>

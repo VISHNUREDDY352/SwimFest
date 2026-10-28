@@ -263,7 +263,12 @@
             .sa-head-actions .sa-btn { flex:1; justify-content:center; }
             .sa-queue-table th, .sa-queue-table td { padding:0.625rem 0.75rem; }
         }
-        .sa-head-actions [hidden] { display: none !important; }
+        .sa-head-actions [hidden], .sa-metrics-grid[hidden] { display: none !important; }
+        .sa-meet-select { height:2.5rem; padding:0 0.75rem; border:1px solid #cbd5e1; border-radius:0.625rem; background:#fff;
+            font:inherit; font-size:0.85rem; color:#1e293b; max-width:12rem; }
+        /* Reason a meet was sent back: red-accented callout */
+        .sa-reason { border-left:3px solid #dc2626; background:#fef2f2; color:#7f1d1d; border-radius:0 0.5rem 0.5rem 0;
+            padding:0.5rem 0.75rem; font-size:0.8rem; line-height:1.45; white-space:pre-line; }
         .sa-tool { flex:1; display:flex; }
         /* With a tool open only the tool scrolls, so there is one scrollbar */
         html:has(#saTool:not([hidden])), html:has(#saTool:not([hidden])) body { height:100%; overflow:hidden; }
@@ -347,8 +352,9 @@
                 </div>
             </div>
 
-            <!-- KPI strip (values filled by loadMetrics in this order) -->
-            <div class="sa-metrics-grid">
+            <!-- KPI strip: operational numbers only (money lives on the Financials tab).
+                 Shown on the Approvals tab only (see switchTab) -->
+            <div class="sa-metrics-grid" id="saKpis">
                 <div class="sa-metric-card">
                     <span class="sa-metric-icon"><i class="fas fa-trophy"></i></span>
                     <div><div class="sa-metric-label">Active meets</div><div class="sa-metric-value">—</div></div>
@@ -357,13 +363,13 @@
                     <span class="sa-metric-icon"><i class="fas fa-users"></i></span>
                     <div><div class="sa-metric-label">Athletes</div><div class="sa-metric-value">—</div></div>
                 </div>
-                <div class="sa-metric-card orange">
-                    <span class="sa-metric-icon"><i class="fas fa-building"></i></span>
-                    <div><div class="sa-metric-label">Academies</div><div class="sa-metric-value">—</div></div>
+                <div class="sa-metric-card orange" title="Everything waiting for your decision: verifications, internal and third-party meets, and reopen requests">
+                    <span class="sa-metric-icon"><i class="fas fa-hourglass-half"></i></span>
+                    <div><div class="sa-metric-label">Pending reviews</div><div class="sa-metric-value" id="kpiPending">—</div></div>
                 </div>
-                <div class="sa-metric-card purple">
-                    <span class="sa-metric-icon"><i class="fas fa-indian-rupee-sign"></i></span>
-                    <div><div class="sa-metric-label">Entry fees paid</div><div class="sa-metric-value">—</div></div>
+                <div class="sa-metric-card purple" title="Average time from a submission arriving to an approve or reject decision, over the last 30 days">
+                    <span class="sa-metric-icon"><i class="fas fa-stopwatch"></i></span>
+                    <div><div class="sa-metric-label">Avg review time</div><div class="sa-metric-value" id="kpiTurnaround">—</div></div>
                 </div>
             </div>
 
@@ -381,7 +387,7 @@
                     <div class="sa-toolbar">
                         <div>
                             <div class="sa-toolbar-title" id="saQueueTitle">Swimmers, academies, coaches &amp; organizers</div>
-                            <div class="sa-toolbar-sub" id="saQueueSub">Submitted by swimmers, Admins and organizers</div>
+                            <div class="sa-toolbar-sub" id="saQueueSub">New sign-ups waiting to be verified. Approve once their details and documents check out.</div>
                         </div>
                         <label class="sa-search-wrap">
                             <i class="fas fa-search" aria-hidden="true"></i>
@@ -423,7 +429,7 @@
                     <div class="sa-qpanel" data-qpanel="sentback">
                         <div class="sa-table-wrap">
                             <table class="sa-queue-table">
-                                <thead><tr><th>Organizer / host</th><th>Tournament</th><th>Dates &amp; venue</th><th>Payment type</th><th>Actions</th></tr></thead>
+                                <thead><tr><th>Organizer / host</th><th>Tournament</th><th>Dates &amp; venue</th><th>Reason sent back</th><th>Actions</th></tr></thead>
                                 <tbody id="sentbackBody"></tbody>
                             </table>
                         </div>
@@ -446,13 +452,19 @@
                 <section class="sa-section" id="allMeetsSection">
                     <div class="sa-section-header">
                         <span class="sa-section-title"><i class="fas fa-trophy"></i> Meets &amp; tournaments</span>
-                        <span class="sa-badge green" id="allMeetsCountBadge">0 Meets</span>
+                        <span>
+                            <span class="sa-badge green" id="allMeetsCountBadge">0 Meets</span>
+                            <span class="sa-badge" id="allMeetsEntriesBadge" title="Race entries across every meet (one per swimmer per race)">— race entries</span>
+                        </span>
                     </div>
                     <div class="sa-meets-toolbar">
                         <label class="sa-search-wrap">
                             <i class="fas fa-search" aria-hidden="true"></i>
                             <input type="search" id="allMeetsSearch" placeholder="Search by title, host, city, venue…" aria-label="Search meets" oninput="handleMeetsSearch(this.value)">
                         </label>
+                        <!-- State first, then only the cities in that state -->
+                        <select class="sa-meet-select" id="allMeetsState" aria-label="Filter by state"><option value="">All states</option></select>
+                        <select class="sa-meet-select" id="allMeetsCity" aria-label="Filter by city"><option value="">All cities</option></select>
                         <div class="sa-status-filters" id="meetsStatusFilters">
                             <button class="sa-filter-btn active" onclick="filterMeetsByStatus('ALL', this)">All</button>
                             <button class="sa-filter-btn" onclick="filterMeetsByStatus('PUBLISHED', this)">Published</button>
@@ -579,6 +591,8 @@
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
     <script src="assistant.js?v=2"></script>
-    <script src="superadmin.js?v=15"></script>
+    <script src="reason.js?v=1"></script>
+    <script src="governance.js?v=1"></script>
+    <script src="superadmin.js?v=21"></script>
 </body>
 </html>
