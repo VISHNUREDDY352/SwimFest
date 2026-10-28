@@ -14,8 +14,8 @@ Live repo: https://github.com/VISHNUREDDY352/SwimFest
 |------|-----------------|----------------------|
 | **Swimmer / Parent** | Public signup | Homepage (`index.html`) |
 | **Organizer** | Public signup (or a swimmer can also become one with the same email) | `orgdashboard.html` |
-| **Event Manager (EM)** | Provisioned by staff (`seed_staff.sql`) | `emdashboard.html` |
-| **Super Admin** | Provisioned by staff / promoted via SQL | `superadmin.html` |
+| **Admin** (`event_manager`) | Sign up, then the Owner sets the role in the **Team** tab | `admin.html` |
+| **Super Admin** (Owner or Co-Super Admin) | Sign up, then the Owner sets the role in the **Team** tab | `superadmin.html` |
 
 - **Login is a single form** — no role picker. You're routed automatically by your
   account's role (read from the `profiles` table).
@@ -77,10 +77,8 @@ Organizer reopen: request on a completed meet → super admin approves → back 
 ## Setup (Supabase)
 
 1. Create a Supabase project. Put its URL + anon key in `supabase.js`.
-2. In the SQL Editor, run these files **in order** (see `db/SETUP_ALL.sql`):
-   `schema` → `seed` → `role_policies` → `public_swimmers` → `public_leaderboard`
-   → `organizers` → `verification_docs` → `reopen_requests`
-   (optional: `seed_heats`, `seed_staff`)
+2. In the SQL Editor, run the files in `backend/db/` **in the order listed in
+   [`backend/db/README.md`](backend/db/README.md)**.
 3. **Auth → URL Configuration**: set Site URL + Redirect URLs to your deployed URL.
 4. **Auth → Providers**: turn OFF "Confirm email" for instant logins (or leave on).
 5. Promote your account to super admin if needed:
@@ -89,13 +87,9 @@ Organizer reopen: request on a completed meet → super admin approves → back 
    where id = (select id from auth.users where email = 'you@email.com');
    ```
 
-### Built-in staff credentials (after running `seed_staff.sql`)
-- Event Manager: `thangavishnuvardhanreddy@gmail.com` / `vishnu@123`
-- Super Admin: `superadmin@swimfest.in` / `SwimFest@2026`
-
-If the direct SQL insert into `auth.users` errors (version-dependent), create the
-user via **Authentication → Users → Add user** (Auto Confirm) and then run the
-role-update statement above.
+### Staff accounts
+Staff sign up like anyone else; the Owner then gives them a role in the
+super admin page's **Team** tab. Never write passwords in this repository.
 
 ---
 
