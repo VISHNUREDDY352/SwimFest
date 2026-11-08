@@ -16,7 +16,7 @@
   const LIVE = ['LOCKED', 'CLOSURE_REQUESTED'];
   const R = window.SwimResults;
   const $ = id => document.getElementById(id);
-  const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const esc = SF.esc;
   const ordinal = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
   const fmtDate = d => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
   const DQ = { FS: 'False start', IT: 'Illegal turn', IS: 'Illegal stroke', IK: 'Illegal kick', OT: 'One-hand touch', LV: 'Lane violation', ET: 'Early take-off' };

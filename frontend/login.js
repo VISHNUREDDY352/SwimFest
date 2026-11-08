@@ -469,16 +469,7 @@ function checkExistingSession() {
 }
 
 // ── Toast ─────────────────────────────────────────────────────
-function showToast(msg, type = 'info') {
-  const e = document.querySelector('.login-toast'); if (e) e.remove();
-  const t = document.createElement('div');
-  t.className = `login-toast login-toast-${type}`;
-  const icon = type==='success'?'check-circle':type==='warn'?'exclamation-triangle':'info-circle';
-  t.innerHTML = `<i class="fas fa-${icon}"></i> ${msg}`;
-  document.body.appendChild(t);
-  setTimeout(()=>t.classList.add('show'),10);
-  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400);},3000);
-}
+function showToast(msg, type = 'info') { SF.toast(msg, type); }
 window.showToast = showToast;
 
 (function(){

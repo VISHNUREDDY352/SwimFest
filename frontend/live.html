@@ -39,12 +39,12 @@
         .lv-lane { display:grid; grid-template-columns:3.25rem 1fr auto; align-items:center; gap:0.75rem; padding:0.7rem 1rem; border-top:1px solid #f1f5f9; }
         .lv-lane:first-child { border-top:0; }
         .lv-lane-no { width:2.5rem; height:2.5rem; border-radius:0.6rem; background:var(--lv-ground); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.05rem; color:var(--lv-navy); }
-        .lv-lane.is-empty { color:#94a3b8; }
+        .lv-lane.is-empty { color:var(--sf-muted); }
         .lv-lane.is-empty .lv-lane-no { background:#f8fafc; color:#cbd5e1; }
         .lv-name { font-weight:700; }
         .lv-acad { font-size:0.8rem; color:var(--lv-muted); }
         .lv-time { font-variant-numeric:tabular-nums; font-weight:800; font-size:1.05rem; text-align:right; white-space:nowrap; }
-        .lv-time.is-wait { color:#94a3b8; font-weight:600; font-size:0.85rem; }
+        .lv-time.is-wait { color:var(--sf-muted); font-weight:600; font-size:0.85rem; }
         .lv-time.is-new { color:#15803d; }
         .lv-time .lv-place { display:block; font-size:0.72rem; color:var(--lv-muted); font-weight:600; }
         .lv-flag { font-size:0.75rem; font-weight:700; border-radius:999px; padding:2px 8px; background:#fee2e2; color:#991b1b; }
@@ -92,9 +92,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
-    <script src="assistant.js?v=2" data-mode="public"></script>
+    <script src="assistant.js?v=3" data-mode="public"></script>
     <script src="meetstate.js?v=1"></script>
-    <script src="eventresults.js?v=2"></script>
-    <script src="live.js?v=3"></script>
+    <script src="eventresults.js?v=3"></script>
+    <script src="live.js?v=4"></script>
 </body>
 </html>

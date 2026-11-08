@@ -10,22 +10,7 @@ const $ = id => document.getElementById(id);
 
 const escHtml = SF.esc;
 
-function showToast(msg, type = 'info') {
-  const existing = document.querySelector('.admin-toast');
-  if (existing) existing.remove();
-
-  const toast = document.createElement('div');
-  toast.className = `admin-toast admin-toast-${type}`;
-  const icon = type === 'success' ? 'check-circle' : type === 'warn' ? 'exclamation-triangle' : 'info-circle';
-  toast.innerHTML = `<i class="fas fa-${icon}"></i> ${escHtml(msg)}`;
-  document.body.appendChild(toast);
-
-  setTimeout(() => toast.classList.add('show'), 10);
-  setTimeout(() => {
-    toast.classList.remove('show');
-    setTimeout(() => toast.remove(), 400);
-  }, 3500);
-}
+function showToast(msg, type = 'info') { SF.toast(msg, type); }
 window.showToast = showToast;
 
 function emptyRow(cols, msg) {
@@ -774,23 +759,6 @@ function renderSidebarUser() {
   }
 }
 
-// ── Toast styles ──────────────────────────────────────────────
-(function() {
-  const s = document.createElement('style');
-  s.textContent = `
-    .admin-toast{position:fixed;bottom:28px;right:28px;z-index:99999;
-      padding:12px 20px;background:var(--dark);color:var(--white);
-      border-radius:var(--radius-sm);font-size:0.85rem;font-weight:500;
-      display:flex;align-items:center;gap:10px;
-      box-shadow:0 8px 24px rgba(0,0,0,0.25);
-      transform:translateY(20px);opacity:0;transition:all 0.3s ease;
-      max-width:420px;font-family:'Inter',sans-serif;}
-    .admin-toast.show{transform:translateY(0);opacity:1;}
-    .admin-toast i{color:var(--accent);}
-    .admin-toast.admin-toast-success i{color:var(--success);}
-    .admin-toast.admin-toast-warn i{color:var(--warning);}`;
-  document.head.appendChild(s);
-})();
 
 // ── Bootstrap ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {

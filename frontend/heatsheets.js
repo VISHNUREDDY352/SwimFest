@@ -6,8 +6,7 @@
 'use strict';
 
 const $ = id => document.getElementById(id);
-function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
+const esc = SF.esc;
 let TOURNAMENTS = [];
 let HEAT_DATA   = [];      // enriched heat rows (joined with event + swimmer info)
 let currentTournamentId = null;
@@ -41,7 +40,7 @@ async function loadTournaments() {
   // ?t=<id> or ?tournament=<title> picks the meet
   const params = new URLSearchParams(location.search);
   const byId = params.get('t') && TOURNAMENTS.find(t => t.tournament_id === params.get('t'));
-  const byTitle = params.get('tournament') && TOURNAMENTS.find(t => t.title === decodeURIComponent(params.get('tournament')));
+  const byTitle = params.get('tournament') && TOURNAMENTS.find(t => t.title === params.get('tournament'));
   if (byId || byTitle) sel.value = (byId || byTitle).tournament_id;
   currentTournamentId = sel.value || (TOURNAMENTS[0] && TOURNAMENTS[0].tournament_id);
   sel.addEventListener('change', () => { currentTournamentId = sel.value; loadHeats(); });
@@ -66,15 +65,14 @@ async function loadHeats() {
 
   if (!window.sb || !currentTournamentId) { renderEmpty(); return; }
 
-  const { data, error } = await window.sb
-    .from('heat_rows')
-    .select(`heat_row_id, pool_label, event_no, heat_number, lane_number, finish_time_ms, status, official_rank,
-             event_entries ( event_name, category, gender, seed_time_ms, swimmer_id )`)
-    .eq('tournament_id', currentTournamentId)
-    .order('event_no').order('heat_number').order('lane_number');
-  if (error) { console.error('[SwimFest] heat load:', error.message); renderEmpty(); return; }
-
-  HEAT_DATA = data || [];
+  try {
+    HEAT_DATA = await SF.db.fetchAll(() => window.sb
+      .from('heat_rows')
+      .select(`heat_row_id, pool_label, event_no, heat_number, lane_number, finish_time_ms, status, official_rank,
+               event_entries ( event_name, category, gender, seed_time_ms, swimmer_id, is_relay )`)
+      .eq('tournament_id', currentTournamentId)
+      .order('event_no').order('heat_number').order('lane_number').order('heat_row_id'));
+  } catch (e) { console.error('[SwimFest] heat load:', e.message); renderEmpty(); return; }
   if (!HEAT_DATA.length) { renderEmpty(); return; }
 
   // Names and academies come from the public directory (the swimmers table itself is private)
@@ -134,12 +132,22 @@ function render() {
   const evFilter  = $('hsEventFilter').value;
   const catFilter = $('hsCatFilter').value;
 
-  const rows = HEAT_DATA.filter(r => {
+  const q = SF.norm(($('hsSearch') || {}).value || '');
+  let rows = HEAT_DATA.filter(r => {
     const ee = r.event_entries || {};
     return (!evFilter || ee.event_name === evFilter) && (!catFilter || ee.category === catFilter);
   });
+  if (q) {
+    // Keep the whole heat of every match so the swimmer sees who they race against
+    const hit = new Set(rows.filter(r => SF.norm((PEOPLE[(r.event_entries || {}).swimmer_id] || {}).full_name).includes(q))
+      .map(r => `${r.pool_label}|${r.event_no}|${r.heat_number}`));
+    rows = rows.filter(r => hit.has(`${r.pool_label}|${r.event_no}|${r.heat_number}`));
+  }
+  // Each pool's own lane count (a 6-lane second pool shows 6 lanes, not the meet's 8)
+  const poolLanes = {};
+  HEAT_DATA.forEach(r => { poolLanes[r.pool_label || ''] = Math.max(poolLanes[r.pool_label || ''] || 0, r.lane_number || 0); });
 
-  $('hsCount').textContent = `${rows.length} lane entries`;
+  $('hsCount').textContent = q ? `${rows.length} lanes in heats with "${$('hsSearch').value.trim()}"` : `${rows.length} lane entries`;
 
   if (!rows.length) { $('hsContent').innerHTML = `<div class="hs-empty"><i class="fas fa-filter"></i><p>No heats match this filter.</p><p style="font-size:0.82rem;">Pick "All Events" or another age group.</p></div>`; return; }
 
@@ -157,12 +165,15 @@ function render() {
     const heatKeys = Object.keys(ev.heats).map(Number).sort((a,b)=>a-b);
     const totalHeats = heatKeys.length;
     const heatsHtml = heatKeys.map(hn => {
-      const byLane = Object.fromEntries(ev.heats[hn].map(l => [l.lane_number, l]));
+      // Relay team members share a lane: keep every member
+      const byLane = {};
+      ev.heats[hn].forEach(l => { (byLane[l.lane_number] = byLane[l.lane_number] || []).push(l); });
       const isFinal = hn === Math.max(...heatKeys);
       // Every lane of the pool, so real empty lanes show as empty
-      const laneCount = Math.max((currentMeet() || {}).lane_count || 8, ...ev.heats[hn].map(l => l.lane_number));
+      const laneCount = Math.max(poolLanes[ev.pool || ''] || (currentMeet() || {}).lane_count || 8, ...ev.heats[hn].map(l => l.lane_number));
       const laneRows = Array.from({ length: laneCount }, (_, k) => k + 1).map(n => {
-        const l = byLane[n];
+        const team = byLane[n];
+        const l = team && team[0];
         if (!l) return `<tr class="empty-lane"><td><span class="hs-lane">L-${n}</span></td><td colspan="4"><em>(Empty Lane)</em></td></tr>`;
         const ee = l.event_entries || {};
         const sw = PEOPLE[ee.swimmer_id] || {};
@@ -170,7 +181,9 @@ function render() {
         const isNT = seed === 'NT';
         return `<tr>
           <td><span class="hs-lane">L-${n}</span></td>
-          <td><strong>${esc(sw.full_name || 'Swimmer')}</strong></td>
+          <td>${team.length > 1
+            ? `<strong>${esc(sw.academy_name || 'Relay team')}</strong><div style="font-size:.8rem;color:var(--sf-muted)">${team.map(m => esc((PEOPLE[(m.event_entries || {}).swimmer_id] || {}).full_name || 'Swimmer')).join(', ')}</div>`
+            : `<strong${q && SF.norm(sw.full_name).includes(q) ? ' style="background:var(--sf-brand-soft)"' : ''}>${esc(sw.full_name || 'Swimmer')}</strong>`}</td>
           <td><span class="hs-cat-pill ${ee.gender==='Girl'?'girls':''}">${esc(ee.gender==='Girl'?'Girls':'Boys')} ${esc(ee.category)}</span></td>
           <td>${esc(sw.academy_name || 'Unattached')}</td>
           <td><span class="hs-seed ${isNT?'nt':''}">${esc(seed)}</span></td>
@@ -232,6 +245,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const mBtn = $('mobileMenuBtn'), mMenu = $('mobileMenu');
   if (mBtn && mMenu) mBtn.addEventListener('click', () => mMenu.classList.toggle('active'));
   $('hsDownloadBtn').addEventListener('click', downloadCSV);
+  $('hsSearch').addEventListener('input', SF.debounce(() => (HEAT_DATA.length ? render() : null), 200));
 
   await loadTournaments();
   await loadHeats();

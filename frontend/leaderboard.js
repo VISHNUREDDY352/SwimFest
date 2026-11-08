@@ -9,11 +9,7 @@
 (function () {
   const $ = (id) => document.getElementById(id);
 
-  function esc(s) {
-    return String(s || '')
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
+  const esc = SF.esc;
 
   async function load() {
     const wrap   = $('lbTableWrap');

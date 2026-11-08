@@ -47,7 +47,7 @@
             <div class="hs-hero-inner">
                 <div>
                     <p class="hs-eyebrow"><i class="fas fa-list-ol"></i> Schedule &amp; Heat Sheets</p>
-                    <h1 class="hs-title" id="hsTournamentTitle">Loading tournament…</h1>
+                    <h1 class="hs-title" id="hsTournamentTitle" data-help="heatsheets">Loading tournament…</h1>
                     <p class="hs-sub" id="hsTournamentMeta"></p>
                 </div>
                 <div class="hs-hero-actions">
@@ -60,9 +60,14 @@
         <div class="hs-container">
             <!-- Filters -->
             <div class="hs-filters">
-                <select id="hsTournamentFilter" class="hs-select"></select>
-                <select id="hsEventFilter" class="hs-select"><option value="">All Events</option></select>
-                <select id="hsCatFilter" class="hs-select"><option value="">All Categories</option></select>
+                <select id="hsTournamentFilter" class="hs-select" aria-label="Meet"></select>
+                <label class="sf-search" style="flex:1 1 220px">
+                    <i class="fas fa-search"></i>
+                    <span class="sr-only">Find a swimmer</span>
+                    <input type="search" id="hsSearch" class="sf-input" placeholder="Find a swimmer by name" autocomplete="off">
+                </label>
+                <select id="hsEventFilter" class="hs-select" aria-label="Event"><option value="">All Events</option></select>
+                <select id="hsCatFilter" class="hs-select" aria-label="Age group"><option value="">All Categories</option></select>
                 <div class="hs-count" id="hsCount"></div>
             </div>
 
@@ -76,7 +81,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
-    <script src="assistant.js?v=2" data-mode="public"></script>
-    <script src="heatsheets.js?v=3"></script>
+    <script src="assistant.js?v=3" data-mode="public"></script>
+    <script src="heatsheets.js?v=4"></script>
 </body>
 </html>

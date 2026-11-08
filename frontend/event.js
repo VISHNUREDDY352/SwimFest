@@ -55,8 +55,7 @@ document.addEventListener('keydown', (e) => {
   }
   function money(n) { return '₹' + Number(n || 0).toLocaleString('en-IN'); }
   function setText(id, txt) { const el = document.getElementById(id); if (el && txt) el.textContent = txt; }
-  function escHtml(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-
+  const escHtml = SF.esc;
   const STATUS_LABEL = {
     PUBLISHED: 'Entries Open', CLOSED: 'Closing Soon', LOCKED: 'Live Now',
     COMPLETED: 'Completed', PENDING_APPROVAL: 'Pending Approval', DRAFT: 'Draft',

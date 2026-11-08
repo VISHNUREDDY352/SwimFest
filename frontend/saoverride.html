@@ -179,7 +179,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
-    <script src="assistant.js?v=2"></script>
+    <script src="assistant.js?v=3"></script>
     <script>
     'use strict';
 
@@ -294,12 +294,12 @@
 
     // "Entry fee: ₹500 → ₹600; Relay fee: …" → one line per change, new value in bold
     function changeHtml(text) {
-        if (!text) return '<span style="color:#94a3b8;">—</span>';
+        if (!text) return '<span style="color:var(--sf-muted);">—</span>';
         return text.split('; ').map(part => {
             const [from, to] = part.split(' → ');
             return to === undefined
                 ? `<div>${escHtml(part)}</div>`
-                : `<div>${escHtml(from)} <span aria-label="changed to" style="color:#94a3b8;">→</span> <b>${escHtml(to)}</b></div>`;
+                : `<div>${escHtml(from)} <span aria-label="changed to" style="color:var(--sf-muted);">→</span> <b>${escHtml(to)}</b></div>`;
         }).join('');
     }
 
@@ -366,9 +366,9 @@
             return `<tr>
                 <td style="white-space:nowrap;">${escHtml(new Date(r.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</td>
                 <td><span class="ov-tag ${cls}">${escHtml(label)}</span></td>
-                <td>${meet ? escHtml(meet.title) : '<span style="color:#94a3b8;">—</span>'}</td>
+                <td>${meet ? escHtml(meet.title) : '<span style="color:var(--sf-muted);">—</span>'}</td>
                 <td style="min-width:12rem;">${changeHtml(splitNotes(r).change)}</td>
-                <td style="max-width:18rem;">${escHtml(splitNotes(r).reason) || '<span style="color:#94a3b8;">—</span>'}</td>
+                <td style="max-width:18rem;">${escHtml(splitNotes(r).reason) || '<span style="color:var(--sf-muted);">—</span>'}</td>
                 <td>${escHtml(names[r.admin_id] || (r.admin_id ? 'Unknown user' : '—'))}</td>
             </tr>`;
         }).join('');

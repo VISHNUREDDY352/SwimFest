@@ -47,7 +47,7 @@
   try { history = JSON.parse(sessionStorage.getItem(STORE_KEY) || '[]'); } catch (_) { history = []; }
   let busy = false;
 
-  const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const esc = SF.esc;
 
   // Escaped text with this site's own links made clickable
   function linkify(escaped) {

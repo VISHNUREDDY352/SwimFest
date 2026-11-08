@@ -49,7 +49,7 @@
 
         .rc-lane { display:inline-flex; width:1.875rem; height:1.875rem; border-radius:0.5rem; background:#e0f2fe; color:var(--ac-blue-dark);
             font-weight:700; font-size:0.8rem; align-items:center; justify-content:center; }
-        .rc-empty-lane td { color:#94a3b8; font-style:italic; }
+        .rc-empty-lane td { color:var(--sf-muted); font-style:italic; }
         .rc-mono { font-variant-numeric:tabular-nums; }
         .rc-foot { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:0.75rem; padding:0.875rem 1.25rem;
             border-top:1px solid var(--ac-line); background:#f8fafc; }
@@ -155,9 +155,9 @@
                         </div>
                     </div>
                     <div class="rc-actions">
-                        <a href="playerlist.html" class="rc-action"><i class="fas fa-list-check"></i> Open player list <span class="rc-hint">Add, edit, remove entries</span></a>
+                        <a href="playerlist.html" class="rc-action" id="rcPlayerLink"><i class="fas fa-list-check"></i> Open player list <span class="rc-hint">Add, edit, remove entries</span></a>
                         <button type="button" class="rc-action" onclick="downloadEntries()"><i class="fas fa-download"></i> Download entries (CSV) <span class="rc-hint">All race entries</span></button>
-                        <a href="playerlist.html" class="rc-action" id="rcBulkLink"><i class="fas fa-file-arrow-up"></i> Upload walk-ins (Excel) <span class="rc-hint">Many swimmers in one go</span></a>
+                        <a href="playerlist.html" class="rc-action" id="rcBulkLink"><i class="fas fa-file-arrow-up"></i> Import walk-ins (spreadsheet) <span class="rc-hint">Many swimmers in one go</span></a>
                     </div>
                 </section>
 
@@ -247,8 +247,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
-    <script src="assistant.js?v=2"></script>
+    <script src="assistant.js?v=3"></script>
     <script src="consolenav.js?v=5"></script>
-    <script src="orgracecontrol.js?v=8"></script>
+    <script src="orgracecontrol.js?v=9"></script>
 </body>
 </html>

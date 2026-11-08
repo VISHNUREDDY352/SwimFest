@@ -31,11 +31,7 @@ window.getCoachesForAcademy = getCoachesForAcademy;
 // ─── DOM helpers ──────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
-function escHtml(str) {
-  return String(str)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+const escHtml = SF.esc;
 
 function initials(name) {
   const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
@@ -341,9 +337,9 @@ async function openSwimmerProfile(swimmerId) {
 
 // ─── Tabs ─────────────────────────────────────────────────────
 const TAB_COPY = {
-  academies: { title: 'Find a swim academy near you', sub: 'Every academy here has been checked by our team: real pool, real coaches, real contact details.', search: 'Academy, coach or area' },
-  coaches:   { title: 'Meet the coaches', sub: 'Verified coaches, their certificates and the academies they coach at.', search: 'Coach name, academy or certificate' },
-  swimmers:  { title: 'Swimmers', sub: 'Every registered swimmer, their academy and the races they have swum.', search: 'Swimmer name or academy' },
+  academies: { title: 'Find a swim academy near you', sub: 'Every academy here has been checked by our team: real pool, real coaches, real contact details.', search: 'Search academies by name (or area, coach)' },
+  coaches:   { title: 'Meet the coaches', sub: 'Verified coaches, their certificates and the academies they coach at.', search: 'Search coaches by name (or academy)' },
+  swimmers:  { title: 'Swimmers', sub: 'Every registered swimmer, their academy and the races they have swum.', search: 'Search swimmers by name (or academy)' },
 };
 
 function setTab(tab) {
@@ -373,6 +369,12 @@ function setTab(tab) {
 }
 
 // ─── Filter Logic ─────────────────────────────────────────────
+const TAB_SEARCH = {
+  academies: SF.Search.by(['academy_name'], ['city', 'address_line', ac => getCoachesForAcademy(ac.academy_id).map(c => c.full_name).join(' ')]),
+  coaches:   SF.Search.by(['full_name'], [c => (academyOf(c.academy_id) || {}).academy_name, c => c.certifications.join(' ')]),
+  swimmers:  SF.Search.by(['name'], ['academyName']),
+};
+
 function applyFilters() {
   const q = $('acdSearch').value.trim().toLowerCase();
   $('acdSearchClear').hidden = !q;
@@ -381,15 +383,11 @@ function applyFilters() {
 
   if (TAB === 'coaches') {
     // Coach name is the main search; academy and city narrow it down
-    const nameHit = c => q && c.full_name.toLowerCase().includes(q);
-    const list = COACHES.filter(c => {
+    const sorted = COACHES.slice().sort((a, b) => a.full_name.localeCompare(b.full_name));
+    const list = SF.Search.run(sorted, TAB_SEARCH.coaches, q).filter(c => {
       const ac = academyOf(c.academy_id);
-      const matchQ = !q || nameHit(c)
-        || (ac && ac.academy_name.toLowerCase().includes(q))
-        || c.certifications.some(t => t.toLowerCase().includes(q));
-      return matchQ && (!FILTER.city || (ac && ac.city === FILTER.city))
-        && (!FILTER.academy || c.academy_id === FILTER.academy);
-    }).sort((a, b) => (nameHit(b) - nameHit(a)) || a.full_name.localeCompare(b.full_name));
+      return (!FILTER.city || (ac && ac.city === FILTER.city)) && (!FILTER.academy || c.academy_id === FILTER.academy);
+    });
     $('coachGrid').innerHTML = '';
     if (VIEW === 'table') renderTable(list); else list.forEach(c => $('coachGrid').appendChild(coachCard(c)));
     $('resultLine').textContent = list.length === 1 ? '1 coach' : `${list.length} coaches`;
@@ -406,9 +404,8 @@ function applyFilters() {
       $('swimmerPrivate').hidden = false;
       return;
     }
-    const list = SWIMMERS.filter(sw => (!q || sw.name.toLowerCase().includes(q) || (sw.academyName || '').toLowerCase().includes(q))
-        && (!FILTER.academy || sw.academyId === FILTER.academy))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    const sorted = SWIMMERS.slice().sort((a, b) => a.name.localeCompare(b.name));
+    const list = SF.Search.run(sorted, TAB_SEARCH.swimmers, q).filter(sw => !FILTER.academy || sw.academyId === FILTER.academy);
     $('swimmerGrid').innerHTML = '';
     if (VIEW === 'table') renderTable(list); else list.forEach(sw => $('swimmerGrid').appendChild(swimmerCard(sw)));
     $('resultLine').textContent = list.length === 1 ? '1 swimmer' : `${list.length} swimmers`;
@@ -418,17 +415,8 @@ function applyFilters() {
   }
   $('acdEmptyText').textContent = 'No academy matches these filters. Try another city or pool length.';
 
-  const result = ACADEMIES.filter(ac => {
-    const coaches = getCoachesForAcademy(ac.academy_id);
-    const matchQ = !q
-      || ac.academy_name.toLowerCase().includes(q)
-      || ac.city.toLowerCase().includes(q)
-      || ac.address_line.toLowerCase().includes(q)
-      || coaches.some(c => c.full_name.toLowerCase().includes(q));
-    return matchQ
-      && (!FILTER.city || ac.city === FILTER.city)
-      && (!FILTER.pool || ac.pool_length === FILTER.pool);
-  });
+  const result = SF.Search.run(ACADEMIES, TAB_SEARCH.academies, q).filter(ac =>
+    (!FILTER.city || ac.city === FILTER.city) && (!FILTER.pool || ac.pool_length === FILTER.pool));
 
   document.querySelectorAll('#poolSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pool === FILTER.pool)));
   renderGrid(VIEW === 'table' ? [] : result);
@@ -742,7 +730,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (isStaffViewer()) document.body.classList.add('dir-staff');
   let saved = null;
   try { saved = localStorage.getItem('swimfest_dir_view'); } catch (_) {}
-  VIEW = saved || (isStaffViewer() ? 'table' : 'cards');
+  VIEW = saved || 'table';
   document.querySelectorAll('.dir-view [data-view]').forEach(b => {
     b.setAttribute('aria-pressed', String(b.dataset.view === VIEW));
     b.addEventListener('click', () => setView(b.dataset.view));

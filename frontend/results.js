@@ -817,34 +817,8 @@ function confirmDiscard() {
 }
 
 // ─── Toast ────────────────────────────────────────────────────
-function showToast(msg, type = 'info') {
-  const existing = document.querySelector('.admin-toast');
-  if (existing) existing.remove();
-  const toast = document.createElement('div');
-  toast.className = `admin-toast admin-toast-${type}`;
-  const icon = type === 'success' ? 'check-circle' : type === 'warn' ? 'exclamation-triangle' : 'info-circle';
-  toast.innerHTML = `<i class="fas fa-${icon}"></i> ${escHtml(msg)}`;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.classList.add('show'), 10);
-  setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 400); }, 4500);
-}
+function showToast(msg, type = 'info') { SF.toast(msg, type); }
 
-(function() {
-  const s = document.createElement('style');
-  s.textContent = `
-    .admin-toast { position:fixed; bottom:28px; right:28px; z-index:99999;
-      padding:12px 20px; background:#0f172a; color:#fff;
-      border-radius:10px; font-size:0.85rem; font-weight:500;
-      display:flex; align-items:center; gap:10px;
-      box-shadow:0 8px 24px rgba(0,0,0,0.25);
-      transform:translateY(20px); opacity:0; transition:all 0.3s ease;
-      max-width:440px; font-family:'Inter',sans-serif; }
-    .admin-toast.show { transform:translateY(0); opacity:1; }
-    .admin-toast i { color:#38bdf8; }
-    .admin-toast.admin-toast-success i { color:#4ade80; }
-    .admin-toast.admin-toast-warn    i { color:#fbbf24; }`;
-  document.head.appendChild(s);
-})();
 
 // ─── Bootstrap ────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {

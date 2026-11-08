@@ -279,7 +279,7 @@ i[class*="fa-"]:empty { font-style: normal; }
    ============================================================ */
 @media (max-width: 640px) {
   table { max-width: 100%; }
-  .ac-table-wrap, .sa-table-wrap, .table-wrap, .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .ac-table-wrap, .sa-table-wrap, .table-wrap, .table-responsive, .dir-table-wrap, .lb-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .ac-container, .sa-container { padding: 16px 12px 64px !important; }
   .ac-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   input, select, textarea { font-size: 16px; }   /* stops iOS zooming into fields */
@@ -289,5 +289,29 @@ i[class*="fa-"]:empty { font-style: normal; }
 /* Assistant button: icon only on phones so it doesn't cover tables */
 @media (max-width: 640px) {
   .sfa-fab { padding: 0 !important; width: 52px; height: 52px; justify-content: center; border-radius: 999px !important; right: 12px !important; bottom: 12px !important; }
-  .sfa-fab .sfa-fab-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .sfa-fab .sfa-fab-label { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 }
+
+/* ── Stacked tables on phones: first cell is the row's heading ── */
+@media (max-width: 640px) {
+  .sf-table.sf-stack td:first-child { display: block; text-align: left; font-size: 1rem; padding-top: 6px; }
+  .sf-table.sf-stack td:first-child::before { content: none; }
+  .sf-table.sf-stack td { padding: 2px 16px; font-size: .9rem; }
+  .sf-table.sf-stack tr { padding: 8px 0 10px; }
+}
+
+/* ── Public header on phones: logo, state, menu only (profile/login live in the menu) ── */
+@media (max-width: 640px) {
+  .navbar .nav-container { gap: 8px; padding-left: 12px; padding-right: 12px; min-width: 0; }
+  .navbar .logo { font-size: 1.15rem; white-space: nowrap; }
+  .navbar .state-selector { padding: 4px 8px; font-size: .78rem; max-width: 44vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .navbar .nav-container a.btn-profile, .navbar .nav-container a.btn-register-login { display: none !important; }
+  .navbar .mobile-menu-btn { margin-left: auto; min-width: var(--sf-tap); min-height: var(--sf-tap); }
+  .global-back-btn.in-header { flex: none; }
+}
+
+/* Scroll containers must hold their own screen-reader-only text, or it widens the page */
+.sf-table-wrap, .ac-table-wrap, .sa-table-wrap, .dir-table-wrap, .table-wrap, .table-responsive, .lb-table-wrap { position: relative; }
+
+/* Sidebar section labels: #64748b on navy was 3.5:1 — lighter for AA */
+.ac-side-label, .sa-side-label, .ac-side-mini { color: #a3b1c6 !important; }

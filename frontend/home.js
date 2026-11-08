@@ -10,8 +10,7 @@
   const POSTER_THEMES = ['upcoming-poster-1','upcoming-poster-2','past-poster-1','past-poster-2','past-poster-3'];
   const PAST_THEMES    = ['past-poster-1','past-poster-2','past-poster-3'];
 
-  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
+  const esc = SF.esc;
   function fmtDate(d) {
     if (!d) return '';
     const dt = new Date(d);

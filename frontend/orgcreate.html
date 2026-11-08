@@ -29,7 +29,7 @@
         .oc-step:hover { border-color:var(--ac-blue); }
         .oc-step.on { background:var(--ac-blue); border-color:var(--ac-blue); color:#fff; transform:scale(1.12); box-shadow:0 0 0 5px #e0f2fe; }
         .oc-step.done { background:#dcfce7; border-color:#15803d; color:#15803d; }
-        .oc-step-name { position:absolute; top:calc(100% + 0.45rem); left:50%; transform:translateX(-50%); white-space:nowrap; font-size:0.74rem; font-weight:600; color:#94a3b8; }
+        .oc-step-name { position:absolute; top:calc(100% + 0.45rem); left:50%; transform:translateX(-50%); white-space:nowrap; font-size:0.74rem; font-weight:600; color:var(--sf-muted); }
         .oc-step.on .oc-step-name { color:var(--ac-blue); }
         .oc-step.done .oc-step-name { color:#15803d; }
 
@@ -45,7 +45,7 @@
             font:inherit; font-size:0.9rem; color:var(--ac-ink); box-sizing:border-box; }
         .oc-input:focus { border-color:var(--ac-blue); outline:none; box-shadow:0 0 0 3px #e0f2fe; }
         .oc-input.bad { border-color:#f87171; background:#fef2f2; }
-        .oc-hint { font-size:0.74rem; color:#94a3b8; }
+        .oc-hint { font-size:0.74rem; color:var(--sf-muted); }
         .oc-hint.err { color:#b91c1c; font-weight:600; }
         .oc-seg { display:inline-flex; gap:0.25rem; padding:0.25rem; background:var(--ac-line-soft); border-radius:0.625rem; flex-wrap:wrap; align-self:flex-start; }
         .oc-seg button { border:0; background:transparent; padding:0.45rem 0.875rem; border-radius:0.45rem; font:inherit; font-weight:600; font-size:0.84rem; color:var(--ac-muted); cursor:pointer; }
@@ -61,7 +61,7 @@
         .oc-matrix { width:100%; border-collapse:collapse; font-size:0.86rem; }
         .oc-matrix th { text-align:left; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--ac-muted); padding:0.5rem; border-bottom:1px solid var(--ac-line); }
         .oc-matrix td { padding:0.45rem 0.5rem; border-bottom:1px solid var(--ac-line-soft); }
-        .oc-chip { min-width:4.25rem; height:2rem; border-radius:999px; border:1px solid var(--ac-line); background:#fff; font:inherit; font-size:0.78rem; font-weight:700; color:#94a3b8; cursor:pointer; }
+        .oc-chip { min-width:4.25rem; height:2rem; border-radius:999px; border:1px solid var(--ac-line); background:#fff; font:inherit; font-size:0.78rem; font-weight:700; color:var(--sf-muted); cursor:pointer; }
         .oc-chip.on { background:#e0f2fe; border-color:var(--ac-blue); color:var(--ac-blue-dark); }
         .oc-chip-na { color:#cbd5e1; font-size:0.78rem; }
         .oc-toggle { display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:0.875rem 1rem; border:1px solid var(--ac-line); border-radius:0.75rem; }
@@ -82,7 +82,7 @@
 
         .oc-opt { display:flex; gap:0.875rem; padding:1rem; border:1.5px solid var(--ac-line); border-radius:0.75rem; cursor:pointer; background:#fff; text-align:left; width:100%; font:inherit; color:var(--ac-ink); }
         .oc-opt.on { border-color:var(--ac-blue); background:#f0f9ff; }
-        .oc-opt .dot { width:1.1rem; height:1.1rem; border-radius:999px; border:2px solid #94a3b8; flex:none; margin-top:2px; box-sizing:border-box; }
+        .oc-opt .dot { width:1.1rem; height:1.1rem; border-radius:999px; border:2px solid var(--sf-line-strong); flex:none; margin-top:2px; box-sizing:border-box; }
         .oc-opt.on .dot { border:5px solid var(--ac-blue); }
         .oc-opt b { display:block; font-size:0.92rem; }
         .oc-opt ul { margin:0.375rem 0 0; padding-left:1.1rem; color:var(--ac-muted); font-size:0.82rem; line-height:1.55; }
@@ -314,10 +314,10 @@
     <script src="datepicker.js?v=3"></script>
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
-    <script src="assistant.js?v=2"></script>
+    <script src="assistant.js?v=3"></script>
     <script src="consolenav.js?v=5"></script>
-    <script src="ocpickers.js?v=2"></script>
+    <script src="ocpickers.js?v=3"></script>
     <script src="governance.js?v=1"></script>
-    <script src="orgcreate.js?v=11"></script>
+    <script src="orgcreate.js?v=12"></script>
 </body>
 </html>
