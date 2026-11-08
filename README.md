@@ -42,29 +42,27 @@ Live repo: https://github.com/VISHNUREDDY352/SwimFest
 - `orgprofile.html` — organizer profile
 - `orgracecontrol.html` — poolside ops for their meets
 
-### Event Manager
-- `emdashboard.html` — internal meets pipeline
-- `addevent.html` — create an internal event
-- `admin.html` — Master Player List (roster + lock)
-- `heatgen.html` — heat generation → `heat_rows`
+### Admin (`event_manager`)
+- `admin.html` — Admin console: my meets + approval queues
+- `playerlist.html` — Master Player List (roster, walk-ins, spreadsheet import, lock)
+- `heatgen.html` — heat generation → `heat_rows` (entries template + import)
 - `results.html` — live result entry → `heat_rows`
-- `racecontrol.html` — poolside ops
+- `orgracecontrol.html` — poolside ops (shared with organizers)
 
 ### Super Admin
 - `superadmin.html` — approvals, verification, reopen requests, metrics, notices
 - `saoverride.html` — universal override engine
 
-### Utility
-- `apiref.html` — API docs · `dbtest.html` — DB connection test
+Old links `addevent`, `racecontrol` and `emdashboard` redirect (see `vercel.json`).
 
 ---
 
 ## Data flow
 
 ```
-Create meet (addevent / orgcreate)
+Create meet (orgcreate)
    → Super Admin approves (superadmin)           [super_admin's own meets auto-publish]
-   → EM locks roster (admin)                      → tournament LOCKED
+   → Admin locks roster (playerlist)              → tournament LOCKED
    → Heat Gen produces heats (heatgen)            → heat_rows
    → Results enters times (results)               → heat_rows (COMPLETED)
    → Public sees it (heatsheets, leaderboard, event)
@@ -93,6 +91,31 @@ super admin page's **Team** tab. Never write passwords in this repository.
 
 ---
 
+## Frontend structure
+
+Plain HTML + JavaScript, no build step. Every page loads the shared core first:
+
+| File | What it does | Pattern |
+|------|--------------|---------|
+| `core/sf.css` | Design tokens, components (buttons, fields, tables, tabs, dialogs, toasts, ⓘ button), phone layouts. Old page variables point at the tokens. WCAG AA contrast, visible focus, 44 px touch targets, no web-font download. | — |
+| `core/sf.js` | `SF.esc`, `SF.fmt`, `SF.toast`, `SF.csv`, `SF.db` (one Supabase client, `fetchAll` past the 1000-row limit, `inChunks` for long id lists) | Singleton, Observer (`SF.bus`) |
+| `core/icons.js` | Inline SVG icons; swaps every `<i class="fas fa-…">` (replaces Font Awesome) | — |
+| `core/components.js` | `SF.Dialog`, `SF.Info` (ⓘ help), `SF.Search` + `SF.TabbedSearch` (search follows the tab), `SF.Tabs` (ARIA + arrow keys), `SF.Table`, `SF.Importer` | Strategy, Factory, Template Method |
+| `core/help.js` | Text for every ⓘ button: what the tab is, what you can do, the rules | Registry |
+| `core/repos.js` | Data access for meets, entries, heats, results, imports; uses the one-call database functions and falls back if they aren't installed yet | Repository |
+| `core/heatengine.js` | Seeding (standard / circle), centre-out lanes for 6/8/10 lanes, ≥3 swimmers per heat, relay teams, event order, per-pool schedule | Strategy |
+| `core/entryimport.js` | Spreadsheet import of swimmers + races with a downloadable template (.xlsx / .csv) | Template Method |
+
+**Search follows the tab.** Each tab declares its key field (swimmer name or ID,
+coach name, academy name, meet title); matches on that field rank first, the
+placeholder changes with the tab, and each tab remembers its own search.
+
+**Entries template.** On Heat generation (*Entries template*) or the Player list
+(*Import from spreadsheet*): one row per swimmer per race —
+`Full name, Gender, Date of birth (YYYY-MM-DD), Parent phone, Academy, Race, Seed time`.
+Every row is checked and previewed; if any row has a problem nothing is saved.
+Import is possible while registration is open or closed (before the list is locked).
+
 ## Project Structure
 
 ```
@@ -100,7 +123,8 @@ SwimFest/
 ├── frontend/             # Client-side web application
 │   ├── index.html        # Homepage
 │   ├── *.html            # Role pages (organizer, admin, swimmer, etc.)
-│   ├── *.css             # Stylesheets
+│   ├── core/             # Shared design system, components, data access (see above)
+│   ├── *.css             # Page stylesheets
 │   ├── *.js              # Client scripts & Supabase SDK config
 │   └── images/           # Static media assets
 ├── backend/              # Node.js + Express API server & Database scripts
