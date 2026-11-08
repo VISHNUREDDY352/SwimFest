@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="core/sf.js?v=1"></script>
+    <script src="core/icons.js?v=1"></script>
+    <script src="core/components.js?v=1"></script>
+    <script src="core/help.js?v=1"></script>
     <title>DB Connection Test — SwimFest</title>
     <link rel="stylesheet" href="styles.css?v=24">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { background:#0d1117; color:#e6edf3; font-family:'Inter',sans-serif; padding:40px 24px; }
         .dbt-wrap { max-width:720px; margin:0 auto; }
@@ -35,6 +36,7 @@
         .dbt-hint code { background:#21262d; padding:1px 6px; border-radius:4px; color:#79c0ff; }
         a { color:#58a6ff; }
     </style>
+    <link rel="stylesheet" href="core/sf.css?v=1">
 </head>
 <body>
     <div class="dbt-wrap">
@@ -65,7 +67,7 @@
     </div>
 
     <!-- Supabase SDK must load before supabase.js -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="supabase.js?v=7"></script>
     <script>
         const logEl = document.getElementById('log');

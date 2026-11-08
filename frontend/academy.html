@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="core/sf.js?v=1"></script>
+    <script src="core/icons.js?v=1"></script>
+    <script src="core/components.js?v=1"></script>
+    <script src="core/help.js?v=1"></script>
     <script src="embed.js?v=3"></script>
     <title>Academies, Coaches & Swimmers — SwimFest</title>
     <link rel="stylesheet" href="styles.css?v=24">
     <link rel="stylesheet" href="academy.css?v=3">
-    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* ── Academy directory (redesign) ── */
         :root { --dir-deep:#0b3a53; --dir-ink:#0b2233; --dir-body:#33495a; --dir-muted:#5b7383; --dir-line:#dde7ec;
@@ -147,6 +148,7 @@
         }
         @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto !important; } }
     </style>
+    <link rel="stylesheet" href="core/sf.css?v=1">
 </head>
 <body class="dir-page">
 
@@ -300,7 +302,7 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
     <script src="assistant.js?v=2" data-mode="public"></script>

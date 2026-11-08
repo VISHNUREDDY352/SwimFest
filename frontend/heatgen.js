@@ -1,867 +1,396 @@
 /* ============================================================
-   SwimFest — Multi-Pool Heat Generation Engine  (Chapter 8)
-   heatgen.js
+   SwimFest — Heat generation page   heatgen.js
+   Page controller only. The work is done by:
+     SF.HeatEngine     seeding, lanes, event order, schedule (core/heatengine.js)
+     SF.EntryRepo,
+     SF.HeatRepo       reading entries, saving heats    (core/repos.js)
+     SF.EntryImporter  spreadsheet import + template    (core/entryimport.js)
    ============================================================ */
-
 'use strict';
 
-// ─── Spearhead Lane Order Maps (Rule 8.3) ─────────────────────
-// Key = seed rank (1=fastest), Value = lane number
-const SPEARHEAD_8 = { 1:4, 2:5, 3:3, 4:6, 5:2, 6:7, 7:1, 8:8 };
-const SPEARHEAD_6 = { 1:3, 2:4, 3:2, 4:5, 5:1, 6:6 };
+(function () {
+  const { esc, fmt } = SF;
+  const $ = id => document.getElementById(id);
+  const E = SF.HeatEngine;
 
-// ─── Master Roster ───────────────────────────────────────────
-// Populated live from Supabase event_entries for the selected
-// tournament (see loadRosterForTournament). Empty until then.
-let MASTER_ROSTER = [];
-let currentTournamentId = null;
-let MEETS = [];            // tournaments rows for the picker
-let MEET = null;           // the selected meet
-let SAVED = { heats: 0, results: 0 };   // what heat_rows already holds for MEET
+  const STATUS = {
+    PUBLISHED: ['Registration open', 'sf-badge-ok'], CLOSED: ['Registration closed', 'sf-badge-warn'],
+    LOCKED: ['Player list locked', 'sf-badge-info'], CLOSURE_REQUESTED: ['Closure requested', 'sf-badge-warn'],
+    COMPLETED: ['Completed', ''],
+  };
+  const IMPORTABLE = ['PUBLISHED', 'CLOSED'];
 
-// (Sample roster removed — the engine loads real entries from Supabase.)
-// MASTER_ROSTER stays empty until a tournament's real entries load.
+  // ── Page state ────────────────────────────────────────────
+  const state = {
+    meets: [], meet: null, entries: [], academies: null,
+    saved: { heats: 0, results: 0 },
+    events: [],          // generated, not necessarily saved
+    dirty: false,        // generated or swapped since last save
+    swapFrom: null,      // { ev, heat, lane } waiting for a second pick
+  };
 
-// ─── App State ────────────────────────────────────────────────
-let generatedHeats = [];    // All heat objects after generation
-let isPublished    = false;
-
-// ─── Supabase: load approved meets into the selector ──────────
-const STATUS_PILL = {
-  PUBLISHED: ['Registration open', 'ac-pill-live'], CLOSED: ['Registration closed', 'ac-pill-wait'],
-  LOCKED: ['Player list locked', 'ac-pill-live'], CLOSURE_REQUESTED: ['Closure requested', 'ac-pill-wait'],
-  COMPLETED: ['Completed', 'ac-pill-done'],
-};
-
-async function loadTournamentOptions() {
-  const sel = document.getElementById('hgTournamentSelect');
-  if (!sel) return;
-  if (!window.sb) { sel.innerHTML = '<option value="">Database not connected</option>'; return; }
-
-  const { data, error } = await window.sb
-    .from('tournaments')
-    .select('*')   // includes pool_lengths: meets set up with a 50 m and a 25 m pool
-    .in('status', Object.keys(STATUS_PILL))
-    .order('start_date', { ascending: false });
-
-  const mine = window.SwimGov ? await window.SwimGov.assignedMeetIds() : null;   // Admins: assigned meets only
-  const rows = mine && data ? data.filter(t => mine.has(t.tournament_id)) : data;
-  if (error || !rows || !rows.length) {
-    sel.innerHTML = `<option value="">${error ? 'Could not load meets' : mine ? 'No meets assigned to you yet' : 'No approved meets yet'}</option>`;
-    sel.disabled = true;
-    return;
-  }
-  const data2 = rows;
-  MEETS = data2;
-  // Current & upcoming first, finished last; ?t=<id> wins, then a meet whose player list is locked
-  sel.innerHTML = SwimNav.meetOptions(data2);
-  const pick = SwimNav.pickMeet(data2, t => t.status === 'LOCKED');
-  sel.value = pick.tournament_id;
-  sel.addEventListener('change', () => loadRosterForTournament(sel.value));
-  await loadRosterForTournament(sel.value);
-}
-
-// Heats can be (re)generated only once the player list is locked and
-// before any results exist, so a re-draw can never wipe race times.
-function generateBlocker() {
-  if (!MEET) return 'Pick a meet.';
-  if (MEET.status === 'PUBLISHED' || MEET.status === 'CLOSED') {
-    return `Lock the player list first. <a href="playerlist.html?t=${encodeURIComponent(MEET.tournament_id)}">Open the player list</a> and lock it when every entry is right.`;
-  }
-  if (MEET.status !== 'LOCKED') return 'This meet has finished racing, so its heats can\'t be changed.';
-  if (SAVED.results) return `Results have already been entered for ${SAVED.results} lane${SAVED.results === 1 ? '' : 's'}, so the heats can't be drawn again.`;
-  if (!MASTER_ROSTER.length) return 'This meet has no race entries yet.';
-  return '';
-}
-
-function renderMeetState() {
-  const chip = $('hgStatusChip');
-  const [label, cls] = MEET ? (STATUS_PILL[MEET.status] || [MEET.status, 'ac-pill-draft']) : ['—', 'ac-pill-draft'];
-  chip.className = `ac-pill ${cls}`;
-  chip.textContent = label;
-  $('statSavedHeats').textContent = MEET ? SAVED.heats : '—';
-
-  // Results can be imported once heats are saved for this meet
-  const imp = $('importResultsBtn');
-  const canImport = MEET && SAVED.heats > 0;
-  imp.classList.toggle('is-off', !canImport);
-  imp.setAttribute('aria-disabled', canImport ? 'false' : 'true');
-  imp.href = canImport ? `results.html?t=${encodeURIComponent(MEET.tournament_id)}&import=1` : 'results.html';
-  imp.title = canImport ? 'Load finish times from the timing system (Excel or CSV) into Live results'
-                        : 'Save heats first, then import results from the timing system';
-
-  const blocker = generateBlocker();
-  $('generateBtn').disabled = !!blocker;
-  const banner = $('hgBanner');
-  if (blocker) {
-    banner.hidden = false;
-    banner.className = 'hg2-banner ' + (SAVED.results ? 'bad' : 'warn');
-    $('hgBannerText').innerHTML = blocker;
-  } else if (SAVED.heats) {
-    banner.hidden = false;
-    banner.className = 'hg2-banner info';
-    $('hgBannerText').textContent = `This meet already has ${SAVED.heats} heats saved. Generating again and saving replaces them.`;
-  } else {
-    banner.hidden = true;
-  }
-}
-
-// ─── Supabase: pull event_entries → MASTER_ROSTER shape ───────
-function msToSeedStr(ms) {
-  if (!ms || ms <= 0) return 'NT';
-  const totalSec = ms / 1000;
-  const min = Math.floor(totalSec / 60);
-  const sec = (totalSec % 60).toFixed(2).padStart(5, '0');
-  return `${String(min).padStart(2,'0')}:${sec}`;
-}
-
-async function loadRosterForTournament(tournamentId) {
-  currentTournamentId = tournamentId || null;
-  MEET = MEETS.find(t => t.tournament_id === tournamentId) || null;
-  generatedHeats = [];
-  $('heatPreviewSection').hidden = true;
-  $('exportCTSBtn').disabled = true;
-  SAVED = { heats: 0, results: 0 };
-  if (!window.sb || !tournamentId) { MASTER_ROSTER = []; refreshRosterCounts(); renderMeetState(); return; }
-
-  // The meet's lane count is the default for pool 1
-  if (MEET && MEET.lane_count) {
-    const r1 = document.querySelector(`input[name="pool1Lanes"][value="${MEET.lane_count}"]`);
-    if (r1) { r1.checked = true; r1.dispatchEvent(new Event('change')); }
-  }
-  // A meet created with two pools (Create meet: 50 m + 25 m) starts with both pools on
-  const lengths = MEET && Array.isArray(MEET.pool_lengths) ? MEET.pool_lengths : [];
-  if (lengths.length === 2) {
-    $('pool1Name').value = '50 m pool';
-    $('pool2Name').value = '25 m pool';
-    if (!$('pool2Active').checked) { $('pool2Active').checked = true; $('pool2Active').dispatchEvent(new Event('change')); }
+  // ── Rules ─────────────────────────────────────────────────
+  function generateBlocker() {
+    const m = state.meet;
+    if (!m) return 'Pick a meet.';
+    if (m.status === 'PUBLISHED' || m.status === 'CLOSED') {
+      return `Lock the player list first. <a href="playerlist.html?t=${encodeURIComponent(m.tournament_id)}">Open the player list</a> and lock it when every entry is right.`;
+    }
+    if (m.status !== 'LOCKED') return 'This meet has finished racing, so its heats can\'t be changed.';
+    if (state.saved.results) return `Results have already been entered for ${fmt.plural(state.saved.results, 'lane')}, so the heats can't be drawn again.`;
+    if (!state.entries.length) return 'This meet has no race entries yet.';
+    return '';
   }
 
-  // What is already saved: heats, and lanes that already have results
-  const [heatsRes, resultsRes] = await Promise.all([
-    window.sb.from('heat_rows').select('pool_label, event_no, heat_number').eq('tournament_id', tournamentId),
-    window.sb.from('heat_rows').select('heat_row_id', { count: 'exact', head: true }).eq('tournament_id', tournamentId)
-      .or('finish_time_ms.not.is.null,status.neq.OK'),
-  ]);
-  SAVED.heats = new Set((heatsRes.data || []).map(h => `${h.pool_label}|${h.event_no}|${h.heat_number}`)).size;
-  SAVED.results = resultsRes.count || 0;
+  function pools() {
+    const read = n => ({
+      id: 'P' + n,
+      label: $(`pool${n}Name`).value.trim() || `Pool ${n}`,
+      lanes: parseInt((document.querySelector(`input[name="pool${n}Lanes"]:checked`) || {}).value || (n === 1 ? 8 : 6), 10),
+      categories: [...document.querySelectorAll(`#pool${n}Categories input:checked`)].map(c => c.value),
+    });
+    return [1, 2].filter(n => $(`pool${n}Active`).checked).map(read);
+  }
 
-  const { data, error } = await window.sb
-    .from('event_entries')
-    .select('entry_id, event_name, category, gender, seed_time_ms, swimmer_id')
-    .eq('tournament_id', tournamentId);
+  const unrouted = () => {
+    const p = pools();
+    return state.entries.filter(e => !p.some(x => x.categories.includes(e.category)));
+  };
 
-  if (error) { console.error('[SwimFest] load entries:', error.message); MASTER_ROSTER = []; refreshRosterCounts(); renderMeetState(); return; }
+  // ── Rendering: header, numbers, banner ────────────────────
+  function renderMeetState() {
+    const m = state.meet;
+    const [label, cls] = m ? (STATUS[m.status] || [m.status, '']) : ['—', ''];
+    const chip = $('hgStatusChip');
+    chip.className = 'sf-badge ' + cls;
+    chip.textContent = label;
 
-  if (!data || !data.length) {
-    MASTER_ROSTER = [];
-    refreshRosterCounts();
+    $('totalEventRows').textContent = m ? state.entries.length : '—';
+    $('totalAthletes').textContent = m ? new Set(state.entries.map(e => e.swimId)).size : '—';
+    $('statSavedHeats').textContent = m ? state.saved.heats : '—';
+    const n = m ? unrouted().length : null;
+    $('statUnrouted').textContent = n == null ? '—' : n;
+    $('statUnrouted').style.color = n ? 'var(--sf-bad)' : '';
+
+    const imp = $('importResultsBtn');
+    const canResults = m && state.saved.heats > 0;
+    imp.setAttribute('aria-disabled', canResults ? 'false' : 'true');
+    imp.href = canResults ? `results.html?t=${encodeURIComponent(m.tournament_id)}&import=1` : '#';
+    imp.title = canResults ? 'Load finish times from the timing system into Live results' : 'Save heats first';
+
+    const canImport = m && IMPORTABLE.includes(m.status);
+    $('importBtn').setAttribute('aria-disabled', canImport ? 'false' : 'true');
+    $('importBtn').title = canImport ? 'Add swimmers and races from a spreadsheet' : 'Entries can only be imported while registration is open or closed (before the player list is locked).';
+
+    const blocker = generateBlocker();
+    $('generateBtn').disabled = !!blocker;
+    const banner = $('hgBanner');
+    if (blocker) {
+      banner.hidden = false;
+      banner.className = 'sf-note ' + (state.saved.results ? 'sf-note-bad' : 'sf-note-warn');
+      $('hgBannerText').innerHTML = blocker;
+    } else if (state.saved.heats) {
+      banner.hidden = false;
+      banner.className = 'sf-note';
+      $('hgBannerText').textContent = `This meet already has ${fmt.plural(state.saved.heats, 'heat')} saved. Generating again and saving replaces them.`;
+    } else banner.hidden = true;
+  }
+
+  // ── Loading ───────────────────────────────────────────────
+  async function loadMeets() {
+    const sel = $('hgTournamentSelect');
+    try {
+      const { meets, limited } = await SF.TournamentRepo.listForStaff(Object.keys(STATUS));
+      state.meets = meets;
+      if (!meets.length) {
+        sel.innerHTML = `<option value="">${limited ? 'No meets assigned to you yet' : 'No approved meets yet'}</option>`;
+        sel.disabled = true;
+        renderMeetState();
+        return;
+      }
+      sel.innerHTML = SwimNav.meetOptions(meets);
+      const pick = SwimNav.pickMeet(meets, t => t.status === 'LOCKED');
+      sel.value = pick.tournament_id;
+      await loadMeet(sel.value);
+    } catch (e) {
+      sel.innerHTML = '<option value="">Could not load meets</option>';
+      SF.toast(SF.db.why(e), 'error');
+    }
+  }
+
+  async function loadMeet(id) {
+    state.meet = state.meets.find(t => t.tournament_id === id) || null;
+    state.events = []; state.dirty = false; state.swapFrom = null;
+    $('heatPreviewSection').hidden = true;
+    $('exportCTSBtn').disabled = true;
+    state.entries = []; state.saved = { heats: 0, results: 0 };
     renderMeetState();
-    return;
+    if (!state.meet) return;
+
+    // Pool defaults from the meet
+    const m = state.meet;
+    if (m.lane_count) {
+      const r = document.querySelector(`input[name="pool1Lanes"][value="${m.lane_count}"]`);
+      if (r) r.checked = true;
+    }
+    if (Array.isArray(m.pool_lengths) && m.pool_lengths.length === 2) {
+      $('pool1Name').value = '50 m pool';
+      $('pool2Name').value = '25 m pool';
+      $('pool2Active').checked = true;
+    }
+    syncPools();
+
+    $('hgBanner').hidden = false;
+    $('hgBanner').className = 'sf-note';
+    $('hgBannerText').textContent = 'Loading entries…';
+    try {
+      const [entries, saved] = await Promise.all([SF.EntryRepo.listForMeet(id), SF.HeatRepo.savedState(id)]);
+      if (state.meet !== m) return;           // another meet was picked meanwhile
+      state.entries = entries;
+      state.saved = saved;
+    } catch (e) {
+      SF.toast('Could not load entries: ' + SF.db.why(e), 'error');
+    }
+    renderMeetState();
   }
 
-  // Swimmer names/academies come from the public swimmer_directory view
-  // (the swimmers table RLS blocks reading swimmers you don't own).
-  const swimmerIds = [...new Set(data.map(e => e.swimmer_id).filter(Boolean))];
-  const nameMap = {};
-  if (swimmerIds.length) {
-    const { data: dir } = await window.sb
-      .from('swimmer_directory')
-      .select('swimmer_id, full_name, academy_name')
-      .in('swimmer_id', swimmerIds);
-    (dir || []).forEach(s => { nameMap[s.swimmer_id] = s; });
+  // ── Pools UI ──────────────────────────────────────────────
+  function syncPools() {
+    const toggles = [$('pool1Active'), $('pool2Active')];
+    const on = toggles.filter(t => t.checked).length;
+    toggles.forEach((t, i) => {
+      $(`pool${i + 1}Card`).dataset.off = t.checked ? 'false' : 'true';
+      t.disabled = t.checked && on === 1;      // at least one pool stays on
+      t.title = t.disabled ? 'At least one pool must stay on. Turn on the other pool first.' : '';
+    });
+    renderMeetState();
   }
 
-  MASTER_ROSTER = data.map(e => {
-    const s = nameMap[e.swimmer_id] || {};
-    return {
-      entryId:  e.entry_id,
-      swimId:   e.swimmer_id,
-      name:     s.full_name || 'Unknown Swimmer',
-      gender:   e.gender,
-      category: e.category,
-      event:    e.event_name,
-      seedTime: msToSeedStr(e.seed_time_ms),
-      academy:  s.academy_name || 'Unattached',
-    };
-  });
+  // ── Generate ──────────────────────────────────────────────
+  function generate() {
+    const blocker = generateBlocker();
+    if (blocker) { renderMeetState(); SF.toast(blocker.replace(/<[^>]+>/g, ''), 'warn'); return; }
+    const p = pools();
+    if (p.some(x => !x.categories.length)) { SF.toast('Each pool you use needs at least one age group.', 'warn'); return; }
 
-  refreshRosterCounts();
-  renderMeetState();
-}
+    const { events, unrouted: left } = E.generate(state.entries, p, { seeding: $('seedingSelect').value });
+    const [sh, sm] = ($('sessionStart').value || '08:30').split(':').map(Number);
+    const num = (id, d) => parseFloat($(id).value) || d;
+    E.schedule(events, { start: sh * 60 + sm, buffers: { short: num('buf50', 2), mid: num('buf100', 3), long: num('buf400', 6), relay: num('bufRelay', 3.5) } });
 
-function refreshRosterCounts() {
-  $('totalEventRows').textContent = MEET ? MASTER_ROSTER.length : '—';
-  $('totalAthletes').textContent  = MEET ? new Set(MASTER_ROSTER.map(r => r.swimId)).size : '—';
-  refreshUnrouted();
-}
+    state.events = events; state.dirty = true; state.swapFrom = null;
+    fillFilters();
+    renderHeats();
+    $('heatPreviewSection').hidden = false;
+    $('exportCTSBtn').disabled = false;
+    $('publishBtn').disabled = false;
+    $('hgPreviewSubtitle').textContent = 'Not saved yet. Check the lanes, then save.';
+    $('setupDetails').open = false;
 
-// Entries whose age group isn't assigned to any active pool get no heat
-function unroutedEntries() {
-  const pools = getPoolConfig();
-  return MASTER_ROSTER.filter(e => !pools.some(p => p.categories.includes(e.category)));
-}
+    const heats = events.reduce((n, ev) => n + ev.heats.length, 0);
+    SF.toast(left.length
+      ? `Drew ${fmt.plural(heats, 'heat')} in ${fmt.plural(events.length, 'event')}. ${fmt.plural(left.length, 'entry', 'entries')} have no pool and were left out.`
+      : `Drew ${fmt.plural(heats, 'heat')} in ${fmt.plural(events.length, 'event')}.`, left.length ? 'warn' : 'success');
+    $('heatPreviewSection').scrollIntoView({ block: 'start' });
+    $('previewTitle').focus({ preventScroll: true });
+  }
 
-function refreshUnrouted() {
-  const n = MEET ? unroutedEntries().length : null;
-  const el = $('statUnrouted');
-  el.textContent = n == null ? '—' : n;
-  el.style.color = n ? '#b91c1c' : '';
-}
+  function fillFilters() {
+    const opts = (vals, all) => `<option value="">${all}</option>` + [...new Set(vals)].map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+    $('previewPoolFilter').innerHTML = opts(state.events.map(e => e.poolLabel), 'All pools');
+    $('previewEventFilter').innerHTML = opts(state.events.map(e => e.eventName).sort((a, b) => E.distanceOf(a) - E.distanceOf(b) || a.localeCompare(b)), 'All races');
+    $('previewCatFilter').innerHTML = opts(state.events.map(e => e.category).sort(), 'All age groups');
+    $('previewPoolFilter').hidden = new Set(state.events.map(e => e.poolLabel)).size < 2;
+  }
 
-// ─── Supabase: save generated heats to heat_rows ──────────────
-async function saveHeatsToDB() {
-  if (!window.sb)              { showToast('DB not connected — cannot save.', 'warn'); return false; }
-  if (!currentTournamentId)    { showToast('Select a tournament first.', 'warn'); return false; }
-  if (!generatedHeats.length)  { showToast('Generate heat sheets first.', 'warn'); return false; }
+  // ── Heats table (one row per lane, grouped by event and heat) ──
+  const eventTitle = ev => `Event ${ev.eventNum} · ${ev.gender === 'Girl' ? 'Girls' : 'Boys'} ${ev.category} ${ev.eventName}`;
+  const laneNames = l => l.team ? [l.name, ...l.members.map(m => m.name)] : [l.name];
 
-  // Build heat_rows only for lanes that map to a real event_entry
-  const rows = [];
-  generatedHeats.forEach(ev => {
-    ev.heats.forEach(heat => {
-      heat.lanes.forEach((lane, i) => {
-        if (lane.empty || !lane.entryId) return;
-        rows.push({
-          tournament_id:  currentTournamentId,
-          event_entry_id: lane.entryId,
-          pool_label:     ev.poolLabel,
-          event_no:       ev.eventNum,
-          heat_number:    heat.heatNumber,
-          lane_number:    i + 1,
-          status:         'OK',
+  function renderHeats() {
+    const fp = $('previewPoolFilter').value, fe = $('previewEventFilter').value, fc = $('previewCatFilter').value;
+    const q = SF.norm($('heatSearch').value);
+    const match = l => !q || (!l.empty && laneNames(l).some(n => SF.norm(n).includes(q)));
+
+    let lanesShown = 0;
+    const html = [];
+    state.events.forEach((ev, ei) => {
+      if ((fp && ev.poolLabel !== fp) || (fe && ev.eventName !== fe) || (fc && ev.category !== fc)) return;
+      const heatRows = [];
+      ev.heats.forEach((h, hi) => {
+        const lanes = h.lanes.filter(l => (q ? match(l) : true));
+        if (!lanes.length) return;
+        heatRows.push(`<tr class="sf-group-row"><th colspan="5" scope="colgroup" style="background:var(--sf-subtle);color:var(--sf-text)">
+          Heat ${h.heatNumber} of ${h.totalHeats}${h.isFastest && h.totalHeats > 1 ? ' · fastest heat' : ''} · starts about ${E.clock12(h.startMin)}</th></tr>`);
+        lanes.forEach(l => {
+          lanesShown++;
+          const picked = state.swapFrom && state.swapFrom.ev === ei && state.swapFrom.heat === hi && state.swapFrom.lane === l.lane;
+          const who = l.empty ? '<span class="hg-nt">Empty</span>'
+            : l.team ? `<strong>${esc(l.name)}</strong>${l.short ? ' <span class="sf-badge sf-badge-warn">short team</span>' : ''}<span class="hg-members">${l.members.map(m => esc(m.name)).join(', ')}</span>`
+            : esc(l.name);
+          const seed = l.empty ? '' : l.seedMs ? fmt.seed(l.seedMs) : '<span class="hg-nt">NT</span>';
+          heatRows.push(`<tr${l.empty ? ' class="hg-empty"' : ''}>
+            <td class="num"><strong>${l.lane}</strong></td>
+            <td>${who}${l.empty || l.team ? '' : `<span class="hg-members hg-show-sm">${esc(l.academy || '')}</span>`}</td>
+            <td class="hg-hide-sm">${l.empty ? '' : esc(l.academy || '—')}</td>
+            <td class="num">${seed}</td>
+            <td>${state.meet && !state.saved.results
+              ? `<button type="button" class="sf-btn sf-btn-sm hg-swap" data-swap="${ei}|${hi}|${l.lane}" aria-pressed="${picked}"
+                   aria-label="${picked ? 'Cancel swap' : 'Swap'} lane ${l.lane}, heat ${h.heatNumber}, event ${ev.eventNum}">${picked ? 'Cancel' : 'Swap'}</button>` : ''}</td>
+          </tr>`);
         });
       });
+      if (!heatRows.length) return;
+      html.push(`<tbody>
+        <tr class="sf-group-row"><th colspan="5" scope="rowgroup">${esc(eventTitle(ev))}
+          <span style="font-weight:400"> · ${esc(ev.poolLabel)} · ${fmt.plural(ev.isRelay ? ev.units : ev.totalEntries, ev.isRelay ? 'team' : 'swimmer')} · ${fmt.plural(ev.heats.length, 'heat')}</span></th></tr>
+        ${heatRows.join('')}</tbody>`);
     });
-  });
 
-  if (!rows.length) {
-    showToast('There are no swimmers in these heats to save.', 'warn');
-    return false;
+    $('heatTable').innerHTML = html.length
+      ? `<div class="sf-table-wrap"><table class="sf-table hg-table">
+           <caption class="sf-visually-hidden">Heats and lanes</caption>
+           <thead><tr><th scope="col" class="num">Lane</th><th scope="col">Swimmer</th><th scope="col" class="hg-hide-sm">Academy</th><th scope="col" class="num">Seed</th><th scope="col"><span class="sf-visually-hidden">Actions</span></th></tr></thead>
+           ${html.join('')}</table></div>`
+      : `<p class="sf-empty" style="padding:28px 16px;text-align:center;color:var(--sf-muted)">${q ? 'No swimmer matches that search.' : 'No events match these filters.'}</p>`;
+
+    const heats = state.events.reduce((n, ev) => n + ev.heats.length, 0);
+    $('genSummary').textContent = `${fmt.plural(state.events.length, 'event')} · ${fmt.plural(heats, 'heat')}${q ? ` · ${fmt.plural(lanesShown, 'lane')} match` : ''}`;
   }
 
-  // Never replace heats once any lane has a result
-  const { count: withResults, error: chkErr } = await window.sb.from('heat_rows')
-    .select('heat_row_id', { count: 'exact', head: true }).eq('tournament_id', currentTournamentId)
-    .or('finish_time_ms.not.is.null,status.neq.OK');
-  if (chkErr) { showToast('Could not check for existing results: ' + chkErr.message, 'warn'); return false; }
-  if (withResults) {
-    SAVED.results = withResults;
-    renderMeetState();
-    showToast('Results have been entered for this meet, so its heats can\'t be replaced.', 'warn');
-    return false;
+  // ── Lane swap: pick a lane, then another lane in the same event ──
+  function onSwap(btn) {
+    const [ei, hi, lane] = btn.dataset.swap.split('|').map(Number);
+    const from = state.swapFrom;
+    if (!from) { state.swapFrom = { ev: ei, heat: hi, lane }; renderHeats(); focusSwap(ei, hi, lane); SF.toast('Now press Swap on the lane to swap with (same event).', 'info'); return; }
+    if (from.ev === ei && from.heat === hi && from.lane === lane) { state.swapFrom = null; renderHeats(); focusSwap(ei, hi, lane); return; }
+    if (from.ev !== ei) { SF.toast('Lanes can only be swapped within the same event.', 'warn'); return; }
+    const ev = state.events[ei];
+    const a = ev.heats[from.heat].lanes, b = ev.heats[hi].lanes;
+    const A = a[from.lane - 1], B = b[lane - 1];
+    a[from.lane - 1] = Object.assign({}, B, { lane: from.lane });
+    b[lane - 1] = Object.assign({}, A, { lane });
+    [ev.heats[from.heat], ev.heats[hi]].forEach(h => { h.count = h.lanes.filter(l => !l.empty).length; });
+    state.swapFrom = null; state.dirty = true;
+    $('hgPreviewSubtitle').textContent = 'Changed, not saved yet.';
+    $('publishBtn').disabled = false;
+    renderHeats();
+    focusSwap(ei, hi, lane);
+    SF.toast(`Swapped lane ${from.lane} (heat ${from.heat + 1}) with lane ${lane} (heat ${hi + 1}).`, 'success');
+  }
+  const focusSwap = (ei, hi, lane) => { const b = document.querySelector(`[data-swap="${ei}|${hi}|${lane}"]`); if (b) b.focus(); };
+
+  // ── Save ──────────────────────────────────────────────────
+  function confirmSave() {
+    if (!state.events.length) { SF.toast('Generate heats first.', 'warn'); return; }
+    const rows = E.toHeatRows(state.events);
+    if (!rows.length) { SF.toast('There are no swimmers in these heats to save.', 'warn'); return; }
+    const heats = state.events.reduce((n, ev) => n + ev.heats.length, 0);
+    SF.Dialog.open({
+      title: 'Save heats',
+      body: `<p style="margin:0">Save ${fmt.plural(heats, 'heat')} (${fmt.plural(rows.length, 'swimmer lane')}) as the official lane draw for <strong>${esc(state.meet.title)}</strong>?</p>
+             <p class="sf-hint" style="margin:10px 0 0">They appear on Race control, Live results and the public Heat sheets.${state.saved.heats ? ' The heats saved earlier are replaced.' : ''} Swimmers aren't notified automatically.</p>`,
+      actions: [{ label: 'Cancel' }, { label: 'Save heats', primary: true, onClick: (d, b) => save(d, b, rows, heats) }],
+    });
   }
 
-  // Clear the previous draw, and make sure it really is gone before inserting
-  const del = await window.sb.from('heat_rows').delete().eq('tournament_id', currentTournamentId);
-  if (del.error) { showToast('Could not clear the old heats: ' + del.error.message, 'warn'); return false; }
-  const { count: left } = await window.sb.from('heat_rows')
-    .select('heat_row_id', { count: 'exact', head: true }).eq('tournament_id', currentTournamentId);
-  if (left) { showToast('The old heats could not be removed (your account may not be allowed to). Nothing was saved.', 'warn'); return false; }
-
-  const { error } = await window.sb.from('heat_rows').insert(rows);
-  if (error) { console.error('[SwimFest] save heats:', error.message); showToast('Save failed: ' + error.message, 'warn'); return false; }
-
-  SAVED.heats = generatedHeats.reduce((n, ev) => n + ev.heats.length, 0);
-  if (window.SwimGov) SwimGov.audit('HEATS_SAVED', 'TOURNAMENT', currentTournamentId,
-    `${MEET ? MEET.title : ''}: saved ${SAVED.heats} heats (${rows.length} swimmers)`);
-  renderMeetState();
-  showToast(`Saved ${SAVED.heats} heats (${rows.length} swimmers).`, 'success');
-  return true;
-}
-
-// ─── Utilities ────────────────────────────────────────────────
-const $ = id => document.getElementById(id);
-
-function escHtml(s) {
-  return String(s || '')
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function openModal(id)  { const m=$(id); m.classList.add('active'); m.style.display='flex'; }
-function closeModal(id) { const m=$(id); m.classList.remove('active'); m.style.display='none'; }
-
-// ─── Seed time to seconds (NT = Infinity = slowest) ──────────
-function seedToSeconds(t) {
-  if (!t || t.toUpperCase() === 'NT') return Infinity;
-  const parts = t.split(':');
-  if (parts.length === 2) {
-    const [min, sec] = parts;
-    return parseFloat(min) * 60 + parseFloat(sec);
-  }
-  return Infinity;
-}
-
-function secondsToDisplay(s) {
-  if (s === Infinity) return 'NT';
-  const min  = Math.floor(s / 60);
-  const sec  = (s % 60).toFixed(2).padStart(5, '0');
-  return `${String(min).padStart(2,'0')}:${sec}`;
-}
-
-// ─── Buffer duration by event distance ───────────────────────
-function getBufferMinutes(eventName) {
-  const buf50    = parseFloat($('buf50').value)    || 2.0;
-  const buf100   = parseFloat($('buf100').value)   || 3.0;
-  const bufRelay = parseFloat($('bufRelay').value) || 3.5;
-  const n = eventName.toLowerCase();
-  if (n.includes('relay')) return bufRelay;
-  if (n.includes('200m') || n.includes('100m')) return buf100;
-  return buf50;
-}
-
-// ─── Read Pool Config ─────────────────────────────────────────
-function getPoolConfig() {
-  const pools = [];
-
-  // Pool 1
-  if ($('pool1Active').checked) {
-    const cats = [...document.querySelectorAll('#pool1Categories input:checked')].map(cb => cb.value);
-    const lanes = parseInt(document.querySelector('input[name="pool1Lanes"]:checked')?.value || '8');
-    pools.push({ id:'P1', label: $('pool1Name').value || 'Pool 1', lanes, categories: cats });
-  }
-
-  // Pool 2
-  if ($('pool2Active').checked) {
-    const cats = [...document.querySelectorAll('#pool2Categories input:checked')].map(cb => cb.value);
-    const lanes = parseInt(document.querySelector('input[name="pool2Lanes"]:checked')?.value || '6');
-    pools.push({ id:'P2', label: $('pool2Name').value || 'Pool 2', lanes, categories: cats });
-  }
-
-  return pools;
-}
-
-// ─── Route roster entries to pools ───────────────────────────
-function routeEntriesToPools(pools) {
-  // Group entries: pool → event → swimmers
-  const poolMap = {};
-
-  pools.forEach(pool => {
-    poolMap[pool.id] = { pool, events: {} };
-  });
-
-  MASTER_ROSTER.forEach(entry => {
-    // The later pool wins when an age group is ticked in both
-    const pool = [...pools].reverse().find(p => p.categories.includes(entry.category));
-    if (!pool) return; // No pool for this age group — counted by unroutedEntries()
-
-    const poolId   = pool.id;
-    const eventKey = `${entry.category}|${entry.gender}|${entry.event}`;
-
-    if (!poolMap[poolId].events[eventKey]) {
-      poolMap[poolId].events[eventKey] = {
-        category: entry.category,
-        gender   : entry.gender,
-        eventName: entry.event,
-        entries  : [],
-      };
+  async function save(dlg, btn, rows, heats) {
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      await SF.HeatRepo.save(state.meet.tournament_id, rows);
+      state.saved.heats = heats; state.dirty = false;
+      dlg.close();
+      $('hgPreviewSubtitle').textContent = 'Saved. These heats are on Race control, Live results and the Heat sheets page.';
+      SF.toast(`Saved ${fmt.plural(heats, 'heat')}.`, 'success');
+      renderMeetState();
+    } catch (e) {
+      btn.disabled = false; btn.textContent = 'Save heats';
+      dlg.querySelector('.sf-dialog-body').insertAdjacentHTML('beforeend', `<p class="sf-note sf-note-bad" role="alert" style="margin-top:12px">${esc(SF.db.why(e))}</p>`);
+      SF.HeatRepo.savedState(state.meet.tournament_id).then(s => { state.saved = s; renderMeetState(); }).catch(() => {});
     }
-    poolMap[poolId].events[eventKey].entries.push({ ...entry });
-  });
+  }
 
-  return poolMap;
-}
+  // ── Export for the timing system ──────────────────────────
+  function exportCTS() {
+    if (!state.events.length) return SF.toast('Generate heats first.', 'warn');
+    const rows = [['Pool_ID', 'Pool_Name', 'Event_No', 'Category', 'Gender', 'Event_Name', 'Heat_No', 'Lane_No', 'Swimmer_ID', 'Swimmer_Name', 'Academy', 'Seed_Time']];
+    state.events.forEach(ev => ev.heats.forEach(h => h.lanes.forEach(l => {
+      const base = [ev.poolId, ev.poolLabel, ev.eventNum, ev.category, ev.gender, ev.eventName, h.heatNumber, l.lane];
+      if (l.empty) rows.push([...base, '', '(Empty lane)', '', '']);
+      else if (l.team) l.members.forEach(m => rows.push([...base, m.swimId, `${l.name}: ${m.name}`, l.academy, l.seedMs ? fmt.seed(l.seedMs) : 'NT']));
+      else rows.push([...base, l.swimId, l.name, l.academy || '', fmt.seed(l.seedMs)]);
+    })));
+    SF.csv.download(`${(state.meet ? state.meet.title : 'SwimFest').replace(/[^\w-]+/g, '_')}_heats.csv`, rows);
+    SF.toast('Heat file downloaded for the timing system.', 'success');
+  }
 
-// ─── Spearhead Seeding (Rule 8.3) ────────────────────────────
-// Returns array of heats. Each heat = array of lane assignments.
-function spearheadSeed(entries, laneCount) {
-  const map = laneCount >= 8 ? SPEARHEAD_8 : SPEARHEAD_6;
-
-  // Sort: fastest first, NT last (slowest → earlier heats, Rule 8.3 Heat Sequencing)
-  const sorted = [...entries].sort((a, b) => seedToSeconds(a.seedTime) - seedToSeconds(b.seedTime));
-
-  // Rule 8.2: Total Heats = ceil(entries / laneCount)
-  const totalHeats = Math.ceil(sorted.length / laneCount);
-  const heats      = Array.from({ length: totalHeats }, () => []);
-
-  // Distribute: last heat = fastest swimmers, first heat = slowest
-  // Fill heats from last to first
-  sorted.forEach((entry, i) => {
-    const heatIdx = totalHeats - 1 - Math.floor(i / laneCount);
-    heats[heatIdx].push(entry);
-  });
-
-  // Within each heat, assign lanes using spearhead pattern
-  const heatObjects = heats.map((heatEntries, hIdx) => {
-    // Sort within heat: fastest first (for lane assignment)
-    const sortedHeat = [...heatEntries].sort((a, b) => seedToSeconds(a.seedTime) - seedToSeconds(b.seedTime));
-
-    const lanes = {};
-    sortedHeat.forEach((entry, rank) => {
-      const laneNum = map[rank + 1] || rank + 1;
-      lanes[laneNum] = { ...entry, seedRank: rank + 1 };
-    });
-
-    // Fill empty lanes
-    const laneArr = [];
-    for (let l = 1; l <= laneCount; l++) {
-      laneArr.push(lanes[l] || { empty: true, lane: l });
+  // ── Import entries (spreadsheet) ──────────────────────────
+  async function openImport() {
+    const m = state.meet;
+    if (!m) return SF.toast('Pick a meet first.', 'warn');
+    if (!IMPORTABLE.includes(m.status)) {
+      return SF.toast('Entries can only be imported before the player list is locked. Unlock it on the player list first.', 'warn');
     }
+    try {
+      if (!state.academies) state.academies = await SF.AcademyRepo.listApproved();
+    } catch (e) { state.academies = []; }
+    new SF.EntryImporter().open({ meet: m, academies: state.academies });
+  }
 
-    return {
-      heatNumber   : hIdx + 1,
-      totalHeats,
-      isFinal      : hIdx === totalHeats - 1,
-      lanes        : laneArr,
-      entryCount   : heatEntries.length,
-    };
-  });
+  // ── Start ─────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
+    if (session) {
+      const name = session.name || session.email || 'Signed in';
+      $('sideName').textContent = name;
+      $('sideInitials').textContent = String(name).split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'AD';
+      $('sideRole').textContent = session.role === 'super_admin' ? 'Super Admin' : 'Admin';
+    }
+    if (window.SwimNav) window.SwimNav.applySuperAdmin({ nav: 'hgNav', brand: 'hgBrand', brandSub: 'hgBrandSub', userLink: 'sideUserLink', name: 'sideName', initials: 'sideInitials', role: 'sideRole' }, 'heatgen.html');
 
-  return heatObjects;
-}
+    $('seedingSelect').innerHTML = Object.entries(E.SEEDING).map(([k, s]) => `<option value="${k}">${esc(s.label)}</option>`).join('');
+    ['pool1Active', 'pool2Active'].forEach(id => $(id).addEventListener('change', syncPools));
+    document.querySelectorAll('#pool1Categories input, #pool2Categories input').forEach(cb => cb.addEventListener('change', renderMeetState));
+    syncPools();
 
-// Minutes after midnight → "2:05 PM" (rounded to the minute)
-function clock12(totalMinutes) {
-  const mins = Math.round(totalMinutes) % (24 * 60);
-  const h = Math.floor(mins / 60), m = mins % 60;
-  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
-}
-
-// ─── Estimated Start Time (Rule 8.4) ─────────────────────────
-// Heat N Start = Session Start + (N-1) × D_buffer (summed across all prior heats/events)
-function buildSchedule(allEvents) {
-  const startTimeStr  = $('sessionStart').value || '08:30';
-  const [sh, sm]      = startTimeStr.split(':').map(Number);
-  let currentMinutes  = sh * 60 + sm;
-
-  allEvents.forEach(ev => {
-    const bufMins = getBufferMinutes(ev.eventName);
-    ev.heats.forEach(heat => {
-      heat.estimatedStart = clock12(currentMinutes);
-      currentMinutes += bufMins;
+    $('hgTournamentSelect').addEventListener('change', e => {
+      if (state.dirty && state.events.length && !confirm('The heats you generated are not saved. Switch meet anyway?')) {
+        e.target.value = state.meet.tournament_id; return;
+      }
+      loadMeet(e.target.value);
     });
-  });
-}
-
-// ─── Main Generation Engine ───────────────────────────────────
-function generateHeatSheets() {
-  const pools = getPoolConfig();
-
-  const blocker = generateBlocker();
-  if (blocker) { renderMeetState(); showToast(blocker.replace(/<[^>]+>/g, ''), 'warn'); return; }
-  if (pools.length === 0) {
-    showToast('Turn on at least one pool before generating.', 'warn');
-    return;
-  }
-  if (pools.some(p => !p.categories.length)) {
-    showToast('Each pool you use needs at least one age group.', 'warn');
-    return;
-  }
-
-  {
-    const poolMap   = routeEntriesToPools(pools);
-    generatedHeats  = [];
-    const allEvents = [];
-
-    // Event order: sorted by category → gender → eventName
-    const ORDER_CAT = { 'U-10':0, 'U-12':1, 'U-14':2, 'U-16':3 };
-
-    Object.values(poolMap).forEach(({ pool, events }) => {
-      const eventKeys = Object.keys(events).sort((a, b) => {
-        const ea = events[a], eb = events[b];
-        const catDiff = (ORDER_CAT[ea.category]||0) - (ORDER_CAT[eb.category]||0);
-        if (catDiff !== 0) return catDiff;
-        if (ea.gender !== eb.gender) return ea.gender === 'Boy' ? -1 : 1;
-        return ea.eventName.localeCompare(eb.eventName);
-      });
-
-      let globalEventNum = 1;
-      eventKeys.forEach(key => {
-        const ev     = events[key];
-        const heats  = spearheadSeed(ev.entries, pool.lanes);
-        const evObj  = {
-          poolId    : pool.id,
-          poolLabel : pool.label,
-          poolLanes : pool.lanes,
-          category  : ev.category,
-          gender    : ev.gender,
-          eventName : ev.eventName,
-          eventNum  : globalEventNum++,
-          totalEntries: ev.entries.length,
-          heats,
-        };
-        allEvents.push(evObj);
-        generatedHeats.push(evObj);
+    $('generateBtn').addEventListener('click', generate);
+    $('publishBtn').addEventListener('click', confirmSave);
+    $('exportCTSBtn').addEventListener('click', exportCTS);
+    $('printBtn').addEventListener('click', () => (state.events.length ? window.print() : SF.toast('Generate heats first.', 'warn')));
+    $('templateBtn').addEventListener('click', () => {
+      const imp = new SF.EntryImporter();
+      SF.Dialog.open({
+        title: 'Entries template',
+        body: `<p style="margin:0 0 10px">One row per swimmer per race. Fill it in, then use <strong>Import entries</strong>.</p><ul>${imp.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>`,
+        actions: [
+          { label: 'Download .csv', onClick: () => imp.downloadTemplate('csv') },
+          { label: 'Download .xlsx', primary: true, onClick: () => imp.downloadTemplate('xlsx') },
+        ],
       });
     });
-
-    buildSchedule(allEvents);
-
-    renderSummary();
-    populatePreviewFilters();
-    renderHeatPreview();
-
-    $('exportCTSBtn').disabled = false;
-    const btn = $('publishBtn');
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-floppy-disk"></i> Save heats';
-    $('hgPreviewSubtitle').textContent = 'Not saved yet. Check the lanes, then save.';
-
-    const skipped = unroutedEntries().length;
-    showToast(skipped
-      ? `Drew ${generatedHeats.length} races. ${skipped} entries have no pool and were left out.`
-      : `Drew ${generatedHeats.length} races across ${pools.length} pool${pools.length === 1 ? '' : 's'}.`, skipped ? 'warn' : 'success');
-    $('heatPreviewSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-}
-
-// ─── Summary Chips ────────────────────────────────────────────
-function renderSummary() {
-  const totalHeatsCount = generatedHeats.reduce((s, ev) => s + ev.heats.length, 0);
-  const pools           = [...new Set(generatedHeats.map(e => e.poolLabel))];
-  const events          = generatedHeats.length;
-  const swimmers        = new Set(MASTER_ROSTER.map(r => r.swimId)).size;
-  const algo            = 'Spearhead (fastest in the middle lanes)';
-  const skipped         = unroutedEntries().length;
-
-  $('genSummary').style.display = '';
-  $('genSummary').innerHTML = `
-    <div class="hg-summary-chip"><i class="fas fa-swimming-pool"></i><span class="chip-n">${pools.length}</span> Pools Active</div>
-    <div class="hg-summary-chip"><i class="fas fa-list"></i><span class="chip-n">${events}</span> Events</div>
-    <div class="hg-summary-chip"><i class="fas fa-fire"></i><span class="chip-n">${totalHeatsCount}</span> Total Heats</div>
-    <div class="hg-summary-chip"><i class="fas fa-users"></i><span class="chip-n">${swimmers}</span> Athletes</div>
-    <div class="hg-summary-chip"><i class="fas fa-project-diagram"></i> Lanes: <strong>${algo}</strong></div>
-    ${skipped ? `<div class="hg-summary-chip" style="color:#b91c1c;"><i class="fas fa-triangle-exclamation"></i><span class="chip-n">${skipped}</span> entries left out (no pool for their age group)</div>` : ''}`;
-}
-
-// ─── Populate Preview Filters ─────────────────────────────────
-function populatePreviewFilters() {
-  const pools  = [...new Set(generatedHeats.map(e => e.poolLabel))];
-  const events = [...new Set(generatedHeats.map(e => e.eventName))];
-  const cats   = [...new Set(generatedHeats.map(e => e.category))];
-
-  const poolSel  = $('previewPoolFilter');
-  const evSel    = $('previewEventFilter');
-  const catSel   = $('previewCatFilter');
-
-  poolSel.innerHTML  = '<option value="">All pools</option>'  + pools.map(p=>`<option value="${escHtml(p)}">${escHtml(p)}</option>`).join('');
-  evSel.innerHTML    = '<option value="">All races</option>' + events.map(e=>`<option value="${escHtml(e)}">${escHtml(e)}</option>`).join('');
-  catSel.innerHTML   = '<option value="">All age groups</option>' + cats.map(c=>`<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
-}
-
-// ─── Render Heat Preview Cards ────────────────────────────────
-function renderHeatPreview() {
-  const section   = $('heatPreviewSection');
-  const container = $('heatCardsContainer');
-  section.hidden = false;
-  container.innerHTML   = '';
-
-  const filterPool  = $('previewPoolFilter').value;
-  const filterEvent = $('previewEventFilter').value;
-  const filterCat   = $('previewCatFilter').value;
-
-  const filtered = generatedHeats.filter(ev =>
-    (!filterPool  || ev.poolLabel === filterPool)  &&
-    (!filterEvent || ev.eventName === filterEvent) &&
-    (!filterCat   || ev.category  === filterCat)
-  );
-
-  // Session info line — matches wireframe
-  const totalHeatsCount = generatedHeats.reduce((s, ev) => s + ev.heats.length, 0);
-  const [sh, sm]        = ($('sessionStart').value || '08:30').split(':').map(Number);
-  const sessionInfoEl   = document.createElement('div');
-  sessionInfoEl.className = 'hg-session-info';
-  sessionInfoEl.innerHTML = `
-    <span class="hg-session-info-item"><i class="fas fa-clock"></i> Session start: <strong>${clock12(sh * 60 + sm)}</strong></span>
-    <span class="hg-session-info-item"><i class="fas fa-users"></i> Total Entries: <strong>${MASTER_ROSTER.length}</strong></span>
-    <span class="hg-session-info-item"><i class="fas fa-fire"></i> Total Heats: <strong>${totalHeatsCount}</strong></span>
-    <span class="hg-session-info-item"><i class="fas fa-project-diagram"></i> Algorithm: <strong>Spearhead (Center-Outward)</strong></span>`;
-  container.appendChild(sessionInfoEl);
-
-  if (filtered.length === 0) {
-    const msg = document.createElement('div');
-    msg.style.cssText = 'text-align:center;padding:40px;color:var(--gray);font-size:0.9rem;';
-    msg.textContent = 'No events match the selected filters.';
-    container.appendChild(msg);
-    return;
-  }
-
-  // Group by pool
-  const byPool = {};
-  filtered.forEach(ev => {
-    if (!byPool[ev.poolLabel]) byPool[ev.poolLabel] = [];
-    byPool[ev.poolLabel].push(ev);
-  });
-
-  Object.entries(byPool).forEach(([poolLabel, events]) => {
-    const divider = document.createElement('div');
-    divider.className = 'hg-pool-section-label';
-    divider.innerHTML = `
-      <span class="hg-pool-section-label-text"><i class="fas fa-swimming-pool"></i> ${escHtml(poolLabel)}</span>
-      <div class="hg-pool-section-divider"></div>`;
-    container.appendChild(divider);
-    events.forEach(ev => container.appendChild(buildEventBlock(ev)));
-  });
-}
-
-// ─── Build Event Block ────────────────────────────────────────
-function buildEventBlock(ev) {
-  const block = document.createElement('div');
-  block.className = 'hg-event-block';
-
-  const catClass = ev.gender === 'Girl' ? 'girls' : '';
-  const algoStr  = ev.poolLanes >= 8 ? '8-Lane Spearhead' : '6-Lane Spearhead';
-
-  block.innerHTML = `
-    <div class="hg-event-header">
-      <div class="hg-event-title">
-        <span class="hg-event-num-badge">Event ${ev.eventNum}</span>
-        ${escHtml(ev.gender === 'Girl' ? 'Girls' : 'Boys')} ${escHtml(ev.category)} ${escHtml(ev.eventName)}
-      </div>
-      <div class="hg-event-meta-chips">
-        <span class="hg-event-meta-chip pool-chip"><i class="fas fa-swimming-pool"></i> ${escHtml(ev.poolLabel)}</span>
-        <span class="hg-event-meta-chip"><i class="fas fa-users"></i> ${ev.totalEntries} entries</span>
-        <span class="hg-event-meta-chip"><i class="fas fa-fire"></i> ${ev.heats.length} heat${ev.heats.length !== 1 ? 's' : ''}</span>
-        <span class="hg-event-meta-chip algo-chip"><i class="fas fa-project-diagram"></i> ${algoStr}</span>
-      </div>
-    </div>
-    <div class="hg-heats-body" id="event-heats-${ev.poolId}-${ev.eventNum}"></div>`;
-
-  const heatsBody = block.querySelector(`#event-heats-${ev.poolId}-${ev.eventNum}`);
-  ev.heats.forEach(heat => heatsBody.appendChild(buildHeatCard(heat, ev)));
-
-  return block;
-}
-
-// ─── Build Heat Card ──────────────────────────────────────────
-function buildHeatCard(heat, ev) {
-  const card = document.createElement('div');
-  card.className = 'hg-heat-card';
-
-  const heatLabel = heat.isFinal
-    ? `Heat ${heat.heatNumber} of ${heat.totalHeats} — Main Heat (Fastest)`
-    : `Heat ${heat.heatNumber} of ${heat.totalHeats}`;
-
-  const badgeClass  = heat.isFinal ? 'heat-badge-main' : 'heat-badge-slow';
-  const badgeText   = heat.isFinal ? 'Main Heat' : 'Slow Heat';
-  const startTime   = heat.estimatedStart || '—';
-
-  // Lane rows
-  const laneRows = heat.lanes.map(lane => {
-    const laneNum = heat.lanes.indexOf(lane) + 1;
-    if (lane.empty) {
-      return `<tr class="empty-lane">
-        <td><span class="lane-num">L-${laneNum}</span></td>
-        <td>—</td><td><em>(Empty Lane)</em></td><td>—</td><td>—</td><td>—</td>
-      </tr>`;
-    }
-    const isNT = lane.seedTime?.toUpperCase() === 'NT';
-    const trClass = lane.seedRank === 1 ? 'seed-1' : lane.seedRank === 2 ? 'seed-2' : '';
-    return `<tr class="${trClass}">
-      <td><span class="lane-num">L-${laneNum}</span></td>
-      <td><span class="seed-num ${isNT ? 'nt-seed' : ''}">${isNT ? 'NT' : lane.seedRank}</span></td>
-      <td class="swimmer-cell">${escHtml(lane.name)}</td>
-      <td>
-        <span class="cat-pill-sm ${lane.gender === 'Girl' ? 'girls' : ''}">
-          ${escHtml(lane.gender === 'Girl' ? 'Girls' : 'Boys')} ${escHtml(lane.category)}
-        </span>
-      </td>
-      <td>${escHtml(lane.academy || '—')}</td>
-      <td class="seed-time-cell ${isNT ? 'nt' : ''}">${escHtml(lane.seedTime || 'NT')}</td>
-    </tr>`;
-  }).join('');
-
-  card.innerHTML = `
-    <div class="hg-heat-header" data-heat="${heat.heatNumber}">
-      <div class="hg-heat-title">
-        ${escHtml(heatLabel)}
-        <span class="hg-heat-badge ${badgeClass}">${badgeText}</span>
-      </div>
-      <div class="hg-heat-time"><i class="fas fa-clock"></i> Est. Start: ${escHtml(startTime)}</div>
-      <i class="fas fa-chevron-down hg-heat-toggle-icon"></i>
-    </div>
-    <div class="hg-heat-body">
-      <table class="hg-lane-table">
-        <thead>
-          <tr>
-            <th>Lane</th>
-            <th>Seed</th>
-            <th>Swimmer Name</th>
-            <th>Category</th>
-            <th>Academy</th>
-            <th>Seed Time</th>
-          </tr>
-        </thead>
-        <tbody>${laneRows}</tbody>
-      </table>
-    </div>`;
-
-  // Collapsible header
-  card.querySelector('.hg-heat-header').addEventListener('click', function () {
-    const body = card.querySelector('.hg-heat-body');
-    const icon = card.querySelector('.hg-heat-toggle-icon');
-    const isCollapsed = body.style.display === 'none';
-    body.style.display = isCollapsed ? '' : 'none';
-    this.classList.toggle('collapsed', !isCollapsed);
-    icon.style.transform = isCollapsed ? '' : 'rotate(-90deg)';
-  });
-
-  return card;
-}
-
-// ─── CTS / Meet Manager Export (Rule 8.5) ────────────────────
-function exportCTS() {
-  if (generatedHeats.length === 0) { showToast('Generate heat sheets first.', 'warn'); return; }
-
-  const headers = ['Pool_ID','Pool_Name','Event_No','Category','Gender','Event_Name',
-                   'Heat_No','Lane_No','Swimmer_ID','Swimmer_Name','Academy','Category_Full',
-                   'Seed_Time'];
-  const rows = [];
-
-  generatedHeats.forEach(ev => {
-    ev.heats.forEach(heat => {
-      heat.lanes.forEach((lane, i) => {
-        const laneNum = i + 1;
-        if (lane.empty) {
-          rows.push([ev.poolId, ev.poolLabel, ev.eventNum,
-                     ev.category, ev.gender, ev.eventName,
-                     heat.heatNumber, laneNum, '', '(Empty Lane)', '', '', '']);
-        } else {
-          rows.push([ev.poolId, ev.poolLabel, ev.eventNum,
-                     ev.category, ev.gender, ev.eventName,
-                     heat.heatNumber, laneNum,
-                     lane.swimId, lane.name, lane.academy || '',
-                     `${ev.gender === 'Girl' ? 'Girls' : 'Boys'} ${ev.category}`,
-                     lane.seedTime || 'NT']);
-        }
-      });
+    $('importBtn').addEventListener('click', openImport);
+    $('importResultsBtn').addEventListener('click', e => {
+      if (e.currentTarget.getAttribute('aria-disabled') === 'true') { e.preventDefault(); SF.toast('Save heats first, then import results from the timing system.', 'warn'); }
     });
+    ['previewPoolFilter', 'previewEventFilter', 'previewCatFilter'].forEach(id => $(id).addEventListener('change', renderHeats));
+    $('heatSearch').addEventListener('input', SF.debounce(renderHeats, 150));
+    $('heatTable').addEventListener('click', e => { const b = e.target.closest('[data-swap]'); if (b) onSwap(b); });
+
+    SF.bus.on('entries:imported', () => state.meet && loadMeet(state.meet.tournament_id));
+    window.addEventListener('beforeunload', e => { if (state.dirty && state.events.length) { e.preventDefault(); e.returnValue = ''; } });
+
+    // Mobile sidebar
+    const setNav = open => { $('acShell').classList.toggle('nav-open', open); $('acMenuBtn').setAttribute('aria-expanded', String(open)); };
+    $('acMenuBtn').addEventListener('click', () => setNav(!$('acShell').classList.contains('nav-open')));
+    $('acScrim').addEventListener('click', () => setNav(false));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') setNav(false); });
+
+    loadMeets();
   });
-
-  const csv  = [headers, ...rows]
-    .map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(','))
-    .join('\r\n');
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });   // BOM so Excel reads names correctly
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `${(MEET ? MEET.title : 'SwimFest').replace(/[^\w\-]+/g, '_')}_heats.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('Heat file downloaded for the timing system.', 'success');
-}
-
-// ─── Print Heat Book (Rule 8.5) ───────────────────────────────
-function printHeatBook() {
-  if (generatedHeats.length === 0) { showToast('Generate heat sheets first.', 'warn'); return; }
-  window.print();
-}
-
-// ─── Publish ──────────────────────────────────────────────────
-function publishHeatSheets() {
-  openModal('publishModal');
-}
-
-async function confirmPublish() {
-  const go = $('publishModalConfirm');
-  go.disabled = true;
-  const saved = await saveHeatsToDB();
-  go.disabled = false;
-  closeModal('publishModal');
-  if (!saved) return;
-  isPublished = true;
-  const btn = $('publishBtn');
-  btn.innerHTML = '<i class="fas fa-check-circle"></i> Saved';
-  btn.disabled = true;
-  $('hgPreviewSubtitle').textContent = 'Saved. These heats are now on Race control, Live results and the Heat sheets page.';
-}
-
-// ─── Toast ────────────────────────────────────────────────────
-function showToast(msg, type = 'info') {
-  const existing = document.querySelector('.admin-toast');
-  if (existing) existing.remove();
-  const toast = document.createElement('div');
-  toast.className = `admin-toast admin-toast-${type}`;
-  const icon = type === 'success' ? 'check-circle' : type === 'warn' ? 'exclamation-triangle' : 'info-circle';
-  toast.innerHTML = `<i class="fas fa-${icon}"></i> ${escHtml(msg)}`;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.classList.add('show'), 10);
-  setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 400); }, 3500);
-}
-
-// Inject toast styles
-(function () {
-  const s = document.createElement('style');
-  s.textContent = `
-    .admin-toast { position:fixed; bottom:28px; right:28px; z-index:99999;
-      padding:12px 20px; background:var(--dark); color:var(--white);
-      border-radius:var(--radius-sm); font-size:0.85rem; font-weight:500;
-      display:flex; align-items:center; gap:10px;
-      box-shadow:0 8px 24px rgba(0,0,0,0.25);
-      transform:translateY(20px); opacity:0; transition:all 0.3s ease;
-      max-width:400px; font-family:'Inter',sans-serif; }
-    .admin-toast.show { transform:translateY(0); opacity:1; }
-    .admin-toast i { color:var(--accent); }
-    .admin-toast.admin-toast-success i { color:var(--success); }
-    .admin-toast.admin-toast-warn i { color:var(--warning); }`;
-  document.head.appendChild(s);
 })();
-
-// ─── Pool toggle cards ────────────────────────────────────────
-// At least one pool must stay on: the last pool still on can't be switched off
-const LAST_POOL_TIP = 'At least one pool must stay on. Turn on the other pool first, then you can turn this one off.';
-function syncPoolToggles() {
-  const toggles = [$('pool1Active'), $('pool2Active')];
-  const on = toggles.filter(t => t.checked).length;
-  toggles.forEach((t, i) => {
-    $(`pool${i + 1}Card`).classList.toggle('disabled', !t.checked);
-    const locked = t.checked && on === 1;
-    t.disabled = locked;
-    const label = t.closest('.hg-pool-toggle');
-    label.classList.toggle('is-locked', locked);
-    label.title = locked ? LAST_POOL_TIP : (t.checked ? 'Turn this pool off' : 'Turn this pool on');
-  });
-}
-
-function initPoolToggles() {
-  ['pool1Active', 'pool2Active'].forEach(id => $(id).addEventListener('change', () => {
-    syncPoolToggles();
-    refreshUnrouted();
-  }));
-  syncPoolToggles();
-  document.querySelectorAll('#pool1Categories input, #pool2Categories input').forEach(cb => cb.addEventListener('change', refreshUnrouted));
-
-  // Radio label active state
-  document.querySelectorAll('.hg-radio-opt input[type="radio"]').forEach(radio => {
-    radio.addEventListener('change', function () {
-      const group = this.closest('.hg-radio-group');
-      group.querySelectorAll('.hg-radio-opt').forEach(opt => opt.classList.remove('active'));
-      this.closest('.hg-radio-opt').classList.add('active');
-    });
-  });
-}
-
-function setNavOpen(open) {
-  $('acShell').classList.toggle('nav-open', open);
-  $('acMenuBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
-}
-
-// ─── Bootstrap ────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
-  if (session) {
-    const name = session.name || session.email || 'Signed in';
-    $('sideName').textContent = name;
-    $('sideInitials').textContent = String(name).split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'AD';
-    $('sideRole').textContent = session.role === 'super_admin' ? 'Super Admin' : 'Admin';
-    if (session.role === 'super_admin') { $('sideUserLink').setAttribute('href', 'saprofile.html'); $('sideUserLink').title = 'Your profile'; }
-  }
-  if (window.SwimNav) window.SwimNav.applySuperAdmin({ nav: 'hgNav', brand: 'hgBrand', brandSub: 'hgBrandSub', userLink: 'sideUserLink', name: 'sideName', initials: 'sideInitials', role: 'sideRole' }, 'heatgen.html');
-  refreshRosterCounts();
-  initPoolToggles();
-  loadTournamentOptions();
-
-  $('generateBtn').addEventListener('click', generateHeatSheets);
-  $('exportCTSBtn').addEventListener('click', exportCTS);
-  $('publishBtn').addEventListener('click', publishHeatSheets);
-  $('printBtn').addEventListener('click', printHeatBook);
-  ['previewPoolFilter', 'previewEventFilter', 'previewCatFilter'].forEach(id => $(id).addEventListener('change', renderHeatPreview));
-  $('acMenuBtn').addEventListener('click', () => setNavOpen(!$('acShell').classList.contains('nav-open')));
-  $('acScrim').addEventListener('click', () => setNavOpen(false));
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { setNavOpen(false); closeModal('publishModal'); } });
-
-  $('publishModal').addEventListener('click', e => { if (e.target === $('publishModal')) closeModal('publishModal'); });
-  $('publishModalClose').addEventListener('click',   () => closeModal('publishModal'));
-  $('publishModalCancel').addEventListener('click',  () => closeModal('publishModal'));
-  $('publishModalConfirm').addEventListener('click', confirmPublish);
-});

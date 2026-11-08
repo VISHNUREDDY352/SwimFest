@@ -28,6 +28,7 @@ order in **Supabase → SQL Editor** (each is safe to run again).
 19. `team_management.sql`: the Team tab (Owner only)
 20. `secure_views.sql`: who may read the swimmer, organizer and reopen-request views
 21. `team_members.sql`: separate table of Owner / Co-Super Admins / Admins, kept in step with `profiles` both ways
+22. `perf_and_bulk.sql`: indexes, one-call spreadsheet import (`bulk_import_entries`), safe heat saving (`save_heats`), batch results saving (`save_results`), swimmer ID search
 
 Staff accounts are created by signing up and then setting the role from the
 **Team** tab (or in Supabase). Never put passwords in a file here.
