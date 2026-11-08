@@ -196,8 +196,10 @@
       list.dataset.sfTabs = '1';
       list.setAttribute('role', 'tablist');
       const tabs = () => [...list.querySelectorAll(tabSelector)].filter(t => !t.hidden);
-      const sync = () => tabs().forEach(t => {
-        const on = t.classList.contains('active') || t.getAttribute('aria-selected') === 'true';
+      const sync = () => tabs().forEach((t, _, all) => {
+        // Older pages mark the chosen tab with class "active"; newer ones with aria-selected
+        const byClass = all.some(x => x.classList.contains('active'));
+        const on = byClass ? t.classList.contains('active') : t.getAttribute('aria-selected') === 'true';
         t.setAttribute('role', 'tab');
         t.setAttribute('aria-selected', on ? 'true' : 'false');
         t.tabIndex = on ? 0 : -1;

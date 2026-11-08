@@ -733,8 +733,8 @@ window.filterMeetsByStatus = function(status, btn) {
 window.openAllMeetSites = function(title, tid) {
   const encTitle = encodeURIComponent(title);
   window.open(`event.html?id=${encodeURIComponent(tid)}`, '_blank');
-  window.open(`admin.html?t=${encTitle}`, '_blank');
-  window.open(`results.html`, '_blank');
+  window.open(`playerlist.html?t=${encodeURIComponent(tid)}`, '_blank');
+  window.open(`results.html?t=${encodeURIComponent(tid)}`, '_blank');
   window.open(`heatsheets.html?tournament=${encTitle}`, '_blank');
   showToast(`Opening all sites/portals for: ${title}`, 'success');
 };
@@ -742,12 +742,17 @@ window.openAllMeetSites = function(title, tid) {
 // Organizer asked to close a finished meet → mark it COMPLETED (read-only)
 window.approveClosure = async function(tid, title) {
   if (!window.sb) return;
-  const { error } = await window.sb.from('tournaments')
-    .update({ status: 'COMPLETED' }).eq('tournament_id', tid);
+  const { data: closed, error } = await window.sb.from('tournaments')
+    .update({ status: 'COMPLETED' }).eq('tournament_id', tid).eq('status', 'CLOSURE_REQUESTED').select('tournament_id');
   if (error) {
     showToast('Closure failed: ' + error.message, 'warn');
     return;
   }
+  if (!closed || !closed.length) {
+    showToast('This meet is no longer waiting for closure (someone else changed it). Reload to see the latest.', 'warn');
+    return;
+  }
+  if (window.SwimGov) window.SwimGov.audit('MEET_CLOSED', 'TOURNAMENT', tid, `${title}: closure approved`);
   await writeAudit('MEET_CLOSED', 'TOURNAMENT', tid, `Closure approved: ${title}`);
   showToast(`Meet closed: ${title}`, 'success');
   loadTournaments();
@@ -854,19 +859,19 @@ function renderAllMeets() {
             <a href="event.html?id=${encodeURIComponent(t.tournament_id)}" target="_blank" class="em-action-btn em-btn-view" title="Open Public Event Page">
               <i class="fas fa-globe"></i> Public Site
             </a>
-            <a href="admin.html?t=${encTitle}" target="_blank" class="em-action-btn em-btn-manage" title="Master Player List / Roster">
+            <a href="playerlist.html?t=${encodeURIComponent(t.tournament_id)}" target="_blank" class="em-action-btn em-btn-manage" title="Master Player List / Roster">
               <i class="fas fa-users"></i> Roster
             </a>
-            <a href="heatgen.html" target="_blank" class="em-action-btn em-btn-race" title="Heat Generation">
+            <a href="heatgen.html?t=${encodeURIComponent(t.tournament_id)}" target="_blank" class="em-action-btn em-btn-race" title="Heat Generation">
               <i class="fas fa-bolt"></i> Heat Gen
             </a>
-            <a href="results.html" target="_blank" class="em-action-btn em-btn-race" title="Live Results">
+            <a href="results.html?t=${encodeURIComponent(t.tournament_id)}" target="_blank" class="em-action-btn em-btn-race" title="Live Results">
               <i class="fas fa-broadcast-tower"></i> Results
             </a>
             <a href="heatsheets.html?tournament=${encTitle}" target="_blank" class="em-action-btn em-btn-view" title="Heat Sheets & Schedule">
               <i class="fas fa-file-alt"></i> Sheets
             </a>
-            <a href="orgracecontrol.html" target="_blank" class="em-action-btn em-btn-manage" title="Poolside Race Control">
+            <a href="orgracecontrol.html?t=${encodeURIComponent(t.tournament_id)}" target="_blank" class="em-action-btn em-btn-manage" title="Poolside Race Control">
               <i class="fas fa-stopwatch"></i> Race Control
             </a>
             <a href="saoverride.html?id=${tid}" target="_blank" class="em-action-btn em-btn-edit" title="Universal Override">
@@ -980,6 +985,8 @@ function switchTab(tabKey) {
   });
   const titleEl = $('saPageTitle');
   if (titleEl) titleEl.textContent = title;
+  const PAGE_HELP = { dashboard: 'saApprovals', meets: 'saMeets', academies: 'saAcademies', financials: 'saFinancials', team: 'saTeam' };
+  if (titleEl && PAGE_HELP[tabKey]) SF.Info.attach(titleEl, PAGE_HELP[tabKey]);
 
   // The four number boxes belong to Approvals only
   $('saKpis').hidden = tabKey !== 'dashboard';
@@ -1020,20 +1027,54 @@ function switchQueue(key) {
   });
   $('saQueueTitle').textContent = QUEUE_META[key].title;
   $('saQueueSub').textContent = QUEUE_META[key].sub;
+  if (queueSearch) queueSearch.setTab(key);
+  if (QUEUE_SEARCH[key]) SF.Info.attach($('saQueueTitle'), QUEUE_SEARCH[key].help);
+  syncQueueTypeFilter();
   applyQueueSearch();
 }
 window.switchQueue = switchQueue;
 
-// Client-side text filter over the rows of the visible queue
+// Each queue's search key (column index) — the search follows the queue (Strategy pattern)
+const QUEUE_SEARCH = {
+  s2:       { keyCol: 2, typeCol: 1, placeholder: 'Search by name or club', help: 's2' },
+  s1a:      { keyCol: 1, placeholder: 'Search by meet title', help: 's1a' },
+  s1b:      { keyCol: 1, placeholder: 'Search by meet title', help: 's1b' },
+  reopen:   { keyCol: 1, placeholder: 'Search by meet title', help: 'reopen' },
+  sentback: { keyCol: 1, placeholder: 'Search by meet title', help: 'sentback' },
+};
+let queueSearch = null;
+
+// Filter + rank the rows of the visible queue: key-column matches first, then other columns
 function applyQueueSearch() {
-  const input = $('saQueueSearch');
-  const q = (input ? input.value : '').trim().toLowerCase();
+  if (QUEUE_SEARCH[ACTIVE_QUEUE] && QUEUE_SEARCH[ACTIVE_QUEUE].typeCol != null) syncQueueTypeFilter();
+  const cfg = QUEUE_SEARCH[ACTIVE_QUEUE] || { keyCol: 0 };
+  const q = queueSearch ? queueSearch.query : '';
+  const type = cfg.typeCol != null && $('saQueueType') ? $('saQueueType').value : '';
   const panel = document.querySelector(`.sa-qpanel[data-qpanel="${ACTIVE_QUEUE}"]`);
   if (!panel) return;
-  panel.querySelectorAll('tbody tr').forEach(tr => {
-    if (tr.querySelector('.sa-empty-cell')) return;
-    tr.style.display = !q || tr.textContent.toLowerCase().includes(q) ? '' : 'none';
-  });
+  const tbody = panel.querySelector('tbody');
+  const rows = [...tbody.querySelectorAll('tr')].filter(tr => !tr.querySelector('.sa-empty-cell'));
+  const strategy = SF.Search.by([tr => (tr.cells[cfg.keyCol] || {}).textContent || ''], [tr => tr.textContent]);
+  const ranked = SF.Search.run(rows, strategy, q).filter(tr => !type || SF.norm((tr.cells[cfg.typeCol] || {}).textContent).includes(SF.norm(type)));
+  const show = new Set(ranked);
+  rows.forEach(tr => { tr.style.display = show.has(tr) ? '' : 'none'; });
+  if (q) ranked.forEach(tr => tbody.appendChild(tr));
+  const count = $('saQueueCount');
+  if (count) count.textContent = q || type ? `${ranked.length} of ${rows.length} shown` : '';
+}
+
+// Type filter for the mixed Verifications queue (swimmer / academy / coach / organizer)
+function syncQueueTypeFilter() {
+  const sel = $('saQueueType');
+  if (!sel) return;
+  const cfg = QUEUE_SEARCH[ACTIVE_QUEUE] || {};
+  sel.hidden = cfg.typeCol == null;
+  if (sel.hidden) return;
+  const panel = document.querySelector(`.sa-qpanel[data-qpanel="${ACTIVE_QUEUE}"]`);
+  const types = [...new Set([...panel.querySelectorAll('tbody tr')].map(tr => (tr.cells[cfg.typeCol] || {}).textContent).filter(Boolean).map(t => t.trim()))].sort();
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All types</option>' + types.map(t => `<option value="${SF.esc(t)}">${SF.esc(t)}</option>`).join('');
+  if (types.includes(cur)) sel.value = cur;
 }
 
 // Mobile: sidebar slides in as a drawer
@@ -1068,7 +1109,13 @@ function initTabs() {
   });
 
   const search = $('saQueueSearch');
-  if (search) search.addEventListener('input', applyQueueSearch);
+  if (search) {
+    queueSearch = new SF.TabbedSearch({ input: search, tabs: QUEUE_SEARCH, onChange: applyQueueSearch });
+    queueSearch.setTab(ACTIVE_QUEUE);
+  }
+  if ($('saQueueType')) $('saQueueType').addEventListener('change', applyQueueSearch);
+  SF.Tabs.enhance(document.querySelector('.sa-qtabs'), { tabSelector: '.sa-qtab' });
+  SF.Info.attach($('saQueueTitle'), 'saApprovals');
 
   const menuBtn = $('saMenuBtn');
   if (menuBtn) menuBtn.addEventListener('click', () => setNavOpen(!$('saShell').classList.contains('nav-open')));

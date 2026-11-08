@@ -66,6 +66,11 @@
         .pl-danger-btn:hover:not(:disabled) { background:#b91c1c; color:#fff; }
         .pl-danger-btn:disabled { background:var(--ac-line); color:#64748b; cursor:not-allowed; }
         @media (max-width:900px) { .pl-select.wide { min-width:0; width:100%; } .pl-label { width:100%; } }
+            @media (max-width:640px) {
+            .pl-table td.pl-idx { display:none !important; }
+            .pl-table td.pl-who { display:block !important; text-align:left !important; }
+            .pl-table td.pl-who::before { content:none !important; }
+        }
     </style>
     <link rel="stylesheet" href="core/sf.css?v=1">
 </head>
@@ -116,7 +121,7 @@
                 </div>
                 <div class="ac-head-actions">
                     <button type="button" class="ac-btn ac-btn-ghost" id="exportBtn"><i class="fas fa-file-csv"></i> Export CSV</button>
-                    <button type="button" class="ac-btn ac-btn-ghost" id="bulkBtn"><i class="fas fa-file-arrow-up"></i> Upload walk-ins</button>
+                    <button type="button" class="ac-btn ac-btn-ghost" id="bulkBtn"><i class="fas fa-file-arrow-up"></i> Import from spreadsheet</button>
                     <button type="button" class="ac-btn ac-btn-primary" id="addManualBtn"><i class="fas fa-user-plus"></i> Add walk-in swimmer</button>
                 </div>
             </div>
@@ -144,7 +149,7 @@
             <section class="ac-card" aria-labelledby="rosterTitle">
                 <div class="ac-card-head">
                     <div>
-                        <h2 class="ac-card-title" id="rosterTitle">Entries</h2>
+                        <h2 class="ac-card-title" id="rosterTitle" data-help="roster">Entries</h2>
                         <p class="ac-card-sub">One row per swimmer per race. Changes save straight away.</p>
                     </div>
                 </div>
@@ -176,9 +181,9 @@
                     </select>
                 </div>
                 <div class="ac-table-wrap" id="adminGridWrap">
-                    <table class="ac-table">
+                    <table class="ac-table sf-table sf-stack pl-table">
                         <thead>
-                            <tr><th>#</th><th>Swimmer</th><th>Gender / DOB</th><th>Category</th><th>Academy</th><th>Event</th><th>Seed time</th><th>Actions</th></tr>
+                            <tr><th scope="col">#</th><th scope="col">Swimmer</th><th scope="col">Gender / DOB</th><th scope="col">Age group</th><th scope="col">Academy</th><th scope="col">Race</th><th scope="col">Seed</th><th scope="col"><span class="sr-only">Actions</span></th></tr>
                         </thead>
                         <tbody id="adminGridBody"></tbody>
                     </table>
@@ -191,7 +196,7 @@
                 <div class="pl-lock-head">
                     <span class="pl-lock-icon" id="lockIcon"><i class="fas fa-lock"></i></span>
                     <div>
-                        <h2 class="ac-card-title" id="lockTitle">Lock the player list</h2>
+                        <h2 class="ac-card-title" id="lockTitle" data-help="lock">Lock the player list</h2>
                         <p class="ac-card-sub" id="lockText">When every entry is right, lock the list. Entries become read-only and the meet moves on to heat generation. This can't be undone.</p>
                     </div>
                 </div>
@@ -277,31 +282,6 @@
     </div>
 
     <!-- Confirm lock -->
-    <!-- Bulk walk-in upload (bulkwalkin.js) -->
-    <div class="modal-overlay" id="bulkModal">
-        <div class="modal admin-modal" style="max-width:760px;">
-            <div class="modal-header">
-                <h3><i class="fas fa-file-arrow-up"></i> Upload walk-in swimmers</h3>
-                <button class="modal-close" id="bulkClose" aria-label="Close"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="modal-body admin-modal-body">
-                <ol class="pl-sub" style="font-size:0.84rem;line-height:1.7;margin:0 0 12px;padding-left:1.1rem;color:var(--ac-ink);">
-                    <li><button type="button" class="ac-btn ac-btn-ghost" id="bulkTemplate" style="height:2rem;padding:0 0.75rem;font-size:0.8rem;"><i class="fas fa-download"></i> Download the template</button>
-                        and fill in one swimmer per row in Excel. Up to 3 races each, plus "Yes" in Medley for the medley.</li>
-                    <li>Save it (Excel or CSV) and choose it here. Nothing is saved until you press Add.</li>
-                </ol>
-                <input type="file" id="bulkFile" accept=".xlsx,.xls,.csv" class="admin-input" style="padding:8px;">
-                <p class="pl-sub" id="bulkError" style="color:#b91c1c;font-size:0.82rem;margin:8px 0 0;"></p>
-                <p class="pl-sub" id="bulkSummary" style="font-size:0.85rem;margin:10px 0 6px;color:var(--ac-ink);"></p>
-                <div id="bulkPreview" style="max-height:20rem;overflow:auto;"></div>
-            </div>
-            <div class="modal-footer admin-modal-footer">
-                <button class="admin-btn admin-btn-outline" id="bulkCancel">Close</button>
-                <button class="admin-btn admin-btn-primary" id="bulkAddBtn" disabled><i class="fas fa-users"></i> Add 0 swimmers</button>
-            </div>
-        </div>
-    </div>
-
     <div class="modal-overlay" id="lockConfirmModal">
         <div class="modal admin-modal" style="max-width:460px;">
             <div class="modal-header">
@@ -327,6 +307,7 @@
     <script src="events.js?v=1"></script>
     <script src="governance.js?v=1"></script>
     <script src="admin.js?v=18"></script>
-    <script src="bulkwalkin.js?v=2"></script>
+    <script src="core/repos.js?v=1"></script>
+    <script src="core/entryimport.js?v=1"></script>
 </body>
 </html>

@@ -28,11 +28,7 @@ let LOADING = true;   // meets or entries still on their way: show placeholders,
 // ─── Utilities ────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
-function escHtml(s) {
-  return String(s || '')
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+const escHtml = SF.esc;
 
 function msToSeed(ms) {
   if (!ms || ms <= 0) return 'NT';
@@ -164,28 +160,29 @@ async function loadRoster(tournamentId, silent = false) {
   if (!window.sb || !MEET) { LOADING = false; ROSTER = []; renderGrid(); return; }
   if (!silent) { LOADING = true; ROSTER = []; renderGrid(); }
 
-  const { data, error } = await window.sb
-    .from('event_entries')
-    .select('*')   // includes is_im: the medley doesn't count toward the 3-race limit
-    .eq('tournament_id', tournamentId);
-  if (error) { console.error('[SwimFest] roster load:', error.message); LOADING = false; ROSTER = []; renderGrid(); return; }
-
-  const entries = data || [];
-  const swimmerIds = [...new Set(entries.map(e => e.swimmer_id).filter(Boolean))];
-  const swimmers = {};
-  if (swimmerIds.length) {
-    const { data: sw } = await window.sb.from('swimmers')
-      .select('*')  // '*' so a database without swimmers.status still loads
-      .in('swimmer_id', swimmerIds);
-    (sw || []).forEach(s => { swimmers[s.swimmer_id] = s; });
-    // Academy names (and a fallback name source if swimmers is restricted)
-    const { data: dir } = await window.sb.from('swimmer_directory')
-      .select('swimmer_id, full_name, academy_name').in('swimmer_id', swimmerIds);
-    (dir || []).forEach(d => {
-      swimmers[d.swimmer_id] = { ...(swimmers[d.swimmer_id] || {}), academy_name: d.academy_name,
-        full_name: (swimmers[d.swimmer_id] || {}).full_name || d.full_name };
-    });
+  // Every entry (no 1000-row cap) and swimmer details in chunks of 150 ids
+  let entries, swimmerRows, dirRows;
+  try {
+    entries = await SF.db.fetchAll(() => window.sb.from('event_entries')
+      .select('*')   // includes is_im: the medley doesn't count toward the 3-race limit
+      .eq('tournament_id', tournamentId).order('entry_id'));
+    const ids = entries.map(e => e.swimmer_id);
+    [swimmerRows, dirRows] = await Promise.all([
+      SF.db.inChunks(ids, chunk => window.sb.from('swimmers').select('*').in('swimmer_id', chunk)).catch(() => []),
+      SF.db.inChunks(ids, chunk => window.sb.from('swimmer_directory').select('swimmer_id, full_name, academy_name').in('swimmer_id', chunk)),
+    ]);
+  } catch (e) {
+    console.error('[SwimFest] roster load:', e.message);
+    showToast('Could not load the player list: ' + SF.db.why(e), 'warn');
+    LOADING = false; ROSTER = []; renderGrid(); return;
   }
+  const swimmers = {};
+  swimmerRows.forEach(s => { swimmers[s.swimmer_id] = s; });
+  // Academy names (and a fallback name source if swimmers is restricted)
+  dirRows.forEach(d => {
+    swimmers[d.swimmer_id] = { ...(swimmers[d.swimmer_id] || {}), academy_name: d.academy_name,
+      full_name: (swimmers[d.swimmer_id] || {}).full_name || d.full_name };
+  });
 
   ROSTER = entries.map(e => {
     const s = swimmers[e.swimmer_id] || {};
@@ -371,21 +368,21 @@ function renderGrid() {
     const isNT = row.seedTime === 'NT';
 
     tr.innerHTML = `
-      <td style="color:var(--ac-muted);font-variant-numeric:tabular-nums;">${idx + 1}</td>
-      <td>
+      <td class="pl-idx" style="color:var(--ac-muted);font-variant-numeric:tabular-nums;">${idx + 1}</td>
+      <td data-label="Swimmer" class="pl-who">
         <div class="pl-name">${escHtml(row.name)} ${statusTag}</div>
         <div class="pl-sub">${escHtml(row.swimId)}</div>
         ${flagsHtml}
       </td>
-      <td>
+      <td data-label="Gender / DOB">
         <div>${escHtml(row.gender)} · ${formatDate(row.dob)}</div>
         <div class="pl-sub">${row.age !== '' ? 'Age ' + row.age : 'DOB not available'}</div>
       </td>
-      <td><span class="pl-cat ${row.gender === 'Girl' ? 'girls' : 'boys'}">${row.gender === 'Girl' ? 'Girls' : 'Boys'} ${escHtml(row.category)}</span></td>
-      <td>${escHtml(row.academy)}</td>
-      <td>${escHtml(row.event)}${row.isRelay ? ' <span class="pl-tag pl-tag-walk">Relay</span>' : ''}</td>
-      <td><span class="pl-seed${isNT ? ' nt' : ''}">${escHtml(row.seedTime)}</span></td>
-      <td>${ro
+      <td data-label="Age group"><span class="pl-cat ${row.gender === 'Girl' ? 'girls' : 'boys'}">${row.gender === 'Girl' ? 'Girls' : 'Boys'} ${escHtml(row.category)}</span></td>
+      <td data-label="Academy">${escHtml(row.academy)}</td>
+      <td data-label="Race">${escHtml(row.event)}${row.isRelay ? ' <span class="pl-tag pl-tag-walk">Relay</span>' : ''}</td>
+      <td data-label="Seed"><span class="pl-seed${isNT ? ' nt' : ''}">${escHtml(row.seedTime)}</span></td>
+      <td data-label="">${ro
         ? '<span class="pl-sub" style="font-style:italic;">Locked</span>'
         : `<div class="pl-actions">
              <button type="button" class="pl-icon-btn btn-edit"><i class="fas fa-pen"></i> Edit</button>
@@ -823,4 +820,18 @@ document.addEventListener('DOMContentLoaded', () => {
     setNavOpen(false);
     ['manualEntryModal', 'deleteModal', 'lockConfirmModal'].forEach(closeModal);
   });
+});
+
+// --- Spreadsheet import of walk-ins: the shared importer (core/entryimport.js) ---
+// One call saves every row (bulk_import_entries), instead of 3-4 requests per swimmer.
+document.addEventListener('DOMContentLoaded', () => {
+  let academies = null;
+  $('bulkBtn').addEventListener('click', async () => {
+    if (!MEET || isReadOnly()) return;
+    if (!academies) {
+      try { academies = await SF.AcademyRepo.listApproved(); } catch (_) { academies = []; }
+    }
+    new SF.EntryImporter().open({ meet: MEET, academies });
+  });
+  SF.bus.on('entries:imported', () => MEET && loadRoster(MEET.tournament_id, true));
 });

@@ -46,11 +46,7 @@ const state = { evIdx: 0, heatIdx: 0, mode: 'type' };
 // ─── Utilities ────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
-function escHtml(s) {
-  return String(s ?? '')
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+const escHtml = SF.esc;
 
 function fmtTime(ms) {
   if (ms == null || ms <= 0) return '';
@@ -175,7 +171,9 @@ async function loadResultTournaments() {
     .in('status', MEET_STATUSES)
     .order('start_date', { ascending: false });
   if (SESSION && SESSION.role === 'organizer') query = query.eq('created_by', SESSION.userId);
-  const { data, error } = await query;
+  let { data, error } = await query;
+  const mine = window.SwimGov ? await window.SwimGov.assignedMeetIds() : null;   // Admins: assigned meets only
+  if (mine && data) data = data.filter(t => mine.has(t.tournament_id));
   if (error || !data || !data.length) {
     if (error) console.error('[SwimFest] results meets:', error.message);
     sel.innerHTML = `<option value="">${error ? 'Could not load meets' : 'No approved meets yet'}</option>`;
@@ -234,7 +232,9 @@ async function loadResultsForTournament(tournamentId) {
     (dir || []).forEach(s => { people[s.swimmer_id] = s; });
   }
 
-  const laneCount = MEET.lane_count || 8;
+  // Each pool's lane count = the highest lane used in that pool (a 6-lane pool shows 6 lanes)
+  const poolLanes = {};
+  data.forEach(r => { const k = r.pool_label || ''; poolLanes[k] = Math.max(poolLanes[k] || 0, r.lane_number || 0); });
   const evMap = new Map();
   data.forEach(r => {
     const ee = r.event_entries || {};
@@ -248,7 +248,16 @@ async function loadResultsForTournament(tournamentId) {
     const ev = evMap.get(key);
     if (!ev._heats.has(r.heat_number)) ev._heats.set(r.heat_number, []);
     const p = people[ee.swimmer_id] || {};
+    // Relay: every team member has a row in the same lane. Show the team as one lane.
+    const same = ev._heats.get(r.heat_number).find(x => x.lane === r.lane_number);
+    if (same) {
+      same.memberRowIds.push(r.heat_row_id);
+      same.members.push(p.full_name || 'Unknown swimmer');
+      same.name = `${same.academy} relay team`;
+      return;
+    }
     ev._heats.get(r.heat_number).push({
+      memberRowIds: [r.heat_row_id], members: [p.full_name || 'Unknown swimmer'],
       lane: r.lane_number, heatRowId: r.heat_row_id, swimId: ee.swimmer_id,
       name: p.full_name || 'Unknown swimmer', academy: p.academy_name || 'Unattached',
       seedMs: ee.seed_time_ms,
@@ -261,7 +270,7 @@ async function loadResultsForTournament(tournamentId) {
     const heatNos = [...ev._heats.keys()].sort((a, b) => a - b);
     ev.heats = heatNos.map(hn => {
       const rows = ev._heats.get(hn);
-      const total = Math.max(laneCount, ...rows.map(x => x.lane));
+      const total = Math.max(poolLanes[ev.pool === 'Pool' ? '' : ev.pool] || MEET.lane_count || 8, ...rows.map(x => x.lane));
       const lanes = [];
       for (let l = 1; l <= total; l++) lanes.push(rows.find(x => x.lane === l) || { lane: l, swimId: null });
       return { heatNo: hn, lanes };
@@ -380,7 +389,7 @@ function renderGrid() {
     const dqOpts = '<option value="">— Code —</option>' + Object.entries(DQ_CODES).map(([k, t]) => `<option value="${k}" ${v.dq === k ? 'selected' : ''}>${t}</option>`).join('');
     return `<tr class="${rowCls}" data-id="${lane.heatRowId}">
       <td><span class="lr-lane">L${lane.lane}</span></td>
-      <td><div class="lr-name">${escHtml(lane.name)}</div><div class="lr-sub">${escHtml(lane.academy)}</div></td>
+      <td><div class="lr-name">${escHtml(lane.name)}</div><div class="lr-sub">${escHtml(lane.members && lane.members.length > 1 ? lane.members.join(', ') : lane.academy)}</div></td>
       <td class="lr-sub" style="font-variant-numeric:tabular-nums;">${fmtTime(lane.seedMs) || 'NT'}</td>
       <td><input type="text" class="lr-input ${timeCls}" data-field="time" value="${escHtml(out ? '' : v.time)}" placeholder="MM:SS.ss"
             maxlength="9" inputmode="decimal" aria-label="Finish time lane ${lane.lane}" ${out || ro ? 'disabled' : ''}></td>
@@ -493,20 +502,22 @@ async function saveChanges() {
   }
 
   $('saveHeatBtn').disabled = true;
-  const results = await Promise.all(changed.map(([lane, v]) =>
-    unchangedSince(window.sb.from('heat_rows').update({
-      finish_time_ms: (v.status === 'OK' || v.status === 'DQ') ? parseTime(v.time) : null,
-      status: v.status,
-      dq_code: v.status === 'DQ' ? v.dq : null,
-      updated_at: new Date().toISOString(),
-    }).eq('heat_row_id', lane.heatRowId), lane).select('heat_row_id')
-      .then(r => ({ lane, v, r }))));
+  const payload = [];
+  changed.forEach(([lane, v]) => {
+    const ms = (v.status === 'OK' || v.status === 'DQ') ? parseTime(v.time) : null;
+    (lane.memberRowIds || [lane.heatRowId]).forEach(id => payload.push({
+      heat_row_id: id, prev_time_ms: lane.saved.time ?? null, prev_status: lane.saved.status || 'OK',
+      finish_time_ms: ms ?? null, status: v.status, dq_code: v.status === 'DQ' ? v.dq : null,
+    }));
+  });
+  let ok;
+  try { ok = await SF.ResultRepo.save(MEET.tournament_id, payload); }
+  catch (e) { showToast('Nothing was saved: ' + SF.db.why(e), 'warn'); renderFooter(); return false; }
 
   let saved = 0, blocked = 0, failed = 0;
   const staleEvents = new Set();
-  results.forEach(({ lane, v, r }) => {
-    if (r.error) { failed++; console.error('[SwimFest] save lane:', r.error.message); return; }
-    if (!r.data || !r.data.length) { blocked++; return; }
+  changed.forEach(([lane, v]) => {
+    if (!ok.has(lane.heatRowId)) { blocked++; return; }
     saved++;
     lane.saved = { time: (v.status === 'OK' || v.status === 'DQ') ? parseTime(v.time) : null, status: v.status, dq: v.status === 'DQ' ? v.dq : '' };
     edits.delete(lane.heatRowId);
@@ -584,21 +595,23 @@ async function executePublish() {
   try {
     const { timed, untimed } = rankEvent(ev);
     const rows = [...timed, ...untimed];
-    const results = await Promise.all(rows.map(x => {
+    const payload = [];
+    rows.forEach(x => {
       const ms = parseTime(x.v.time);
-      return unchangedSince(window.sb.from('heat_rows').update({
-        finish_time_ms: (x.v.status === 'OK' || x.v.status === 'DQ') && ms !== undefined ? ms : null,
-        status: x.v.status,
-        dq_code: x.v.status === 'DQ' ? x.v.dq : null,
-        official_rank: x.rank,
-        points_awarded: x.points,
-        updated_at: new Date().toISOString(),
-      }).eq('heat_row_id', x.lane.heatRowId), x.lane).select('heat_row_id').then(r => ({ x, r }));
-    }));
+      (x.lane.memberRowIds || [x.lane.heatRowId]).forEach((id, i) => payload.push({
+        heat_row_id: id, prev_time_ms: x.lane.saved.time ?? null, prev_status: x.lane.saved.status || 'OK',
+        finish_time_ms: (x.v.status === 'OK' || x.v.status === 'DQ') && ms !== undefined ? (ms ?? null) : null,
+        status: x.v.status, dq_code: x.v.status === 'DQ' ? x.v.dq : null,
+        set_rank: true, official_rank: x.rank, points_awarded: i === 0 ? x.points : 0,
+      }));
+    });
+    let ok;
+    try { ok = await SF.ResultRepo.save(MEET.tournament_id, payload); }
+    catch (e) { showToast('Nothing was published: ' + SF.db.why(e), 'warn'); return; }
 
     let bad = 0;
-    results.forEach(({ x, r }) => {
-      if (r.error || !r.data || !r.data.length) { bad++; if (r.error) console.error('[SwimFest] publish:', r.error.message); return; }
+    rows.forEach(x => {
+      if (!ok.has(x.lane.heatRowId)) { bad++; return; }
       const ms = parseTime(x.v.time);
       x.lane.saved = { time: (x.v.status === 'OK' || x.v.status === 'DQ') && ms !== undefined ? ms : null, status: x.v.status, dq: x.v.status === 'DQ' ? x.v.dq : '' };
       x.lane.rank = x.rank;
@@ -872,6 +885,32 @@ document.addEventListener('DOMContentLoaded', () => {
     state.heatIdx = Number(b.dataset.heat);
     renderHeatChips(); renderGrid(); renderFooter();
   });
+
+  // Find a swimmer (primary key on this page: swimmer name)
+  const findBox = $('resFind');
+  if (findBox) {
+    let hits = [], at = -1;
+    const jump = () => {
+      if (!hits.length) return;
+      at = (at + 1) % hits.length;
+      const h = hits[at];
+      state.evIdx = h.ev; state.heatIdx = h.heat;
+      renderEventPicker(); renderHeatChips(); renderGrid(); renderFooter(); renderResultSheet();
+      const row = document.querySelector(`#resultGridBody tr[data-id="${CSS.escape(h.id)}"]`);
+      if (row) { row.classList.add('lr-row-found'); const inp = row.querySelector('input:not(:disabled)'); if (inp) inp.focus(); }
+      $('resFindCount').textContent = `${at + 1} of ${hits.length}`;
+    };
+    findBox.addEventListener('input', SF.debounce(() => {
+      const q = SF.norm(findBox.value);
+      hits = []; at = -1;
+      if (q) EVENTS.forEach((ev, ei) => ev.heats.forEach((h, hi) => h.lanes.forEach(l => {
+        if (l.swimId && (l.members || [l.name]).concat(l.name).some(n => SF.norm(n).includes(q))) hits.push({ ev: ei, heat: hi, id: l.heatRowId });
+      })));
+      $('resFindCount').textContent = q ? (hits.length ? `${hits.length} found · Enter for next` : 'No swimmer found') : '';
+      if (hits.length) jump();
+    }, 250));
+    findBox.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); jump(); } });
+  }
 
   // Grid edits
   $('resultGridBody').addEventListener('input', e => { if (e.target.dataset.field === 'time') onGridInput(e); });

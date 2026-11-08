@@ -406,8 +406,10 @@
                         </div>
                         <label class="sa-search-wrap">
                             <i class="fas fa-search" aria-hidden="true"></i>
-                            <input type="search" id="saQueueSearch" placeholder="Search this queue…" aria-label="Search this queue">
+                            <input type="search" id="saQueueSearch" placeholder="Search by name or club" aria-label="Search by name or club">
                         </label>
+                        <select id="saQueueType" class="sf-select" style="width:auto" aria-label="Filter by type"><option value="">All types</option></select>
+                        <span class="sf-count" id="saQueueCount" aria-live="polite"></span>
                     </div>
 
                     <!-- Verifications -->

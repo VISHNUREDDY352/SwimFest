@@ -285,3 +285,9 @@ i[class*="fa-"]:empty { font-style: normal; }
   input, select, textarea { font-size: 16px; }   /* stops iOS zooming into fields */
   .modal-content, .ac-modal, .sa-modal { max-width: calc(100vw - 16px) !important; }
 }
+
+/* Assistant button: icon only on phones so it doesn't cover tables */
+@media (max-width: 640px) {
+  .sfa-fab { padding: 0 !important; width: 52px; height: 52px; justify-content: center; border-radius: 999px !important; right: 12px !important; bottom: 12px !important; }
+  .sfa-fab .sfa-fab-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+}

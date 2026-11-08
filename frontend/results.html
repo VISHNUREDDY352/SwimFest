@@ -21,8 +21,8 @@
             font:inherit; font-size:0.86rem; font-weight:600; color:var(--ac-ink); }
         .lr-select.wide { min-width:22rem; }
 
-        .lr-eventbar { display:flex; flex-wrap:wrap; align-items:center; gap:0.625rem; padding:1rem 1.25rem; border-bottom:1px solid var(--ac-line); }
-        .lr-eventbar .lr-select { flex:1 1 18rem; }
+        .lr-eventbar { display:flex; flex-wrap:nowrap; align-items:center; gap:0.625rem; padding:1rem 1.25rem; border-bottom:1px solid var(--ac-line); }
+        .lr-eventbar .lr-select { flex:1 1 auto; min-width:0; width:auto; }
         .lr-nav-btn { height:2.625rem; width:2.625rem; border-radius:0.625rem; border:1px solid var(--ac-line); background:#fff; color:#334155;
             cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
         .lr-nav-btn:hover:not(:disabled) { border-color:var(--ac-blue); color:var(--ac-blue); }
@@ -83,6 +83,7 @@
             .ac-sidebar, .ac-mobilebar, .ac-page-head, .ac-metrics, #entryCard, .lr-foot, .global-back-bar, .global-back-btn { display:none !important; }
             .ac-card { border:none; }
         }
+            .lr-row-found td { background:var(--sf-brand-soft) !important; }
     </style>
     <link rel="stylesheet" href="core/sf.css?v=1">
 </head>
@@ -123,7 +124,7 @@
         <main class="ac-container" id="top">
             <div class="ac-page-head" style="align-items:flex-end;">
                 <div style="display:flex;flex-direction:column;gap:0.625rem;min-width:0;">
-                    <h1 class="ac-page-title">Live results</h1>
+                    <h1 class="ac-page-title sf-title" data-help="enterTimes">Live results</h1>
                     <div class="lr-head-row">
                         <label class="lr-label" for="resTournamentSelect">Meet
                             <select id="resTournamentSelect" class="lr-select wide"><option value="">Loading meets…</option></select>
@@ -139,23 +140,11 @@
                 </div>
             </div>
 
-            <div class="ac-metrics">
-                <div class="ac-metric">
-                    <span class="ac-metric-icon" style="background:#e0f2fe;color:#0369a1;"><i class="fas fa-flag-checkered"></i></span>
-                    <div><div class="ac-metric-label">Events</div><div class="ac-metric-value" id="statEvents">—</div></div>
-                </div>
-                <div class="ac-metric">
-                    <span class="ac-metric-icon" style="background:#fef3c7;color:#b45309;"><i class="fas fa-water"></i></span>
-                    <div><div class="ac-metric-label">Heats with times</div><div class="ac-metric-value" id="statHeats">—</div></div>
-                </div>
-                <div class="ac-metric">
-                    <span class="ac-metric-icon" style="background:#dcfce7;color:#15803d;"><i class="fas fa-medal"></i></span>
-                    <div><div class="ac-metric-label">Events published</div><div class="ac-metric-value" id="statPublished">—</div></div>
-                </div>
-                <div class="ac-metric">
-                    <span class="ac-metric-icon" style="background:#ede9fe;color:#6d28d9;"><i class="fas fa-users"></i></span>
-                    <div><div class="ac-metric-label">Swims</div><div class="ac-metric-value" id="statSwims">—</div></div>
-                </div>
+            <div class="sf-stats" aria-label="Meet numbers">
+                <div class="sf-stat"><div class="sf-stat-label">Events</div><div class="sf-stat-value" id="statEvents">-</div></div>
+                <div class="sf-stat"><div class="sf-stat-label">Heats with times</div><div class="sf-stat-value" id="statHeats">-</div></div>
+                <div class="sf-stat"><div class="sf-stat-label">Events published</div><div class="sf-stat-value" id="statPublished">-</div></div>
+                <div class="sf-stat"><div class="sf-stat-label">Swims</div><div class="sf-stat-value" id="statSwims">-</div></div>
             </div>
 
             <!-- Result entry -->
@@ -179,6 +168,13 @@
                     <button type="button" class="lr-nav-btn" id="nextEventBtn" aria-label="Next event"><i class="fas fa-chevron-right"></i></button>
                 </div>
                 <div class="lr-heats" id="heatChips"></div>
+                <div class="sf-toolbar" style="border-top:1px solid var(--sf-line)">
+                    <div class="sf-search">
+                        <i class="fas fa-search"></i>
+                        <input type="search" id="resFind" class="sf-input" placeholder="Find a swimmer by name" aria-label="Find a swimmer by name" autocomplete="off">
+                    </div>
+                    <span class="sf-count" id="resFindCount" aria-live="polite"></span>
+                </div>
 
                 <!-- Import results from the timing system or Race control (Excel or CSV, every tab) -->
                 <div class="lr-upload" id="uploadBlock" style="display:none;">
@@ -213,7 +209,7 @@
             <section class="ac-card" id="resultSheetCard" style="display:none;" aria-labelledby="resultSheetTitle">
                 <div class="ac-card-head">
                     <div>
-                        <h2 class="ac-card-title" id="resultSheetTitle">Official results</h2>
+                        <h2 class="ac-card-title" id="resultSheetTitle" data-help="officialResults">Official results</h2>
                         <p class="ac-card-sub" id="resultSheetEventName"></p>
                     </div>
                     <div class="lr-foot-actions">
@@ -274,6 +270,7 @@
     <script src="assistant.js?v=2"></script>
     <script src="consolenav.js?v=5"></script>
     <script src="governance.js?v=1"></script>
+    <script src="core/repos.js?v=1"></script>
     <script src="results.js?v=12"></script>
 </body>
 </html>
