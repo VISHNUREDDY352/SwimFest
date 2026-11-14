@@ -195,6 +195,8 @@
         } else cur += c;
       }
       if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+      // Keep each row's position (0-based, like SheetJS) so blank lines don't shift row numbers
+      rows.forEach((r, i) => Object.defineProperty(r, '__rowNum__', { value: i }));
       return rows.filter(r => r.some(c => String(c).trim() !== ''));
     },
   };

@@ -312,7 +312,7 @@ a.btn-profile i { font-size: 0.85rem; color: inherit; }
 /* ===== Hero Banner ===== */
 .hero-banner {
     position: relative;
-    min-height: 75vh;                 /* takes ~3/4 of the screen */
+    min-height: min(60vh, 560px);     /* leaves room to see meets without scrolling far */
     display: flex;
     align-items: center;
     justify-content: center;

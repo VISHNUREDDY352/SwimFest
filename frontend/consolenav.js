@@ -20,21 +20,26 @@
       <nav class="ac-side-group" aria-label="Console">
         ${link('superadmin.html#dashboard', 'clipboard-check', 'Approvals')}
         ${link('superadmin.html#meets', 'trophy', 'All meets')}
-        ${link('superadmin.html#academies', 'building', 'Academies &amp; coaches')}
         ${link('superadmin.html#financials', 'indian-rupee-sign', 'Financials')}
+        ${link('superadmin.html#history', 'history', 'History')}
       </nav>
-      <nav class="ac-side-group" aria-label="Tools">
-        <div class="ac-side-label">Tools</div>
-        ${link('superadmin.html#playerlist', 'list-check', 'Master player list', is('playerlist.html'))}
+      <nav class="ac-side-group" aria-label="Run a meet">
+        <div class="ac-side-label">Run a meet</div>
+        ${link('superadmin.html#playerlist', 'list-check', 'Player list', is('playerlist.html'))}
         ${link('superadmin.html#heatgen', 'bolt', 'Heat generation', is('heatgen.html'))}
         ${link('superadmin.html#racecontrol', 'flag-checkered', 'Race control', is('orgracecontrol.html'))}
         ${link('superadmin.html#results', 'broadcast-tower', 'Live results', is('results.html'))}
-        ${link('superadmin.html#createmeet', 'plus', 'Create meet', is('orgcreate.html'))}
-        ${link('academy.html', 'building-columns', 'Academy directory')}
-        ${link('admin.html', 'cogs', 'Admin console')}
-        ${link('superadmin.html#organizer', 'user-tie', 'Organizer dashboard')}
-        ${link('superadmin.html#override', 'unlock-alt', 'Universal override', false, 'warn')}
-      </nav>`;
+      </nav>
+      <details class="ac-side-more"${is('orgcreate.html') ? ' open' : ''}>
+        <summary class="ac-side-label">More</summary>
+        <nav class="ac-side-group" aria-label="More">
+          ${link('superadmin.html#createmeet', 'plus', 'Create meet', is('orgcreate.html'))}
+          ${link('academy.html', 'building-columns', 'Academies &amp; coaches')}
+          ${link('admin.html', 'cogs', 'Admin console')}
+          ${link('superadmin.html#organizer', 'user-tie', 'Organizer view')}
+          ${link('superadmin.html#override', 'unlock-alt', 'Universal override', false, 'warn')}
+        </nav>
+      </details>`;
   }
 
   // ids: { nav, brand, brandSub, userLink, name, initials, role } — element ids on the page

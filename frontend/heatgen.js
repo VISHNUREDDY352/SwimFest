@@ -57,7 +57,31 @@
     return state.entries.filter(e => !p.some(x => x.categories.includes(e.category)));
   };
 
-  // ── Rendering: header, numbers, banner ────────────────────
+  // ── Rendering: status chip + step guide ───────────────────
+  // Each step is done, current (the one thing to do now) or still to come.
+  const RACING = ['LOCKED', 'CLOSURE_REQUESTED', 'COMPLETED'];
+
+  function stepStates() {
+    const m = state.meet;
+    const done = {
+      meet: !!m,
+      entries: !!m && state.entries.length > 0,
+      lock: !!m && RACING.includes(m.status),
+      generate: !!m && (state.events.length > 0 || state.saved.heats > 0),
+      save: !!m && state.saved.heats > 0 && !state.dirty,
+      race: !!m && m.status === 'COMPLETED',
+    };
+    const current = ['meet', 'entries', 'lock', 'generate', 'save', 'race'].find(k => !done[k]);
+    return { done, current };
+  }
+
+  function setStep(key, st, text) {
+    const li = document.querySelector(`#hgGuide [data-step="${key}"]`);
+    li.dataset.state = st;
+    if (st === 'current') li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
+    if (text != null) li.querySelector('[data-text]').innerHTML = text;
+  }
+
   function renderMeetState() {
     const m = state.meet;
     const [label, cls] = m ? (STATUS[m.status] || [m.status, '']) : ['—', ''];
@@ -65,35 +89,102 @@
     chip.className = 'sf-badge ' + cls;
     chip.textContent = label;
 
-    $('totalEventRows').textContent = m ? state.entries.length : '—';
-    $('totalAthletes').textContent = m ? new Set(state.entries.map(e => e.swimId)).size : '—';
-    $('statSavedHeats').textContent = m ? state.saved.heats : '—';
-    const n = m ? unrouted().length : null;
-    $('statUnrouted').textContent = n == null ? '—' : n;
-    $('statUnrouted').style.color = n ? 'var(--sf-bad)' : '';
+    const { done, current } = stepStates();
+    const st = k => (done[k] ? 'done' : k === current ? 'current' : 'todo');
+    const id = m ? encodeURIComponent(m.tournament_id) : '';
+    const swimmers = new Set(state.entries.map(e => e.swimId)).size;
+    const canImport = !!m && IMPORTABLE.includes(m.status);
+
+    setStep('meet', st('meet'), m
+      ? `${esc(m.title)}${m.start_date ? ' · ' + esc(SwimNav.dates(m.start_date, m.end_date)) : ''}`
+      : 'Pick the meet you\'re drawing heats for.');
+
+    setStep('entries', st('entries'), !m ? 'Import a spreadsheet, or add swimmers on the Player list.'
+      : state.loading ? 'Loading entries…'
+      : state.entries.length ? `${fmt.plural(swimmers, 'swimmer')} in ${fmt.plural(state.entries.length, 'race entry', 'race entries')}. They're listed below.`
+      : canImport ? 'No entries yet. Download the template, fill in one row per swimmer per race, then import it. You\'ll see every row before anything is saved.'
+      : 'This meet has no entries and its player list is locked. Unlock it on the Player list to add entries.');
+
+    $('lockLink').href = `playerlist.html${m ? '?t=' + id : ''}`;
+    setStep('lock', st('lock'), done.lock ? 'Locked. No new entries can come in.'
+      : 'Check the list, then lock it. Locking stops new entries, so the heats won\'t change after you draw them.');
+
+    const p = pools();
+    const left = m ? unrouted().length : 0;
+    const poolText = p.map(x => `${esc(x.label)} (${x.lanes} lanes, ${esc(x.categories.join(', ') || 'no age groups')})`).join(' and ');
+    const seeding = (E.SEEDING[$('seedingSelect').value] || {}).label || 'standard seeding';
+    let genText = `Using ${poolText}; ${esc(seeding.toLowerCase())}. Nothing is saved until the next step.`;
+    if (left) genText += ` <strong style="color:var(--sf-bad)">${fmt.plural(left, 'entry', 'entries')} ${left === 1 ? 'has' : 'have'} no pool</strong>: tick their age group under Pools &amp; timing.`;
+    if (state.saved.results) genText = `Results are already in for ${fmt.plural(state.saved.results, 'lane')}, so the heats can't be drawn again.`;
+    else if (m && m.status === 'COMPLETED') genText = 'This meet has finished racing, so its heats can\'t be changed.';
+    else if (state.saved.heats && !state.events.length) genText = `${fmt.plural(state.saved.heats, 'heat')} already saved. Generate again only if you need a new draw: saving replaces them.`;
+    setStep('generate', st('generate'), genText);
+
+    const heats = state.events.reduce((n, ev) => n + ev.heats.length, 0);
+    setStep('save', st('save'), done.save ? `${fmt.plural(state.saved.heats, 'heat')} saved. They're on Race control, Live results and the public Heat sheets.`
+      : state.events.length ? `${fmt.plural(heats, 'heat')} drawn and shown below, <strong>not saved yet</strong>. Swap lanes if needed, then save.`
+      : 'Swap lanes if needed, then save. Saved heats go to Race control and the public Heat sheets.');
+
+    $('raceLink').href = `orgracecontrol.html${m ? '?t=' + id : ''}`;
+    $('resultsLink').href = `results.html${m ? '?t=' + id : ''}`;
+    setStep('race', st('race'), done.race ? 'Racing is finished for this meet.' : 'Call heats poolside and enter times as each heat finishes.');
+
+    const blocker = generateBlocker();
+    $('generateBtn').disabled = !!blocker;
+    $('generateBtn').title = blocker.replace(/<[^>]+>/g, '');
+    $('guideRegenBtn').hidden = !!blocker;
+    $('guideSaveBtn').disabled = !state.events.length;
+    $('setupSection').hidden = !m || !done.lock || m.status === 'COMPLETED' || !!state.saved.results;
+    $('entriesImportBtn').hidden = !canImport;
+    $('importBtn').disabled = !canImport;
+    $('importBtn').title = canImport ? 'Add swimmers and races from a spreadsheet' : 'Entries can only be imported before the player list is locked.';
 
     const imp = $('importResultsBtn');
     const canResults = m && state.saved.heats > 0;
     imp.setAttribute('aria-disabled', canResults ? 'false' : 'true');
-    imp.href = canResults ? `results.html?t=${encodeURIComponent(m.tournament_id)}&import=1` : '#';
+    imp.href = canResults ? `results.html?t=${id}&import=1` : '#';
     imp.title = canResults ? 'Load finish times from the timing system into Live results' : 'Save heats first';
 
-    const canImport = m && IMPORTABLE.includes(m.status);
-    $('importBtn').setAttribute('aria-disabled', canImport ? 'false' : 'true');
-    $('importBtn').title = canImport ? 'Add swimmers and races from a spreadsheet' : 'Entries can only be imported while registration is open or closed (before the player list is locked).';
+    renderEntries();
+  }
 
-    const blocker = generateBlocker();
-    $('generateBtn').disabled = !!blocker;
-    const banner = $('hgBanner');
-    if (blocker) {
-      banner.hidden = false;
-      banner.className = 'sf-note ' + (state.saved.results ? 'sf-note-bad' : 'sf-note-warn');
-      $('hgBannerText').innerHTML = blocker;
-    } else if (state.saved.heats) {
-      banner.hidden = false;
-      banner.className = 'sf-note';
-      $('hgBannerText').textContent = `This meet already has ${fmt.plural(state.saved.heats, 'heat')} saved. Generating again and saving replaces them.`;
-    } else banner.hidden = true;
+  // ── Entries table: what's in the meet right now ──────────
+  const ENTRY_LIMIT = 200;
+  const emptyMsg = t => `<p style="padding:28px 16px;margin:0;text-align:center;color:var(--sf-muted)">${t}</p>`;
+  function renderEntries() {
+    const sec = $('entriesSection');
+    sec.hidden = !state.meet || state.loading;
+    if (sec.hidden) return;
+    const cats = [...new Set(state.entries.map(e => e.category).filter(Boolean))].sort();
+    const sel = $('entryCatFilter');
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">All age groups</option>' + cats.map(c => `<option${c === keep ? ' selected' : ''}>${esc(c)}</option>`).join('');
+    sel.hidden = cats.length < 2;
+
+    const q = SF.norm($('entrySearch').value);
+    const cat = sel.value;
+    const rows = state.entries
+      .filter(e => (!cat || e.category === cat) && (!q || SF.norm(`${e.name} ${e.academy} ${e.event}`).includes(q)))
+      .sort((a, b) => a.name.localeCompare(b.name) || E.distanceOf(a.event) - E.distanceOf(b.event));
+    const swimmers = new Set(state.entries.map(e => e.swimId)).size;
+    $('entriesTitle').textContent = `Entries (${state.entries.length})`;
+    $('entriesSub').textContent = state.entries.length ? `${fmt.plural(swimmers, 'swimmer')} · one row per swimmer per race` : '';
+    $('entryCount').textContent = q || cat ? `${rows.length} of ${state.entries.length} shown` : '';
+
+    if (!state.entries.length) { $('entriesTable').innerHTML = emptyMsg('No entries yet. Imported rows appear here straight away.'); return; }
+    if (!rows.length) { $('entriesTable').innerHTML = emptyMsg('Nothing matches that search.'); return; }
+    const group = e => `${e.gender === 'Girl' ? 'Girls' : e.gender === 'Boy' ? 'Boys' : ''} ${e.category || ''}`.trim();
+    $('entriesTable').innerHTML = `<div class="sf-table-wrap" style="max-height:28rem;overflow:auto"><table class="sf-table sf-stack">
+        <caption class="sf-visually-hidden">Race entries in this meet</caption>
+        <thead><tr><th scope="col">Swimmer</th><th scope="col">Academy</th><th scope="col">Age group</th><th scope="col">Race</th><th scope="col" class="num">Seed</th></tr></thead>
+        <tbody>${rows.slice(0, ENTRY_LIMIT).map(e => `<tr>
+          <td data-label="Swimmer"><strong>${esc(e.name)}</strong></td>
+          <td data-label="Academy">${esc(e.academy)}</td>
+          <td data-label="Age group">${esc(group(e))}</td>
+          <td data-label="Race">${esc(e.event)}${e.isRelay ? ' <span class="sf-badge">relay</span>' : ''}</td>
+          <td data-label="Seed" class="num">${e.seedMs ? fmt.seed(e.seedMs) : '<span class="hg-nt">NT</span>'}</td>
+        </tr>`).join('')}</tbody></table></div>
+      ${rows.length > ENTRY_LIMIT ? `<p class="hg-entries-more">Showing the first ${ENTRY_LIMIT} of ${rows.length}. Search to find someone.</p>` : ''}`;
   }
 
   // ── Loading ───────────────────────────────────────────────
@@ -140,9 +231,8 @@
     }
     syncPools();
 
-    $('hgBanner').hidden = false;
-    $('hgBanner').className = 'sf-note';
-    $('hgBannerText').textContent = 'Loading entries…';
+    state.loading = true;
+    renderMeetState();
     try {
       const [entries, saved] = await Promise.all([SF.EntryRepo.listForMeet(id), SF.HeatRepo.savedState(id)]);
       if (state.meet !== m) return;           // another meet was picked meanwhile
@@ -151,6 +241,7 @@
     } catch (e) {
       SF.toast('Could not load entries: ' + SF.db.why(e), 'error');
     }
+    state.loading = false;
     renderMeetState();
   }
 
@@ -185,7 +276,7 @@
     $('exportCTSBtn').disabled = false;
     $('publishBtn').disabled = false;
     $('hgPreviewSubtitle').textContent = 'Not saved yet. Check the lanes, then save.';
-    $('setupDetails').open = false;
+    renderMeetState();
 
     const heats = events.reduce((n, ev) => n + ev.heats.length, 0);
     SF.toast(left.length
@@ -273,6 +364,7 @@
     [ev.heats[from.heat], ev.heats[hi]].forEach(h => { h.count = h.lanes.filter(l => !l.empty).length; });
     state.swapFrom = null; state.dirty = true;
     $('hgPreviewSubtitle').textContent = 'Changed, not saved yet.';
+    renderMeetState();
     $('publishBtn').disabled = false;
     renderHeats();
     focusSwap(ei, hi, lane);
@@ -365,12 +457,13 @@
     $('printBtn').addEventListener('click', () => (state.events.length ? window.print() : SF.toast('Generate heats first.', 'warn')));
     $('templateBtn').addEventListener('click', () => {
       const imp = new SF.EntryImporter();
+      imp.ctx = { meet: state.meet };
       SF.Dialog.open({
         title: 'Entries template',
-        body: `<p style="margin:0 0 10px">One row per swimmer per race. Fill it in, then use <strong>Import entries</strong>.</p><ul>${imp.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>`,
+        body: `<p style="margin:0 0 10px">One row per swimmer per race. Fill it in, then use <strong>Import entries</strong>.</p>${state.meet ? `<p style="margin:0 0 10px">The template includes the rules for <strong>${esc(state.meet.title)}</strong>: its races per age group and the birth years for each age group.</p>` : ""}<ul>${imp.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>`,
         actions: [
-          { label: 'Download .csv', onClick: () => imp.downloadTemplate('csv') },
-          { label: 'Download .xlsx', primary: true, onClick: () => imp.downloadTemplate('xlsx') },
+          { label: 'Download .xlsx', onClick: () => imp.downloadTemplate('xlsx') },
+          { label: 'Download .csv', primary: true, onClick: () => imp.downloadTemplate('csv') },
         ],
       });
     });
@@ -382,7 +475,29 @@
     $('heatSearch').addEventListener('input', SF.debounce(renderHeats, 150));
     $('heatTable').addEventListener('click', e => { const b = e.target.closest('[data-swap]'); if (b) onSwap(b); });
 
-    SF.bus.on('entries:imported', () => state.meet && loadMeet(state.meet.tournament_id));
+    // After an import, reload and show the new rows straight away
+    SF.bus.on('entries:imported', async () => {
+      if (!state.meet) return;
+      await loadMeet(state.meet.tournament_id);
+      const sec = $('entriesSection');
+      sec.classList.remove('sf-flash'); void sec.offsetWidth; sec.classList.add('sf-flash');
+      sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    $('entriesImportBtn').addEventListener('click', openImport);
+    $('entrySearch').addEventListener('input', SF.debounce(renderEntries, 150));
+    $('entryCatFilter').addEventListener('change', renderEntries);
+    $('guideSaveBtn').addEventListener('click', confirmSave);
+    $('guideRegenBtn').addEventListener('click', generate);
+    $('seedingSelect').addEventListener('change', renderMeetState);
+    ['pool1Name', 'pool2Name'].forEach(id => $(id).addEventListener('input', SF.debounce(renderMeetState, 200)));
+    document.querySelectorAll('input[name="pool1Lanes"], input[name="pool2Lanes"]').forEach(r => r.addEventListener('change', renderMeetState));
+    $('setupBtn').addEventListener('click', () => {
+      const sec = $('setupSection');
+      sec.hidden = false;
+      $('setupDetails').open = true;
+      sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      sec.querySelector('summary').focus({ preventScroll: true });
+    });
     window.addEventListener('beforeunload', e => { if (state.dirty && state.events.length) { e.preventDefault(); e.returnValue = ''; } });
 
     // Mobile sidebar

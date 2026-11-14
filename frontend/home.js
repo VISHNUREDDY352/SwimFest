@@ -233,7 +233,7 @@
         applyPreview('ongoingCards', 'viewAllOngoing');
       } else {
         liveEl.innerHTML = `<div class="empty-state-inline"><i class="fas fa-info-circle"></i>
-          <p>No live tournaments right now. Check the upcoming events above!</p></div>`;
+          <p>No meets are running today. See what's coming up below.</p></div>`;
         const l = document.getElementById('viewAllOngoing'); if (l) l.style.display = 'none';
       }
     }

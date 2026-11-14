@@ -26,7 +26,7 @@
   /* Tokens (all text colours pass 4.5:1 on --sf-surface and --sf-bg) */
   --sf-font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --sf-mono: ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
-  --sf-bg: #f6f7f9;
+  --sf-bg: #f7f8fa;
   --sf-surface: #ffffff;
   --sf-subtle: #f1f3f6;
   --sf-text: #111827;
@@ -40,8 +40,8 @@
   --sf-warn: #92400e;   --sf-warn-soft: #fdf3e1;
   --sf-bad: #b42318;    --sf-bad-soft: #fdecea;
   --sf-focus: #1d4ed8;
-  --sf-radius: 8px;
-  --sf-radius-sm: 6px;
+  --sf-radius: 12px;
+  --sf-radius-sm: 8px;
   --sf-shadow: 0 1px 2px rgba(17, 24, 39, .06);
   --sf-shadow-pop: 0 8px 28px rgba(17, 24, 39, .16);
   --sf-tap: 44px;
@@ -267,7 +267,7 @@ i[class*="fa-"]:empty { font-style: normal; }
 .sf-steps li[aria-current="step"] { background: var(--sf-brand); color: #fff; }
 .sf-err { color: var(--sf-bad); font-size: .82rem; }
 
-/* Metric strip: the one place cards are allowed */
+/* Metric strip (shown as a plain summary line; see "No metric cards" below) */
 .sf-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
 @media (min-width: 900px) { .sf-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .sf-stat { background: var(--sf-surface); border: 1px solid var(--sf-line); border-radius: var(--sf-radius); padding: 12px 14px; }
@@ -286,14 +286,16 @@ i[class*="fa-"]:empty { font-style: normal; }
   .modal-content, .ac-modal, .sa-modal { max-width: calc(100vw - 16px) !important; }
 }
 
-/* Assistant button: icon only on phones so it doesn't cover tables */
-@media (max-width: 640px) {
-  .sfa-fab { padding: 0 !important; width: 52px; height: 52px; justify-content: center; border-radius: 999px !important; right: 12px !important; bottom: 12px !important; }
-  .sfa-fab .sfa-fab-label { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-}
 
 /* ── Stacked tables on phones: first cell is the row's heading ── */
 @media (max-width: 640px) {
+  /* Label on the left, the whole value (text + any second line) together on the right */
+  .sf-table.sf-stack td { display: grid; grid-template-columns: minmax(6.5rem, auto) 1fr; gap: 0 12px; align-items: start; text-align: right; }
+  .sf-table.sf-stack td::before { grid-column: 1; grid-row: 1 / span 4; }
+  .sf-table.sf-stack td:not(:first-child):not([data-label=""]) > * { grid-column: 2; justify-self: end; text-align: right; }
+  .sf-table.sf-stack td[data-label=""] { display: block; text-align: left; padding-top: 8px; }
+  .sf-table.sf-stack td[data-label=""] .sm-actions { justify-content: flex-start; }
+  .sf-table.sf-stack td:first-child, .sf-table.sf-stack td:first-child > * { text-align: left; }
   .sf-table.sf-stack td:first-child { display: block; text-align: left; font-size: 1rem; padding-top: 6px; }
   .sf-table.sf-stack td:first-child::before { content: none; }
   .sf-table.sf-stack td { padding: 2px 16px; font-size: .9rem; }
@@ -313,5 +315,164 @@ i[class*="fa-"]:empty { font-style: normal; }
 /* Scroll containers must hold their own screen-reader-only text, or it widens the page */
 .sf-table-wrap, .ac-table-wrap, .sa-table-wrap, .dir-table-wrap, .table-wrap, .table-responsive, .lb-table-wrap { position: relative; }
 
-/* Sidebar section labels: #64748b on navy was 3.5:1 — lighter for AA */
-.ac-side-label, .sa-side-label, .ac-side-mini { color: #a3b1c6 !important; }
+/* ============================================================
+   Light console shell (Admin, Organizer, Super Admin)
+   White sidebar, one accent colour for "you are here".
+   All text ≥ 4.5:1 on white.
+   ============================================================ */
+.ac-sidebar, .sa-sidebar { background: var(--sf-surface); color: var(--sf-text); border-right: 1px solid var(--sf-line); gap: 1rem; }
+.ac-sidebar::-webkit-scrollbar-thumb, .sa-sidebar::-webkit-scrollbar-thumb { background: var(--sf-line); }
+.ac-brand-name, .sa-brand-name { color: var(--sf-text); }
+.ac-brand-sub, .sa-brand-sub { color: var(--sf-muted); }
+.ac-brand-mark, .sa-brand-mark { background: var(--sf-brand); color: #fff; }
+.ac-side-label, .sa-side-label, .ac-side-mini { color: #5b6472 !important; }
+.ac-side-link, .sa-side-link { color: #374151; font-weight: 500; }
+.ac-side-link i, .sa-side-link i, .ac-side-link .sf-icon, .sa-side-link .sf-icon { color: #6b7280; }
+.ac-side-link:hover, .sa-side-link:hover { background: var(--sf-subtle); color: var(--sf-text); }
+.ac-side-link:hover i, .sa-side-link:hover i { color: var(--sf-text); }
+.ac-side-link.active, .sa-side-link.active { background: var(--sf-brand-soft); color: var(--sf-brand-strong); font-weight: 600; }
+.ac-side-link.active i, .sa-side-link.active i, .ac-side-link.active .sf-icon, .sa-side-link.active .sf-icon { color: var(--sf-brand); }
+.ac-side-link.warn, .sa-side-link.warn, .ac-side-link.warn i, .sa-side-link.warn i { color: var(--sf-warn); }
+.ac-side-count.is-zero, .sa-side-count.is-zero { background: var(--sf-subtle); color: var(--sf-muted); }
+.ac-side-user, .sa-side-user { border-top-color: var(--sf-line); }
+.ac-side-user-name, .sa-side-user-name { color: var(--sf-text); }
+.ac-side-user-sub, .sa-side-user-mail { color: var(--sf-muted); }
+.ac-side-user-link[href]:hover { background: var(--sf-subtle); }
+.ac-side-user-link[href]:hover .ac-side-user-sub { color: var(--sf-text); }
+.ac-avatar-lg, .sa-avatar-lg { background: var(--sf-brand-soft); color: var(--sf-brand-strong); font-weight: 700; }
+.ac-sidebar .ac-icon-btn, .sa-sidebar .sa-icon-btn { color: var(--sf-muted); }
+.ac-sidebar .ac-icon-btn:hover, .sa-sidebar .sa-icon-btn:hover { background: var(--sf-subtle); color: var(--sf-text); }
+.ac-side-back { color: var(--sf-muted); }
+.ac-side-back:hover { background: var(--sf-subtle); color: var(--sf-text); }
+.ac-mobilebar, .sa-mobilebar { background: var(--sf-surface); color: var(--sf-text); border-bottom: 1px solid var(--sf-line); }
+.ac-mobilebar .ac-icon-btn, .sa-mobilebar .sa-icon-btn { color: var(--sf-text); }
+.ac-mobilebar > span:last-child, .sa-mobilebar > span:last-child { color: var(--sf-muted) !important; }
+
+/* "More" group: rarely used links folded away */
+.ac-side-more > summary, .sa-side-more > summary { cursor: pointer; list-style: none; display: flex; align-items: center; min-height: 2.25rem; padding: 0 0.625rem; border-radius: 0.5rem; }
+.ac-side-more > summary::-webkit-details-marker, .sa-side-more > summary::-webkit-details-marker { display: none; }
+.ac-side-more > summary::after, .sa-side-more > summary::after { content: '+'; margin-left: auto; font-size: 1rem; }
+.ac-side-more[open] > summary::after, .sa-side-more[open] > summary::after { content: '\2212'; }
+.ac-side-more > summary:hover, .sa-side-more > summary:hover { background: var(--sf-subtle); }
+
+/* ============================================================
+   No metric cards: number strips become one quiet summary line
+   ("Swimmers 66 · Race entries 120 · …")
+   ============================================================ */
+.ac-metrics, .sf-stats, .pf-stats { display: flex !important; flex-wrap: wrap; gap: 4px 20px; margin: 0 0 16px; padding: 0; grid-template-columns: none !important; }
+.ac-metric, .sf-stat, .pf-stat { display: inline-flex !important; align-items: baseline; gap: 6px; padding: 0 !important; border: 0 !important;
+  background: none !important; box-shadow: none !important; border-radius: 0; min-height: 0; }
+.pf-stat > div:not([class$="-label"]):not([class$="-value"]), .ac-metric > div:not([class$="-label"]):not([class$="-value"]), .sf-stat > div:not(.sf-stat-label):not(.sf-stat-value) { display: contents; }
+.ac-metric-icon, .pf-stat-icon { display: none !important; }
+.ac-metric-label, .sf-stat-label, .pf-stat-label { order: 2; font-size: .88rem; font-weight: 500; color: var(--sf-muted); }
+.ac-metric-value, .sf-stat-value, .pf-stat-value { order: 1; font-size: 1.05rem !important; font-weight: 700; color: var(--sf-text); letter-spacing: 0; }
+
+/* ============================================================
+   Step guide (Heat generation): what to do, in order
+   ============================================================ */
+.sf-guide { list-style: none; margin: 0 0 16px; padding: 0; counter-reset: sfstep; background: var(--sf-surface);
+  border: 1px solid var(--sf-line); border-radius: 12px; overflow: hidden; }
+.sf-guide > li { counter-increment: sfstep; display: grid; grid-template-columns: 36px 1fr; gap: 4px 14px; padding: 14px 16px;
+  border-top: 1px solid var(--sf-line); align-items: start; }
+.sf-guide > li:first-child { border-top: 0; }
+.sf-guide > li > * { grid-column: 2; }
+.sf-guide > li::before { content: counter(sfstep); grid-column: 1; grid-row: 1 / span 2; width: 32px; height: 32px; border-radius: 999px; display: flex;
+  align-items: center; justify-content: center; font-weight: 700; font-size: .9rem; background: var(--sf-subtle); color: var(--sf-muted);
+  border: 2px solid var(--sf-line); box-sizing: border-box; }
+.sf-guide > li[data-state="done"]::before { content: '\2713'; background: var(--sf-ok-soft); color: var(--sf-ok); border-color: var(--sf-ok-soft); }
+.sf-guide > li[data-state="current"] { background: var(--sf-brand-soft); }
+.sf-guide > li[data-state="current"]::before { background: var(--sf-brand); color: #fff; border-color: var(--sf-brand); }
+.sf-guide-title { margin: 4px 0 0; font-size: 1rem; font-weight: 700; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.sf-guide > li[data-state="todo"] .sf-guide-title { color: var(--sf-muted); }
+.sf-guide-text { margin: 0; color: var(--sf-muted); font-size: .9rem; }
+.sf-guide > li[data-state="current"] .sf-guide-text { color: var(--sf-text); }
+.sf-guide-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.sf-guide > li:not([data-state="current"]) .sf-guide-actions { display: none; }
+.sf-guide-tag { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--sf-brand-strong); }
+
+/* Brief highlight when fresh data lands (e.g. right after an import) */
+@keyframes sf-flash { from { box-shadow: 0 0 0 3px var(--sf-ok); } to { box-shadow: 0 0 0 3px transparent; } }
+.sf-flash { animation: sf-flash 2s ease-out 1; }
+
+
+/* ============================================================
+   Homepage: how it works + quick links (prefix hm-)
+   ============================================================ */
+.hm-start { background: var(--sf-surface); border-bottom: 1px solid var(--sf-line); }
+.hm-start-inner { max-width: 1200px; margin: 0 auto; padding: 32px 16px 24px; box-sizing: border-box; }
+.hm-start-title { margin: 0 0 16px; font-size: 1.25rem; font-weight: 700; }
+.hm-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: 1fr; counter-reset: hm; }
+@media (min-width: 640px) { .hm-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { .hm-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.hm-steps li { counter-increment: hm; display: grid; grid-template-columns: 44px 1fr; gap: 2px 12px; align-items: start; }
+.hm-step-icon { grid-row: span 2; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  background: var(--sf-brand-soft); color: var(--sf-brand); font-size: 1.1rem; }
+.hm-steps strong { font-size: 1rem; }
+.hm-steps strong::before { content: counter(hm) '. '; color: var(--sf-brand); }
+.hm-steps span:last-child { color: var(--sf-muted); font-size: .9rem; }
+.hm-quick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+.hm-quick a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 999px;
+  border: 1px solid var(--sf-line); background: var(--sf-bg); color: var(--sf-text); font-weight: 600; font-size: .92rem; text-decoration: none;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease; }
+.hm-quick a:hover { background: var(--sf-brand-soft); border-color: var(--sf-brand); color: var(--sf-brand-strong); }
+.hm-quick a i, .hm-quick a .sf-icon { color: var(--sf-brand); }
+
+/* ============================================================
+   Poolside tables on phones: one compact block per lane
+   (Live results entry grid and Race control heat table)
+   ============================================================ */
+.ac-metric [class$="-sub"] { display: none; }   /* hint lines don't belong in the summary strip */
+@media (max-width: 640px) {
+  #resultGridBody, #rcLaneBody { display: block; }
+  table:has(> #resultGridBody) > thead, table:has(> #rcLaneBody) > thead {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  table:has(> #resultGridBody), table:has(> #rcLaneBody) { display: block; min-width: 0 !important; width: 100%; }
+  #resultGridBody > tr, #rcLaneBody > tr { display: grid; gap: 6px 10px; align-items: center; padding: 10px 14px;
+    border-bottom: 1px solid var(--sf-line); }
+  #resultGridBody > tr > td, #rcLaneBody > tr > td { display: block; padding: 0 !important; border: 0 !important; min-width: 0; }
+  #resultGridBody > tr > td[colspan="6"]:only-child, #rcLaneBody > tr > td[colspan="7"]:only-child { grid-column: 1 / -1; text-align: center; padding: 20px 0 !important; }
+
+  /* Live results: lane · swimmer · seed, then time · status · DQ */
+  #resultGridBody > tr { grid-template-columns: 2.75rem minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "lane name name seed" "time time status dq"; }
+  #resultGridBody > tr > td:nth-child(1) { grid-area: lane; }
+  #resultGridBody > tr > td:nth-child(2) { grid-area: name; }
+  #resultGridBody > tr > td:nth-child(3) { grid-area: seed; text-align: right; }
+  #resultGridBody > tr > td:nth-child(3)::before { content: 'Seed '; color: var(--sf-muted); }
+  #resultGridBody > tr > td:nth-child(4) { grid-area: time; }
+  #resultGridBody > tr > td:nth-child(5) { grid-area: status; }
+  #resultGridBody > tr > td:nth-child(6) { grid-area: dq; }
+  #resultGridBody > tr.lr-empty-lane { grid-template-areas: "lane name name name"; padding-top: 6px; padding-bottom: 6px; }
+  #resultGridBody .lr-input, #resultGridBody .lr-pick { width: 100%; min-height: 44px; font-size: 16px; box-sizing: border-box; }
+
+  /* Race control: lane, then swimmer + status, academy, seed + time */
+  #rcLaneBody > tr { grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+    grid-template-areas: "lane name status" "lane acad acad" "lane seed time" "lane dq dq"; }
+  #rcLaneBody > tr > td:nth-child(1) { grid-area: lane; align-self: start; }
+  #rcLaneBody > tr > td:nth-child(2) { grid-area: name; }
+  #rcLaneBody > tr > td:nth-child(3) { grid-area: acad; font-size: .85rem; }
+  #rcLaneBody > tr > td:nth-child(4) { grid-area: seed; font-size: .85rem; }
+  #rcLaneBody > tr > td:nth-child(4)::before { content: 'Seed '; }
+  #rcLaneBody > tr > td:nth-child(5) { grid-area: time; text-align: right; }
+  #rcLaneBody > tr > td:nth-child(6) { grid-area: status; text-align: right; }
+  #rcLaneBody > tr > td:nth-child(7) { grid-area: dq; font-size: .85rem; }
+  #rcLaneBody > tr > td:nth-child(7):empty { display: none; }
+  #rcLaneBody > tr.rc-empty-lane { grid-template-areas: "lane name name"; }
+}
+
+/* ============================================================
+   Small phone polish
+   ============================================================ */
+@media (max-width: 640px) {
+  /* Segmented filters (organizer "My meets"): one row that scrolls, never wraps */
+  .ac-seg { display: flex; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+  .ac-seg::-webkit-scrollbar { display: none; }
+  .ac-seg > button { flex: none; white-space: nowrap; }
+  /* Register: the trophy floated beside a wrapped title */
+  .reg-picker-title > i, .reg-picker-title > .sf-icon { display: none; }
+  /* Homepage hero: both buttons the same width */
+  .hero-buttons .btn { width: min(100%, 260px); justify-content: center; box-sizing: border-box; text-align: center; }
+  /* Super Admin header: actions sit side by side and stay small */
+  .sa-head-actions { display: flex; gap: 8px; width: 100%; }
+  .sa-head-actions > * { flex: 1 1 0; min-width: 0; justify-content: center; }
+}

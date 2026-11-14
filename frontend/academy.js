@@ -62,8 +62,8 @@ function designationClass(d) {
 const FILTER = { city: '', pool: '', academy: '' };
 const PENDING = { academies: null, coaches: null };   // waiting for review (staff only)
 
-// Cards or a compact sortable table; staff see the table by default
-let VIEW = 'cards';
+// One sortable table for every tab (the card layouts are retired)
+const VIEW = 'table';
 const SORT = { academies: { key: 'name', dir: 1 }, coaches: { key: 'name', dir: 1 }, swimmers: { key: 'name', dir: 1 } };
 const CERT_BODIES = ['ASCA', 'NIS', 'SFI', 'World Aquatics', 'FINA'];
 
@@ -86,64 +86,16 @@ function leadCoach(ac) {
   return { lead, others: Math.max(0, list.length - 1) };
 }
 
-// ─── Banner numbers ───────────────────────────────────────────
-// The banner numbers and the side boxes follow the tab
-function renderHeroStats() {
-  const set = (i, label, value) => { $('g' + i + 'l').textContent = label; $('g' + i).textContent = value; };
-  if (TAB === 'coaches') {
-    const heads = COACHES.filter(c => c.designation === 'Head Coach').length;
-    const years = COACHES.map(c => c.experience_years).filter(n => n > 0);
-    set(1, 'Verified coaches', COACHES.length);
-    set(2, 'Head coaches', heads);
-    set(3, 'Other coaches', COACHES.length - heads);
-    set(4, 'Average experience', years.length ? `${Math.round(years.reduce((a, b) => a + b, 0) / years.length)} yrs` : '—');
-  } else if (TAB === 'swimmers') {
-    set(1, 'Swimmers', SWIMMERS.length);
-    set(2, 'Boys', SWIMMERS.filter(s => s.gender === 'Boy').length);
-    set(3, 'Girls', SWIMMERS.filter(s => s.gender === 'Girl').length);
-    set(4, 'In an academy', SWIMMERS.filter(s => s.academyName).length);
-  } else {
-    const ids = new Set(ACADEMIES.map(a => a.academy_id));
-    set(1, 'Verified academies', ACADEMIES.length);
-    set(2, 'Head coaches', COACHES.filter(c => ids.has(c.academy_id) && c.designation === 'Head Coach').length);
-    set(3, '50 m pools', ACADEMIES.filter(a => a.pool_length === '50m').length);
-    set(4, 'Cities', new Set(ACADEMIES.map(a => a.city).filter(Boolean)).size);
-  }
-  // Staff act on what's waiting for review, not on pool counts
-  if (isStaffViewer() && TAB !== 'swimmers') {
-    const n = TAB === 'coaches' ? PENDING.coaches : PENDING.academies + PENDING.coaches;
-    const href = (window.SwimAuth.getSession() || {}).role === 'super_admin' ? 'superadmin.html#dashboard' : 'admin.html#verificationQueues';
-    $('g3l').innerHTML = `<a class="dir-glance-link" href="${href}">Pending approvals</a>`;
-    $('g3').textContent = n == null ? '—' : n;
-  }
-}
-
-const SIDE_COPY = {
-  academies: {
-    t1: 'What "verified" means', p1: "The SwimFest team checked the academy's registration, its pool and its head coach's certificates before listing it.",
-    t2: 'Ready to race?', p2: 'Pick a meet and register your swimmer. Their academy appears on the entry and in the results.',
-    cta: 'Register a swimmer', href: 'register.html',
-  },
-  coaches: {
-    t1: 'About these coaches', p1: 'Only verified coaches are listed. Their certificates were checked by the SwimFest team; personal phone numbers stay private.',
-    t2: 'Want to train with one?', p2: "Each coach's profile links to their academy, with its pool and contact details.",
-    cta: 'Browse academies', href: '#academies',
-  },
-  swimmers: {
-    t1: 'Swimmer privacy', p1: "Swimmers are children. Their names, races and results are only shown to SwimFest staff and to their own parents.",
-    t2: 'Your swimmer', p2: "See your swimmer's races, results and registrations on your profile.",
-    cta: 'Open my profile', href: 'profile.html',
-  },
-};
-
-function renderSide() {
-  const c = SIDE_COPY[TAB];
-  $('side1Title').textContent = c.t1;
-  $('side1Text').textContent = c.p1;
-  $('side2Title').textContent = c.t2;
-  $('side2Text').textContent = c.p2;
-  $('side2Cta').textContent = c.cta;
-  $('side2Cta').setAttribute('href', c.href);
+// ─── Staff: what's waiting for review ─────────────────────────
+function renderPendingNote() {
+  const note = $('pendingNote');
+  if (!note) return;
+  const n = isStaffViewer() && TAB !== 'swimmers' && PENDING.academies != null
+    ? (TAB === 'coaches' ? PENDING.coaches : PENDING.academies + PENDING.coaches) : 0;
+  note.hidden = !n;
+  if (!n) return;
+  const href = (window.SwimAuth.getSession() || {}).role === 'super_admin' ? 'superadmin.html#dashboard' : 'admin.html#verificationQueues';
+  note.innerHTML = `${n} ${TAB === 'coaches' ? (n === 1 ? 'coach is' : 'coaches are') : (n === 1 ? 'sign-up is' : 'sign-ups are')} waiting for review and not listed yet. <a href="${href}">Review them</a>`;
 }
 
 function academyOf(id) { return ACADEMIES.find(a => a.academy_id === id) || null; }
@@ -164,9 +116,10 @@ function renderCityChips() {
   const counts = {};
   items.forEach(c => { if (c) counts[c] = (counts[c] || 0) + 1; });
   const cities = [...new Set(ACADEMIES.map(a => a.city).filter(Boolean))].sort();
-  const chip = (value, label, n) =>
-    `<button type="button" class="dir-chip" data-city="${escHtml(value)}" aria-pressed="${FILTER.city === value}">${escHtml(label)}<span>${n}</span></button>`;
-  $('cityChips').innerHTML = chip('', 'All cities', items.length) + cities.map(c => chip(c, c, counts[c] || 0)).join('');
+  $('cityChips').innerHTML = `<option value="">All cities</option>`
+    + cities.map(c => `<option value="${escHtml(c)}">${escHtml(c)} (${counts[c] || 0})</option>`).join('');
+  $('cityChips').value = FILTER.city;
+  $('cityChips').hidden = TAB === 'swimmers' || cities.length < 2;
 }
 
 // ─── Academy card ─────────────────────────────────────────────
@@ -353,7 +306,6 @@ function setTab(tab) {
   $('adSub').textContent = copy.sub;
   $('acdSearch').placeholder = copy.search;
   $('poolSeg').hidden = TAB !== 'academies';
-  $('cityChips').hidden = TAB === 'swimmers';
   const table = VIEW === 'table';
   $('dirTable').hidden = !table || (TAB === 'swimmers' && !isStaffViewer());
   $('acdGrid').hidden = table || TAB !== 'academies';
@@ -362,8 +314,7 @@ function setTab(tab) {
   FILTER.city = ''; FILTER.pool = ''; FILTER.academy = '';
   renderAcademyFilter();
   $('acdSearch').value = '';
-  renderHeroStats();
-  renderSide();
+  renderPendingNote();
   renderCityChips();
   applyFilters();
 }
@@ -378,7 +329,8 @@ const TAB_SEARCH = {
 function applyFilters() {
   const q = $('acdSearch').value.trim().toLowerCase();
   $('acdSearchClear').hidden = !q;
-  document.querySelectorAll('#cityChips .dir-chip').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.city === FILTER.city)));
+  $('cityChips').value = FILTER.city;
+  $('poolSeg').value = FILTER.pool;
   $('swimmerPrivate').hidden = true;
 
   if (TAB === 'coaches') {
@@ -388,8 +340,8 @@ function applyFilters() {
       const ac = academyOf(c.academy_id);
       return (!FILTER.city || (ac && ac.city === FILTER.city)) && (!FILTER.academy || c.academy_id === FILTER.academy);
     });
-    $('coachGrid').innerHTML = '';
-    if (VIEW === 'table') renderTable(list); else list.forEach(c => $('coachGrid').appendChild(coachCard(c)));
+    renderTable(list);
+    $('dirTable').hidden = !list.length;
     $('resultLine').textContent = list.length === 1 ? '1 coach' : `${list.length} coaches`;
     $('acdEmptyText').textContent = 'No coach matches. Try another name or city.';
     $('acdEmpty').hidden = list.length > 0;
@@ -406,8 +358,8 @@ function applyFilters() {
     }
     const sorted = SWIMMERS.slice().sort((a, b) => a.name.localeCompare(b.name));
     const list = SF.Search.run(sorted, TAB_SEARCH.swimmers, q).filter(sw => !FILTER.academy || sw.academyId === FILTER.academy);
-    $('swimmerGrid').innerHTML = '';
-    if (VIEW === 'table') renderTable(list); else list.forEach(sw => $('swimmerGrid').appendChild(swimmerCard(sw)));
+    renderTable(list);
+    $('dirTable').hidden = !list.length;
     $('resultLine').textContent = list.length === 1 ? '1 swimmer' : `${list.length} swimmers`;
     $('acdEmptyText').textContent = SWIMMERS.length ? 'No swimmer matches that search.' : 'No swimmers registered yet.';
     $('acdEmpty').hidden = list.length > 0;
@@ -418,9 +370,10 @@ function applyFilters() {
   const result = SF.Search.run(ACADEMIES, TAB_SEARCH.academies, q).filter(ac =>
     (!FILTER.city || ac.city === FILTER.city) && (!FILTER.pool || ac.pool_length === FILTER.pool));
 
-  document.querySelectorAll('#poolSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pool === FILTER.pool)));
-  renderGrid(VIEW === 'table' ? [] : result);
-  if (VIEW === 'table') { renderTable(result); $('resultLine').textContent = result.length === 1 ? '1 academy' : `${result.length} academies`; $('acdEmpty').hidden = result.length > 0; }
+  renderTable(result);
+  $('resultLine').textContent = result.length === 1 ? '1 academy' : `${result.length} academies`;
+  $('acdEmpty').hidden = result.length > 0;
+  $('dirTable').hidden = !result.length;
 }
 
 // ─── Table view ───────────────────────────────────────────────
@@ -429,10 +382,8 @@ function tableColumns() {
   const view = (id, fn) => `<button type="button" class="dir-link" data-open="${fn}" data-id="${escHtml(id)}">View</button>`;
   if (TAB === 'coaches') return [
     ['name', 'Coach', c => c.full_name, c => `<span class="dir-strong">${escHtml(c.full_name)}</span>`],
-    ['role', 'Role', c => c.designation === 'Head Coach' ? 0 : 1, c => `<span class="dir-mini ${c.designation === 'Head Coach' ? 'head' : ''}">${escHtml(c.designation)}</span>`],
-    ['body', 'Certification body', c => coachCredentials(c).bodies.join(), c => coachCredentials(c).bodies.map(b => `<span class="dir-mini body">${escHtml(b)}</span>`).join('') || '<span class="dir-muted">—</span>'],
-    ['certs', 'Certificates', c => c.certifications.join(), c => c.certifications.map(t => `<span class="dir-mini">${escHtml(t.replace(/\s*·.*$/, ''))}</span>`).join('') || '<span class="dir-muted">—</span>'],
-    ['licence', 'Licence ID', c => coachCredentials(c).licence, c => escHtml(coachCredentials(c).licence) || '<span class="dir-muted">—</span>'],
+    ['role', 'Role', c => c.designation === 'Head Coach' ? 0 : 1, c => escHtml(c.designation)],
+    ['body', 'Certified by', c => coachCredentials(c).bodies.join(), c => escHtml(coachCredentials(c).bodies.join(', ')) || '<span class="dir-muted">—</span>'],
     ['academy', 'Academy', c => (academyOf(c.academy_id) || {}).academy_name || '', c => escHtml((academyOf(c.academy_id) || {}).academy_name || 'Independent')],
     ['city', 'City', c => (academyOf(c.academy_id) || {}).city || '', c => escHtml((academyOf(c.academy_id) || {}).city || '—')],
     ['exp', 'Experience', c => c.experience_years || 0, c => c.experience_years ? `${c.experience_years} yrs` : '—'],
@@ -446,7 +397,7 @@ function tableColumns() {
     ['', '', null, s => view(s.id, 'swimmer')],
   ];
   return [
-    ['name', 'Academy', a => a.academy_name, a => `<span class="dir-strong">${escHtml(a.academy_name)}</span> <span class="dir-mini body">Verified</span>`],
+    ['name', 'Academy', a => a.academy_name, a => `<span class="dir-strong">${escHtml(a.academy_name)}</span>`],
     ['city', 'City', a => a.city, a => escHtml(a.city || '—')],
     ['head', 'Head coach', a => (leadCoach(a).lead || {}).full_name || '', a => escHtml((leadCoach(a).lead || {}).full_name || '—')],
     ['coaches', 'Coaches', a => getCoachesForAcademy(a.academy_id).length, a => getCoachesForAcademy(a.academy_id).length],
@@ -465,25 +416,13 @@ function renderTable(list) {
     const x = col[2](a), y = col[2](b);
     return (typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y))) * sort.dir;
   });
-  $('dirTable').innerHTML = `<table class="dir-table">
+  $('dirTable').innerHTML = `<table class="sf-table sf-stack">
     <thead><tr>${cols.map(([key, label]) => key
-      ? `<th${sort.key === key ? ` aria-sort="${sort.dir > 0 ? 'ascending' : 'descending'}"` : ''}><button type="button" data-sort="${key}">${escHtml(label)}
+      ? `<th scope="col"${sort.key === key ? ` aria-sort="${sort.dir > 0 ? 'ascending' : 'descending'}"` : ''}><button type="button" class="sf-sort" data-sort="${key}">${escHtml(label)}
           <i class="fas fa-${sort.key === key ? (sort.dir > 0 ? 'arrow-up' : 'arrow-down') : 'sort'} dir-sort" aria-hidden="true"></i></button></th>`
       : '<th><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Open</span></th>').join('')}</tr></thead>
-    <tbody>${rows.map(r => `<tr>${cols.map(c => `<td>${c[3](r)}</td>`).join('')}</tr>`).join('')}</tbody>
+    <tbody>${rows.map(r => `<tr>${cols.map(c => `<td data-label="${escHtml(c[1])}">${c[3](r)}</td>`).join('')}</tr>`).join('')}</tbody>
   </table>`;
-}
-
-function setView(v) {
-  VIEW = v === 'table' ? 'table' : 'cards';
-  try { localStorage.setItem('swimfest_dir_view', VIEW); } catch (_) {}
-  document.querySelectorAll('.dir-view [data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === VIEW)));
-  const table = VIEW === 'table';
-  $('dirTable').hidden = !table;
-  $('acdGrid').hidden = table || TAB !== 'academies';
-  $('coachGrid').hidden = table || TAB !== 'coaches';
-  $('swimmerGrid').hidden = table || TAB !== 'swimmers';
-  applyFilters();
 }
 
 // Academy dropdown for the coaches and swimmers tabs
@@ -500,7 +439,7 @@ async function loadPendingCounts() {
   const [a, c] = await Promise.all([count('academies'), count('coaches')]);
   PENDING.academies = a.count ?? 0;
   PENDING.coaches = c.count ?? 0;
-  renderHeroStats();
+  renderPendingNote();
 }
 
 function clearFilters() {
@@ -659,7 +598,6 @@ async function loadDirectoryFromDB() {
     ACADEMIES = []; COACHES = [];
     window.SWIMFEST_ACADEMIES = ACADEMIES;
     window.SWIMFEST_COACHES   = COACHES;
-    renderHeroStats();
     renderCityChips();
     renderGrid(ACADEMIES);
     $('resultLine').textContent = acRes.error ? 'Couldn’t load academies' : 'No verified academies yet';
@@ -728,13 +666,6 @@ async function loadDirectoryFromDB() {
 document.addEventListener('DOMContentLoaded', () => {
   // Staff get the compact layout and the table; everyone else starts on cards
   if (isStaffViewer()) document.body.classList.add('dir-staff');
-  let saved = null;
-  try { saved = localStorage.getItem('swimfest_dir_view'); } catch (_) {}
-  VIEW = saved || 'table';
-  document.querySelectorAll('.dir-view [data-view]').forEach(b => {
-    b.setAttribute('aria-pressed', String(b.dataset.view === VIEW));
-    b.addEventListener('click', () => setView(b.dataset.view));
-  });
   $('dirTable').addEventListener('click', e => {
     const s = e.target.closest('[data-sort]');
     if (s) {
@@ -762,18 +693,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // City buttons and pool length switch
-  $('cityChips').addEventListener('click', e => {
-    const b = e.target.closest('.dir-chip');
-    if (!b) return;
-    FILTER.city = b.dataset.city;
-    applyFilters();
-  });
-  $('poolSeg').addEventListener('click', e => {
-    const b = e.target.closest('button[data-pool]');
-    if (!b) return;
-    FILTER.pool = b.dataset.pool;
-    applyFilters();
-  });
+  $('cityChips').addEventListener('change', e => { FILTER.city = e.target.value; applyFilters(); });
+  $('poolSeg').addEventListener('change', e => { FILTER.pool = e.target.value; applyFilters(); });
 
   $('acdClearAll').addEventListener('click', clearFilters);
 

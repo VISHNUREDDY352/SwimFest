@@ -103,3 +103,13 @@
     .hs-hero { background: var(--dark) !important; -webkit-print-color-adjust: exact; }
     body { background: white; }
 }
+
+/* Fixes: the button icon in the empty state took the big empty-state icon size;
+   on phones the search box's flex basis turned into 220px of height */
+.hs-empty .hs-btn i, .hs-empty .hs-btn .sf-icon { font-size: inherit; display: inline-block; margin: 0; color: inherit; }
+.hs-empty .hs-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; }
+.hs-filters > * { max-width: 100%; box-sizing: border-box; }
+@media (max-width: 768px) {
+    .hs-filters .sf-search { flex: none !important; }
+    .hs-filters .hs-select { width: 100%; }
+}

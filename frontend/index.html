@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="core/sf.js?v=1"></script>
+    <script src="core/sf.js?v=2"></script>
     <script src="core/icons.js?v=1"></script>
-    <script src="core/components.js?v=1"></script>
-    <script src="core/help.js?v=1"></script>
+    <script src="core/components.js?v=2"></script>
+    <script src="core/help.js?v=2"></script>
     <title>SwimFest - Swimming Competition Management Platform</title>
-    <link rel="stylesheet" href="styles.css?v=25">
-    <link rel="stylesheet" href="core/sf.css?v=1">
+    <link rel="stylesheet" href="styles.css?v=26">
+    <link rel="stylesheet" href="core/sf.css?v=4">
 </head>
 <body class="has-hero-nav">
     <!-- Fixed Navigation Header -->
@@ -25,8 +25,8 @@
             </button>
             <nav class="nav-links">
                 <a href="index.html" class="nav-link">Home</a>
-                <a href="#upcoming-tournaments" class="nav-link">Upcoming</a>
                 <a href="#ongoing-tournaments" class="nav-link">Ongoing</a>
+                <a href="#upcoming-tournaments" class="nav-link">Upcoming</a>
                 <a href="#past-events-archives" class="nav-link">Past</a>
                 <a href="academy.html" class="nav-link">Academy</a>
             </nav>
@@ -41,8 +41,8 @@
     <!-- Mobile Menu -->
     <div class="mobile-menu" id="mobileMenu">
         <a href="index.html" class="nav-link">Home</a>
-        <a href="#upcoming-tournaments" class="nav-link">Upcoming</a>
         <a href="#ongoing-tournaments" class="nav-link">Ongoing</a>
+        <a href="#upcoming-tournaments" class="nav-link">Upcoming</a>
         <a href="#past-events-archives" class="nav-link">Past</a>
         <a href="academy.html" class="nav-link">Academy</a>
         <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> My Profile</a>
@@ -56,8 +56,33 @@
             <h1 class="hero-title">Dive Into Victory & Make Your Mark in the Pool</h1>
             <p class="hero-subtitle">Discover and register for swimming competitions across Tamil Nadu.</p>
             <div class="hero-buttons">
-                <a href="register.html" class="btn btn-primary">Register for Events</a>
+                <a href="#upcoming-tournaments" class="btn btn-primary">Find a meet</a>
+                <a href="live.html" class="btn btn-secondary">Watch live results</a>
             </div>
+        </div>
+    </section>
+
+    <!-- How it works + quick links: the first thing a new visitor needs -->
+    <section class="hm-start" aria-labelledby="hmStartTitle">
+        <div class="hm-start-inner">
+            <h2 id="hmStartTitle" class="hm-start-title">How SwimFest works</h2>
+            <ol class="hm-steps">
+                <li><span class="hm-step-icon" aria-hidden="true"><i class="fas fa-search"></i></span>
+                    <strong>Find a meet</strong><span>Browse meets near you below and check the races for your age group.</span></li>
+                <li><span class="hm-step-icon" aria-hidden="true"><i class="fas fa-user-plus"></i></span>
+                    <strong>Register</strong><span>Sign up once, then enter any meet in a few taps.</span></li>
+                <li><span class="hm-step-icon" aria-hidden="true"><i class="fas fa-list-ol"></i></span>
+                    <strong>Get your heat &amp; lane</strong><span>Heat sheets are published before race day.</span></li>
+                <li><span class="hm-step-icon" aria-hidden="true"><i class="fas fa-stopwatch"></i></span>
+                    <strong>Follow results live</strong><span>Times appear as each heat finishes.</span></li>
+            </ol>
+            <nav class="hm-quick" aria-label="Quick links">
+                <a href="heatsheets.html"><i class="fas fa-list-ol"></i> Heat sheets</a>
+                <a href="live.html"><i class="fas fa-broadcast-tower"></i> Live results</a>
+                <a href="search.html"><i class="fas fa-search"></i> Find a swimmer</a>
+                <a href="leaderboard.html"><i class="fas fa-trophy"></i> Leaderboard</a>
+                <a href="academy.html"><i class="fas fa-building-columns"></i> Academies</a>
+            </nav>
         </div>
     </section>
 
@@ -88,8 +113,25 @@
         </div>
     </section>
 
+    <!-- Ongoing Tournaments Section -->
+    <section class="section" id="ongoing-tournaments">
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title">Ongoing Tournaments</h2>
+                <a href="#ongoing-tournaments" class="view-all" id="viewAllOngoing" data-target="ongoingCards">View All <i class="fas fa-arrow-right"></i></a>
+            </div>
+            <div class="card-grid" id="ongoingCards">
+                <!-- Empty state -->
+                <div class="empty-state-inline">
+                    <i class="fas fa-info-circle"></i>
+                    <p>No live tournaments today. See what's coming up below.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Upcoming Tournaments Section -->
-    <section class="section" id="upcoming-tournaments">
+    <section class="section section-alt" id="upcoming-tournaments">
         <div class="section-container">
             <div class="section-header">
                 <h2 class="section-title">Upcoming Tournaments <span class="state-tag">(Tamil Nadu)</span></h2>
@@ -123,23 +165,6 @@
         </div>
     </section>
 
-    <!-- Ongoing Tournaments Section -->
-    <section class="section section-alt" id="ongoing-tournaments">
-        <div class="section-container">
-            <div class="section-header">
-                <h2 class="section-title">Ongoing Tournaments</h2>
-                <a href="#ongoing-tournaments" class="view-all" id="viewAllOngoing" data-target="ongoingCards">View All <i class="fas fa-arrow-right"></i></a>
-            </div>
-            <div class="card-grid" id="ongoingCards">
-                <!-- Empty state -->
-                <div class="empty-state-inline">
-                    <i class="fas fa-info-circle"></i>
-                    <p>No live tournaments today. Check upcoming events above!</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
     <!-- Past Events & Archives Section -->
     <section class="section" id="past-events-archives">
         <div class="section-container">
@@ -166,8 +191,8 @@
             </div>
             <div class="footer-links">
                 <h4>Explore</h4>
-                <a href="#upcoming-tournaments">Upcoming Events</a>
                 <a href="#ongoing-tournaments">Ongoing Events</a>
+                <a href="#upcoming-tournaments">Upcoming Events</a>
                 <a href="#past-events-archives">Past Events</a>
                 <a href="academy.html">Academy Directory</a>
                 <a href="leaderboard.html">Academy Leaderboard</a>
@@ -213,9 +238,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
-    <script src="assistant.js?v=3" data-mode="public"></script>
     <script src="meetstate.js?v=1"></script>
-    <script src="home.js?v=10"></script>
+    <script src="home.js?v=11"></script>
     <script src="script.js?v=7"></script>
 </body>
 </html>

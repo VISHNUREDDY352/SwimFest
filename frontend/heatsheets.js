@@ -42,6 +42,15 @@ async function loadTournaments() {
   const byId = params.get('t') && TOURNAMENTS.find(t => t.tournament_id === params.get('t'));
   const byTitle = params.get('tournament') && TOURNAMENTS.find(t => t.title === params.get('tournament'));
   if (byId || byTitle) sel.value = (byId || byTitle).tournament_id;
+  // No meet in the link: the one happening now, else the next one, else the latest finished
+  if (!byId && !byTitle && TOURNAMENTS.length) {
+    const today = new Date().toISOString().slice(0, 10);
+    const day = d => String(d || '').slice(0, 10);
+    const now = TOURNAMENTS.find(t => day(t.start_date) <= today && day(t.end_date || t.start_date) >= today && t.status !== 'COMPLETED');
+    const next = TOURNAMENTS.find(t => day(t.start_date) > today);
+    const last = TOURNAMENTS[TOURNAMENTS.length - 1];
+    sel.value = (now || next || last).tournament_id;
+  }
   currentTournamentId = sel.value || (TOURNAMENTS[0] && TOURNAMENTS[0].tournament_id);
   sel.addEventListener('change', () => { currentTournamentId = sel.value; loadHeats(); });
 }

@@ -331,9 +331,19 @@
 
     // ── Template: downloadable CSV + XLSX ──
     templateHeader() { return this.columns.map(c => c.label + (c.required ? ' *' : '')); }
+    // Optional rules a subclass adds for the current context (e.g. the selected meet):
+    // [[text], …]. They go on top of the CSV as "# …" lines (skipped on import)
+    // and on their own sheet in the .xlsx.
+    templateRules() { return []; }
+    templateFileName() { return this.templateName; }
     downloadTemplate(kind = 'csv') {
       const rows = [this.templateHeader(), ...this.templateRows];
-      if (kind === 'csv') return SF.csv.download(this.templateName + '.csv', rows);
+      const rules = this.templateRules();
+      const name = this.templateFileName();
+      if (kind === 'csv') {
+        const top = rules.length ? [...rules.map(r => ['# ' + r.filter(Boolean).join(': ')]), ['# Lines starting with # are ignored when you import. Delete the example rows below.'], ['#']] : [];
+        return SF.csv.download(name + '.csv', [...top, ...rows]);
+      }
       return SF.loadXLSX().then(X => {
         const ws = X.utils.aoa_to_sheet(rows);
         ws['!cols'] = this.columns.map(c => ({ wch: Math.max(14, c.label.length + 4) }));
@@ -345,8 +355,13 @@
         }
         const wb = X.utils.book_new();
         X.utils.book_append_sheet(wb, ws, 'Entries');
+        if (rules.length) {
+          const rs = X.utils.aoa_to_sheet(rules);
+          rs['!cols'] = [{ wch: 28 }, { wch: 90 }];
+          X.utils.book_append_sheet(wb, rs, 'Meet rules');
+        }
         if (this.notes.length) X.utils.book_append_sheet(wb, X.utils.aoa_to_sheet([['How to fill this in'], ...this.notes.map(n => [n])]), 'Instructions');
-        X.writeFile(wb, this.templateName + '.xlsx');
+        X.writeFile(wb, name + '.xlsx');
       }).catch(e => SF.toast(SF.db.why(e), 'error'));
     }
 
@@ -363,8 +378,16 @@
         // Date cells come out as YYYY-MM-DD whatever the sheet's display format
         table = X.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '', blankrows: false, dateNF: 'yyyy-mm-dd' });
       }
-      if (!table.length) throw new Error('The file is empty.');
-      const header = table[0].map(h => SF.norm(String(h).replace(/\*/g, '')));
+      // Remember each row's real line number in the file (SheetJS gives __rowNum__,
+      // counted from 0), so errors point at the right Excel row.
+      let lines = table.map((r, i) => ({ r, n: (r.__rowNum__ != null ? r.__rowNum__ : i) + 1 }));
+      // Rule lines from the template ("# …") and blank lines above the header are not data
+      const isRule = r => /^\s*#/.test(String(r[0] ?? ''));
+      const isBlank = r => !r.length || r.every(v => String(v ?? '').trim() === '');
+      while (lines.length && (isRule(lines[0].r) || isBlank(lines[0].r))) lines.shift();
+      lines = lines.filter(l => !isRule(l.r));
+      if (!lines.length) throw new Error('The file is empty.');
+      const header = lines[0].r.map(h => SF.norm(String(h).replace(/\*/g, '')));
       const map = {};
       const missing = [];
       this.columns.forEach(c => {
@@ -374,8 +397,8 @@
         else if (c.required) missing.push(c.label);
       });
       if (missing.length) throw new Error(`Missing column${missing.length > 1 ? 's' : ''}: ${missing.join(', ')}. Download the template to see the expected headings.`);
-      return table.slice(1).map((r, i) => {
-        const o = { _row: i + 2, errors: [], warnings: [] };
+      return lines.slice(1).map(({ r, n }) => {
+        const o = { _row: n, errors: [], warnings: [] };
         this.columns.forEach(c => { o[c.key] = map[c.key] != null ? String(r[map[c.key]] ?? '').trim() : ''; });
         return o;
       }).filter(o => this.columns.some(c => o[c.key] !== ''));
@@ -394,9 +417,11 @@
           <div data-pane="pick">
             <p style="margin:0 0 10px">Fill in the template, then choose the file (.xlsx, .xls or .csv). Nothing is saved until you press <strong>Import</strong>.</p>
             <p style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px">
-              <button type="button" class="sf-btn" data-tpl="xlsx">${SF.icon('file-excel')} Download template (.xlsx)</button>
               <button type="button" class="sf-btn" data-tpl="csv">${SF.icon('file-csv')} Download template (.csv)</button>
+              <button type="button" class="sf-btn" data-tpl="xlsx">${SF.icon('file-excel')} Download template (.xlsx)</button>
             </p>
+            ${this.templateRules().length ? `<details open style="margin:0 0 14px"><summary><strong>Rules for this meet</strong> (also inside the template)</summary>
+              <table class="sf-table" style="margin-top:8px"><tbody>${this.templateRules().map(([k, v]) => `<tr><th scope="row" style="position:static;text-transform:none;letter-spacing:0;white-space:normal">${esc(k)}</th><td>${esc(v || '')}</td></tr>`).join('')}</tbody></table></details>` : ''}
             <label class="sf-drop" data-drop>
               ${SF.icon('upload')}
               <span><strong>Choose a file</strong> or drop it here</span>

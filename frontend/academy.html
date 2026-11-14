@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="core/sf.js?v=1"></script>
+    <script src="core/sf.js?v=2"></script>
     <script src="core/icons.js?v=1"></script>
-    <script src="core/components.js?v=1"></script>
-    <script src="core/help.js?v=1"></script>
+    <script src="core/components.js?v=2"></script>
+    <script src="core/help.js?v=2"></script>
     <script src="embed.js?v=3"></script>
     <title>Academies, Coaches & Swimmers — SwimFest</title>
     <link rel="stylesheet" href="styles.css?v=24">
@@ -147,8 +147,16 @@
             .dir-pool-lanes, .dir-pool-none { height:96px; }
         }
         @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto !important; } }
+            /* Simple directory: one table, no banner */
+        .dir-simple { padding-top: 88px; }
+        .dir-simple .sf-tab { text-decoration: none; }
+        .dir-simple .sf-tab[aria-current="page"] { color: var(--sf-brand); border-bottom-color: var(--sf-brand); }
+        .dir-empty-row { display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap; padding:28px 16px; color:var(--sf-muted); }
+        .dir-search-clear { position:absolute; right:6px; top:50%; transform:translateY(-50%); border:0; background:none; color:var(--sf-muted); width:32px; height:32px; cursor:pointer; border-radius:6px; }
+        .dir-search-clear:hover { background:var(--sf-subtle); color:var(--sf-text); }
+        #pendingNote a { font-weight:700; }
     </style>
-    <link rel="stylesheet" href="core/sf.css?v=1">
+    <link rel="stylesheet" href="core/sf.css?v=4">
 </head>
 <body class="dir-page">
 
@@ -163,10 +171,10 @@
                 <span id="currentState">Tamil Nadu</span>
                 <i class="fas fa-caret-down"></i>
             </button>
-            <nav class="nav-links" aria-label="Directory">
-                <a href="#academies" class="nav-link" data-tab="academies">Academies</a>
-                <a href="#coaches" class="nav-link" data-tab="coaches">Coaches</a>
-                <a href="#swimmers" class="nav-link" data-tab="swimmers">Swimmers</a>
+            <nav class="nav-links" aria-label="Site">
+                <a href="index.html" class="nav-link">Meets</a>
+                <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+                <a href="heatsheets.html" class="nav-link">Heat sheets</a>
             </nav>
             <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
                 <i class="fas fa-bars"></i>
@@ -176,97 +184,59 @@
 
     <!-- Mobile Menu -->
     <div class="mobile-menu" id="mobileMenu" data-no-auth>
-        <a href="#academies" class="nav-link" data-tab="academies">Academies</a>
-        <a href="#coaches" class="nav-link" data-tab="coaches">Coaches</a>
-        <a href="#swimmers" class="nav-link" data-tab="swimmers">Swimmers</a>
+        <a href="index.html" class="nav-link">Meets</a>
+        <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+        <a href="heatsheets.html" class="nav-link">Heat sheets</a>
     </div>
 
-    <main>
-        <!-- Banner: search on the left, the numbers on the right -->
-        <section class="dir-hero" aria-labelledby="adTitle">
-            <div class="dir-wrap dir-hero-inner">
-                <div class="dir-hero-main">
-                    <div style="display:flex;flex-direction:column;gap:8px;">
-                        <p class="dir-eyebrow">Tamil Nadu · verified by SwimFest</p>
-                        <h1 class="dir-title dir-display" id="adTitle" data-help="directory">Find a swim academy near you</h1>
-                        <p class="dir-sub" id="adSub">Every academy here has been checked by our team: real pool, real coaches, real contact details.</p>
-                    </div>
-
-                    <form class="dir-search-row" id="adSearchForm" role="search">
-                        <label for="acdSearch" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Search academies</label>
-                        <div class="dir-search">
-                            <i class="fas fa-search" aria-hidden="true"></i>
-                            <input type="search" id="acdSearch" placeholder="Academy, coach or area" autocomplete="off" aria-describedby="adTitle">
-                            <button type="button" class="dir-search-clear" id="acdSearchClear" aria-label="Clear search" hidden><i class="fas fa-times"></i></button>
-                        </div>
-                        <div class="dir-seg" role="group" aria-label="Pool length" id="poolSeg">
-                            <button type="button" data-pool="" aria-pressed="true">Any pool</button>
-                            <button type="button" data-pool="50m" aria-pressed="false">50 m pool</button>
-                            <button type="button" data-pool="25m" aria-pressed="false">25 m pool</button>
-                        </div>
-                    </form>
-
-                    <div class="dir-chips" role="group" aria-label="City" id="cityChips"></div>
-                </div>
-
-                <aside class="dir-glance" aria-label="At a glance">
-                    <p class="dir-eyebrow">At a glance</p>
-                    <dl>
-                        <div><dt id="g1l">Verified academies</dt><dd class="dir-display" id="g1">—</dd></div>
-                        <div><dt id="g2l">Head coaches</dt><dd class="dir-display" id="g2">—</dd></div>
-                        <div><dt id="g3l">50 m pools</dt><dd class="dir-display" id="g3">—</dd></div>
-                        <div><dt id="g4l">Cities</dt><dd class="dir-display" id="g4">—</dd></div>
-                    </dl>
-                    <div class="dir-pool-art" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-                </aside>
+    <main class="sf-page dir-simple" id="main">
+        <div class="sf-head">
+            <div>
+                <h1 class="sf-title" id="adTitle" data-help="directory">Academies</h1>
+                <p class="sf-sub" id="adSub">Every academy here has been checked by the SwimFest team.</p>
             </div>
-        </section>
-
-        <div class="dir-wrap dir-main">
-            <section class="dir-results" aria-labelledby="resultLine">
-                <div class="dir-results-head">
-                    <h2 class="dir-display" id="resultLine">Loading academies…</h2>
-                    <div class="dir-tools">
-                        <!-- Coaches and swimmers: narrow by academy as well as by name and city -->
-                        <select id="academyFilter" class="dir-select" aria-label="Filter by academy" hidden><option value="">All academies</option></select>
-                        <div class="dir-view" role="group" aria-label="Show as">
-                            <button type="button" data-view="cards" aria-pressed="true"><i class="fas fa-grip"></i> Cards</button>
-                            <button type="button" data-view="table" aria-pressed="false"><i class="fas fa-table-list"></i> Table</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="dir-empty" id="acdEmpty" hidden>
-                    <p style="margin:0;" id="acdEmptyText">No academy matches these filters. Try another city or pool length.</p>
-                    <button type="button" class="dir-btn dir-btn-ghost" id="acdClearAll">Clear filters</button>
-                </div>
-
-                <div id="acdGrid" style="display:flex;flex-direction:column;gap:16px;"></div>
-                <div id="coachGrid" class="dir-people" hidden></div>
-                <div id="swimmerGrid" class="dir-people" hidden></div>
-                <!-- Table view: compact, sortable (default for staff) -->
-                <div id="dirTable" class="dir-table-wrap" hidden></div>
-                <div class="dir-private" id="swimmerPrivate" hidden>
-                    <i class="fas fa-user-shield" aria-hidden="true"></i>
-                    <div>
-                        <h3 class="dir-display" style="margin:0 0 6px;">Swimmer profiles are private</h3>
-                        <p style="margin:0;">Swimmers are children, so their names and profiles are only shown to SwimFest staff. Parents see their own swimmers on their <a href="profile.html">profile</a>.</p>
-                    </div>
-                </div>
-            </section>
-
-            <aside class="dir-side">
-                <section>
-                    <h2 class="dir-display" id="side1Title">What "verified" means</h2>
-                    <p id="side1Text">The SwimFest team checked the academy's registration, its pool and its head coach's certificates before listing it.</p>
-                </section>
-                <section class="tint">
-                    <h2 class="dir-display" id="side2Title">Ready to race?</h2>
-                    <p id="side2Text">Pick a meet and register your swimmer. Their academy appears on the entry and in the results.</p>
-                    <a href="register.html" class="dir-btn dir-btn-ghost" id="side2Cta" style="align-self:flex-start;">Register a swimmer</a>
-                </section>
-            </aside>
         </div>
+
+        <!-- Staff only: what's waiting for review (filled by academy.js) -->
+        <p class="sf-note sf-note-warn" id="pendingNote" hidden></p>
+
+        <section class="sf-section" aria-labelledby="adTitle">
+            <nav class="sf-tabs" aria-label="Directory">
+                <a href="#academies" class="sf-tab" data-tab="academies">Academies</a>
+                <a href="#coaches" class="sf-tab" data-tab="coaches">Coaches</a>
+                <a href="#swimmers" class="sf-tab" data-tab="swimmers">Swimmers</a>
+            </nav>
+            <form class="sf-toolbar" id="adSearchForm" role="search">
+                <div class="sf-search">
+                    <i class="fas fa-search"></i>
+                    <input type="search" id="acdSearch" class="sf-input" placeholder="Search" autocomplete="off" aria-label="Search the directory">
+                    <button type="button" class="dir-search-clear" id="acdSearchClear" aria-label="Clear search" hidden><i class="fas fa-times"></i></button>
+                </div>
+                <select id="cityChips" class="sf-select" style="width:auto" aria-label="City"></select>
+                <select id="poolSeg" class="sf-select" style="width:auto" aria-label="Pool length">
+                    <option value="">Any pool</option>
+                    <option value="50m">50 m pool</option>
+                    <option value="25m">25 m pool</option>
+                </select>
+                <!-- Coaches and swimmers: narrow by academy as well -->
+                <select id="academyFilter" class="sf-select" style="width:auto" aria-label="Filter by academy" hidden><option value="">All academies</option></select>
+                <span class="sf-count" id="resultLine" aria-live="polite">Loading…</span>
+            </form>
+
+            <div class="dir-empty-row" id="acdEmpty" hidden>
+                <p style="margin:0;" id="acdEmptyText">Nothing matches these filters.</p>
+                <button type="button" class="sf-btn sf-btn-sm" id="acdClearAll">Clear filters</button>
+            </div>
+            <div id="dirTable" class="sf-table-wrap"></div>
+            <!-- Old card layouts: no longer shown, kept empty so academy.js can stay simple -->
+            <div id="acdGrid" hidden></div>
+            <div id="coachGrid" hidden></div>
+            <div id="swimmerGrid" hidden></div>
+            <p class="sf-note" id="swimmerPrivate" style="margin:16px" hidden>
+                <i class="fas fa-user-shield" aria-hidden="true"></i>
+                <span>Swimmer profiles are private. Swimmers are children, so only SwimFest staff see this list. Parents see their own swimmers on their <a href="profile.html">profile</a>.</span>
+            </p>
+        </section>
     </main>
 
     <!-- Academy Profile Modal -->
@@ -305,7 +275,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
-    <script src="assistant.js?v=3" data-mode="public"></script>
-    <script src="academy.js?v=9"></script>
+    <script src="academy.js?v=10"></script>
 </body>
 </html>

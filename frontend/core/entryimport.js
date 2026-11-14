@@ -80,6 +80,37 @@
       ];
     }
 
+    // Rules of the selected meet, written into the template and shown in the dialog,
+    // so a wrong age group or a race the meet doesn't offer is easy to spot in Excel.
+    templateFileName() {
+      const m = this.ctx && this.ctx.meet;
+      return m && m.title ? `${m.title.replace(/[^\w-]+/g, '_').replace(/^_+|_+$/g, '')}_entries_template` : this.templateName;
+    }
+
+    templateRules() {
+      const meet = this.ctx && this.ctx.meet;
+      if (!meet) return [];
+      const year = meet.start_date ? new Date(meet.start_date).getFullYear() : new Date().getFullYear();
+      const maxInd = meet.max_individual_events || 3;
+      const day = d => (window.SwimNav && SwimNav.day ? SwimNav.day(d) : String(d || '').slice(0, 10));
+      const rules = [
+        ['Meet', meet.title + (meet.start_date ? ` (${day(meet.start_date)}${meet.end_date && meet.end_date !== meet.start_date ? ' to ' + day(meet.end_date) : ''})` : '')],
+        ['Age group', `Worked out from the year of birth and the meet year (${year}). Swimmers outside U-10 to U-16 can't be entered.`],
+      ];
+      CATEGORIES.forEach(c => rules.push([`  ${c.label}`, `born in ${year - c.max} or ${year - c.min} (age ${c.min}-${c.max} in ${year})`]));
+      rules.push(['Races per swimmer', `Up to ${maxInd} individual races; the 100m Individual Medley doesn't count towards this. Relays can't be imported.`]);
+      CATEGORIES.forEach(c => ['Boy', 'Girl'].forEach(g => {
+        const races = racesFor(meet, g, c.label);
+        rules.push([`${c.label} ${g === 'Girl' ? 'girls' : 'boys'} races`, races.length ? races.join(', ') : 'none offered at this meet']);
+      }));
+      rules.push(['Race names', 'Must be written exactly as listed above, e.g. 50m Freestyle.']);
+      rules.push(['Gender', 'Boy or Girl']);
+      rules.push(['Date of birth', 'YYYY-MM-DD, e.g. 2014-05-21']);
+      rules.push(['Seed time', 'mm:ss.hh such as 00:38.50, or NT if the swimmer has no time']);
+      rules.push(['Academy', 'Exact name of an approved academy, or leave blank']);
+      return rules;
+    }
+
     async validate(rows, { meet, academies }) {
       const year = meet && meet.start_date ? new Date(meet.start_date).getFullYear() : new Date().getFullYear();
       const maxInd = (meet && meet.max_individual_events) || 3;

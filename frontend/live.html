@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="core/sf.js?v=1"></script>
+    <script src="core/sf.js?v=2"></script>
     <script src="core/icons.js?v=1"></script>
-    <script src="core/components.js?v=1"></script>
-    <script src="core/help.js?v=1"></script>
+    <script src="core/components.js?v=2"></script>
+    <script src="core/help.js?v=2"></script>
     <title>Live timing | SwimFest</title>
     <meta name="description" content="Live race-by-race timing for SwimFest swimming meets: the heat in the water, lane by lane, and published results.">
     <link rel="stylesheet" href="styles.css?v=24">
@@ -60,8 +60,17 @@
         .lv-state strong { display:block; color:var(--lv-ink); font-size:1.05rem; margin-bottom:0.35rem; }
         .lv-pool-tag { font-size:0.72rem; font-weight:700; color:var(--lv-navy); background:#e0f2fe; border-radius:999px; padding:2px 8px; margin-left:0.5rem; vertical-align:middle; }
         @media (max-width: 560px) { .lv-lane { grid-template-columns:2.75rem 1fr auto; padding:0.6rem 0.75rem; } .lv-lane-no { width:2.1rem; height:2.1rem; } }
+        /* Meet picker (no meet in the link) */
+        .lv-pick { margin:0 0 1.25rem; }
+        .lv-pick h2 { display:flex; align-items:center; gap:8px; font-size:.95rem; margin:0 0 .5rem; color:var(--lv-ink); }
+        .lv-pick ul { list-style:none; margin:0; padding:0; background:#fff; border:1px solid var(--lv-line); border-radius:12px; overflow:hidden; }
+        .lv-pick li + li { border-top:1px solid var(--lv-line); }
+        .lv-pick a { display:grid; grid-template-columns:1fr auto; gap:2px 12px; align-items:center; padding:14px 16px; min-height:44px; text-decoration:none; color:var(--lv-ink); }
+        .lv-pick a:hover { background:#f5f8fc; }
+        .lv-pick a span { grid-column:1; color:var(--lv-muted); font-size:.85rem; }
+        .lv-pick a i, .lv-pick a .sf-icon { grid-column:2; grid-row:1 / span 2; color:var(--lv-muted); }
     </style>
-    <link rel="stylesheet" href="core/sf.css?v=1">
+    <link rel="stylesheet" href="core/sf.css?v=4">
 </head>
 <body class="lv-page">
     <header class="lv-top">
@@ -92,9 +101,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
-    <script src="assistant.js?v=3" data-mode="public"></script>
     <script src="meetstate.js?v=1"></script>
     <script src="eventresults.js?v=3"></script>
-    <script src="live.js?v=4"></script>
+    <script src="live.js?v=5"></script>
 </body>
 </html>

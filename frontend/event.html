@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="core/sf.js?v=1"></script>
+    <script src="core/sf.js?v=2"></script>
     <script src="core/icons.js?v=1"></script>
-    <script src="core/components.js?v=1"></script>
-    <script src="core/help.js?v=1"></script>
+    <script src="core/components.js?v=2"></script>
+    <script src="core/help.js?v=2"></script>
     <title>Golden Non-Medalist Swimming Championship 2026 | SwimFest</title>
     <link rel="stylesheet" href="styles.css?v=24">
     <link rel="stylesheet" href="event.css?v=5">
-    <link rel="stylesheet" href="core/sf.css?v=1">
+    <link rel="stylesheet" href="core/sf.css?v=4">
 </head>
 <body>
     <!-- Sticky Navigation Header -->
@@ -26,8 +26,8 @@
             </button>
             <nav class="nav-links">
                 <a href="index.html" class="nav-link">Home</a>
-                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
                 <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
                 <a href="index.html#past-events-archives" class="nav-link">Past</a>
                 <a href="academy.html" class="nav-link">Academy</a>
             </nav>
@@ -42,8 +42,8 @@
     <!-- Mobile Menu -->
     <div class="mobile-menu" id="mobileMenu">
         <a href="index.html" class="nav-link">Home</a>
-        <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
         <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+        <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
         <a href="index.html#past-events-archives" class="nav-link">Past</a>
         <a href="academy.html" class="nav-link">Academy</a>
         <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> My Profile</a>
@@ -119,7 +119,7 @@
                 <!-- Age Group Eligibility Rules -->
                 <div class="event-detail-card">
                     <h2 class="detail-card-title"><i class="fas fa-users-cog"></i> Age Group Eligibility Rules</h2>
-                    <p class="detail-note">Cutoff Date: 31st December 2026</p>
+                    <p class="detail-note" id="evAgeCutoff">Age is worked out on 31 December of the meet year.</p>
                     <table class="age-group-table">
                         <thead>
                             <tr>
@@ -128,28 +128,7 @@
                                 <th>Age</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong>Under-10 (U-10)</strong></td>
-                                <td>Born 01-Jan-2016 to 31-Dec-2017</td>
-                                <td>8–9 Yrs</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Under-12 (U-12)</strong></td>
-                                <td>Born 01-Jan-2014 to 31-Dec-2015</td>
-                                <td>10–11 Yrs</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Under-14 (U-14)</strong></td>
-                                <td>Born 01-Jan-2012 to 31-Dec-2013</td>
-                                <td>12–13 Yrs</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Under-16 (U-16)</strong></td>
-                                <td>Born 01-Jan-2010 to 31-Dec-2011</td>
-                                <td>14–15 Yrs</td>
-                            </tr>
-                        </tbody>
+                        <tbody id="evAgeRows"></tbody>
                     </table>
                 </div>
 
@@ -198,13 +177,8 @@
                     <h2 class="detail-card-title"><i class="fas fa-gavel"></i> Rules & Regulation</h2>
                     <div class="rules-section">
                         <h3>Rule 1: Age Cutoff Engine</h3>
-                        <p>Age is calculated strictly as of <strong>December 31st of the competition year</strong>. For 2026:</p>
-                        <ul>
-                            <li><strong>U-10:</strong> Born 2016–2017</li>
-                            <li><strong>U-12:</strong> Born 2014–2015</li>
-                            <li><strong>U-14:</strong> Born 2012–2013</li>
-                            <li><strong>U-16:</strong> Born 2010–2011</li>
-                        </ul>
+                        <p>Age is calculated strictly as of <strong>December 31st of the competition year</strong>. <span id="evAgeYearText"></span></p>
+                        <ul id="evAgeRuleList"></ul>
                     </div>
                     <div class="rules-section">
                         <h3>Rule 2: Non-Medalist Enforcement</h3>
@@ -300,8 +274,8 @@
             </div>
             <div class="footer-links">
                 <h4>Explore</h4>
-                <a href="index.html#upcoming-tournaments">Upcoming Events</a>
                 <a href="index.html#ongoing-tournaments">Ongoing Events</a>
+                <a href="index.html#upcoming-tournaments">Upcoming Events</a>
                 <a href="index.html#past-events-archives">Past Events</a>
                 <a href="academy.html">Academy Directory</a>
                 <a href="leaderboard.html">Academy Leaderboard</a>
@@ -330,9 +304,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
-    <script src="assistant.js?v=3" data-mode="public"></script>
     <script src="meetstate.js?v=1"></script>
     <script src="eventresults.js?v=3"></script>
-    <script src="event.js?v=10"></script>
+    <script src="event.js?v=11"></script>
 </body>
 </html>

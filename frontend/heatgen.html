@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="core/sf.js?v=1"></script>
+    <script src="core/sf.js?v=2"></script>
     <script src="core/icons.js?v=1"></script>
-    <script src="core/components.js?v=1"></script>
-    <script src="core/help.js?v=1"></script>
+    <script src="core/components.js?v=2"></script>
+    <script src="core/help.js?v=2"></script>
     <script src="embed.js?v=3"></script>
     <title>Heat Generation — SwimFest</title>
     <script src="guard.js?v=5" data-roles="event_manager,super_admin"></script>
     <link rel="stylesheet" href="styles.css?v=24">
     <link rel="stylesheet" href="admin.css?v=2">
     <link rel="stylesheet" href="console.css?v=6">
-    <link rel="stylesheet" href="core/sf.css?v=1">
+    <link rel="stylesheet" href="core/sf.css?v=4">
     <style>
         /* Heat generation: only what core/sf.css doesn't cover */
         .hg-meet { display:flex; flex-wrap:wrap; align-items:flex-end; gap:8px 12px; margin-top:10px; }
@@ -45,9 +45,10 @@
             .hg-table th, .hg-table td { padding:8px 6px; }
             .hg-table td:first-child, .hg-table th:first-child { padding-left:12px; width:2.5rem; }
         }
+        .hg-entries-more { padding:10px 16px; margin:0; font-size:.85rem; color:var(--sf-muted); border-top:1px solid var(--sf-line); }
         details.hg-setup > summary { cursor:pointer; padding:12px 16px; font-weight:700; display:flex; align-items:center; gap:8px; min-height:var(--sf-tap); box-sizing:border-box; }
         @media print {
-            .ac-sidebar, .ac-mobilebar, .sf-head, .sf-stats, #hgBanner, #setupSection, .sf-toolbar, .sf-info, .sf-skip, .hg-swap, .sf-pager { display:none !important; }
+            .ac-sidebar, .ac-mobilebar, .sf-head, .sf-guide, #entriesSection, #setupSection, .sf-toolbar, .sf-info, .sf-skip, .hg-swap, .sf-pager { display:none !important; }
             .sf-section { border:0; }
             .sf-table th { position:static; }
         }
@@ -120,25 +121,79 @@
                         <span class="sf-badge" id="hgStatusChip">—</span>
                     </div>
                 </div>
-                <div class="hg-actions">
-                    <button type="button" class="sf-btn" id="templateBtn"><i class="fas fa-file-excel"></i> Entries template</button>
-                    <button type="button" class="sf-btn" id="importBtn"><i class="fas fa-file-arrow-up"></i> Import entries</button>
-                    <button type="button" class="sf-btn sf-btn-primary" id="generateBtn" disabled><i class="fas fa-bolt"></i> Generate heats</button>
+            </div>
+
+            <!-- Step guide: what to do next, in order (filled in by heatgen.js) -->
+            <h2 class="sf-visually-hidden" id="guideTitle">Steps</h2>
+            <ol class="sf-guide" id="hgGuide" aria-labelledby="guideTitle">
+                <li data-step="meet" data-state="current">
+                    <p class="sf-guide-title">Choose the meet</p>
+                    <p class="sf-guide-text" data-text>Pick the meet you're drawing heats for.</p>
+                </li>
+                <li data-step="entries" data-state="todo">
+                    <p class="sf-guide-title">Add swimmers and races</p>
+                    <p class="sf-guide-text" data-text>Import a spreadsheet, or add swimmers on the Player list.</p>
+                    <div class="sf-guide-actions">
+                        <button type="button" class="sf-btn sf-btn-primary" id="importBtn"><i class="fas fa-file-arrow-up"></i> Import spreadsheet</button>
+                        <button type="button" class="sf-btn" id="templateBtn"><i class="fas fa-file-excel"></i> Get the template</button>
+                    </div>
+                </li>
+                <li data-step="lock" data-state="todo">
+                    <p class="sf-guide-title">Lock the player list</p>
+                    <p class="sf-guide-text" data-text>Locking stops new entries, so the heats won't change after you draw them.</p>
+                    <div class="sf-guide-actions">
+                        <a class="sf-btn sf-btn-primary" id="lockLink" href="playerlist.html"><i class="fas fa-list-check"></i> Open the player list</a>
+                    </div>
+                </li>
+                <li data-step="generate" data-state="todo">
+                    <p class="sf-guide-title">Generate heats</p>
+                    <p class="sf-guide-text" data-text>Check the pools, then generate. Nothing is saved yet.</p>
+                    <div class="sf-guide-actions">
+                        <button type="button" class="sf-btn sf-btn-primary" id="generateBtn" disabled><i class="fas fa-bolt"></i> Generate heats</button>
+                        <button type="button" class="sf-btn" id="setupBtn"><i class="fas fa-gear"></i> Pools &amp; timing</button>
+                    </div>
+                </li>
+                <li data-step="save" data-state="todo">
+                    <p class="sf-guide-title">Check the lanes and save</p>
+                    <p class="sf-guide-text" data-text>Swap lanes if needed, then save. Saved heats go to Race control and the public Heat sheets.</p>
+                    <div class="sf-guide-actions">
+                        <button type="button" class="sf-btn sf-btn-primary" id="guideSaveBtn"><i class="fas fa-floppy-disk"></i> Save heats</button>
+                        <button type="button" class="sf-btn" id="guideRegenBtn"><i class="fas fa-rotate"></i> Generate again</button>
+                    </div>
+                </li>
+                <li data-step="race" data-state="todo">
+                    <p class="sf-guide-title">Run the races</p>
+                    <p class="sf-guide-text" data-text>Call heats poolside and enter times as each heat finishes.</p>
+                    <div class="sf-guide-actions">
+                        <a class="sf-btn sf-btn-primary" id="raceLink" href="orgracecontrol.html"><i class="fas fa-flag-checkered"></i> Open race control</a>
+                        <a class="sf-btn" id="resultsLink" href="results.html"><i class="fas fa-broadcast-tower"></i> Live results</a>
+                    </div>
+                </li>
+            </ol>
+
+            <!-- Entries: everything already in this meet; refreshed right after an import -->
+            <section class="sf-section" id="entriesSection" aria-labelledby="entriesTitle" hidden>
+                <div class="sf-section-head">
+                    <div>
+                        <h2 class="sf-section-title" id="entriesTitle">Entries</h2>
+                        <p class="sf-sub" id="entriesSub" style="margin:2px 0 0"></p>
+                    </div>
+                    <button type="button" class="sf-btn sf-btn-sm" id="entriesImportBtn" hidden><i class="fas fa-file-arrow-up"></i> Import more</button>
                 </div>
-            </div>
-
-            <div class="sf-stats" aria-label="Meet numbers">
-                <div class="sf-stat"><div class="sf-stat-label">Swimmers</div><div class="sf-stat-value" id="totalAthletes">—</div></div>
-                <div class="sf-stat"><div class="sf-stat-label">Race entries</div><div class="sf-stat-value" id="totalEventRows">—</div></div>
-                <div class="sf-stat"><div class="sf-stat-label">Heats saved</div><div class="sf-stat-value" id="statSavedHeats">—</div></div>
-                <div class="sf-stat"><div class="sf-stat-label">Entries with no pool</div><div class="sf-stat-value" id="statUnrouted">—</div></div>
-            </div>
-
-            <p class="sf-note" id="hgBanner" role="status" hidden><i class="fas fa-circle-info"></i><span id="hgBannerText"></span></p>
+                <div class="sf-toolbar">
+                    <div class="sf-search">
+                        <i class="fas fa-search"></i>
+                        <input type="search" id="entrySearch" class="sf-input" placeholder="Search by swimmer, academy or race" aria-label="Search entries">
+                    </div>
+                    <select id="entryCatFilter" class="sf-select" style="width:auto;max-width:100%" aria-label="Age group"><option value="">All age groups</option></select>
+                    <span class="sf-count" id="entryCount" aria-live="polite"></span>
+                </div>
+                <div id="entriesTable"></div>
+            </section>
 
             <!-- Set-up: pools, seeding, timing -->
-            <section class="sf-section" id="setupSection" aria-label="Set-up" style="margin-top:16px">
-                <details class="hg-setup" id="setupDetails" open>
+            <section class="sf-section" id="setupSection" aria-label="Set-up" style="margin-top:16px" hidden>
+                <details class="hg-setup" id="setupDetails">
                     <summary>Set-up: pools, seeding and timing</summary>
                     <div class="sf-section-body" style="padding-top:4px">
                         <h2 class="sf-section-title" id="poolsTitle" data-help="pools" style="margin:0 0 10px">Pools</h2>
@@ -239,13 +294,12 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
-    <script src="assistant.js?v=3"></script>
-    <script src="consolenav.js?v=5"></script>
+    <script src="consolenav.js?v=7"></script>
     <script src="governance.js?v=1"></script>
     <script src="events.js?v=1"></script>
     <script src="core/heatengine.js?v=1"></script>
     <script src="core/repos.js?v=1"></script>
-    <script src="core/entryimport.js?v=1"></script>
-    <script src="heatgen.js?v=10"></script>
+    <script src="core/entryimport.js?v=2"></script>
+    <script src="heatgen.js?v=12"></script>
 </body>
 </html>
