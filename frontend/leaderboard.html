@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="core/sf.js?v=2"></script>
+    <script src="core/icons.js?v=1"></script>
+    <script src="core/components.js?v=2"></script>
+    <script src="core/help.js?v=2"></script>
     <title>Academy Leaderboard — SwimFest</title>
     <link rel="stylesheet" href="styles.css?v=24">
-    <link rel="stylesheet" href="leaderboard.css?v=4">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="leaderboard.css?v=2">
+    <link rel="stylesheet" href="core/sf.css?v=4">
 </head>
 <body>
 
@@ -19,8 +21,8 @@
             <button class="state-selector"><i class="fas fa-map-marker-alt"></i> Tamil Nadu <i class="fas fa-caret-down"></i></button>
             <nav class="nav-links">
                 <a href="index.html" class="nav-link">Home</a>
-                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
                 <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
                 <a href="index.html#past-events-archives" class="nav-link">Past</a>
                 <a href="academy.html" class="nav-link">Academy</a>
             </nav>
@@ -32,8 +34,8 @@
 
     <div class="mobile-menu" id="mobileMenu">
         <a href="index.html" class="nav-link">Home</a>
-        <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
         <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+        <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
         <a href="index.html#past-events-archives" class="nav-link">Past</a>
         <a href="academy.html" class="nav-link">Academy</a>
         <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> My Profile</a>
@@ -45,7 +47,7 @@
             <div class="lb-hero-inner">
                 <a href="index.html" class="lb-back" id="lbBack"><i class="fas fa-arrow-left"></i> Back</a>
                 <p class="lb-eyebrow"><i class="fas fa-trophy"></i> Championship Standings</p>
-                <h1 class="lb-title">Academy Leaderboard</h1>
+                <h1 class="lb-title" data-help="leaderboard">Academy Leaderboard</h1>
                 <p class="lb-sub">Statewide points from published competition results. Top academies ranked by total championship points.</p>
                 <div class="lb-metabar" id="lbMeta"></div>
             </div>
@@ -62,10 +64,9 @@
         </div>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
-    <script src="assistant.js?v=2" data-mode="public"></script>
-    <script src="leaderboard.js?v=2"></script>
+    <script src="leaderboard.js?v=3"></script>
 </body>
 </html>

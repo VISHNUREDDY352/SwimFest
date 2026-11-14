@@ -5,8 +5,7 @@
 
 (function () {
   const $ = (id) => document.getElementById(id);
-  function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
+  const esc = SF.esc;
   let session = null;
   let profile = null;
 

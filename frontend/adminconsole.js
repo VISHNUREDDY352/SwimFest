@@ -8,26 +8,9 @@
 // ── Utilities ─────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
-function escHtml(s) {
-  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+const escHtml = SF.esc;
 
-function showToast(msg, type = 'info') {
-  const existing = document.querySelector('.admin-toast');
-  if (existing) existing.remove();
-
-  const toast = document.createElement('div');
-  toast.className = `admin-toast admin-toast-${type}`;
-  const icon = type === 'success' ? 'check-circle' : type === 'warn' ? 'exclamation-triangle' : 'info-circle';
-  toast.innerHTML = `<i class="fas fa-${icon}"></i> ${escHtml(msg)}`;
-  document.body.appendChild(toast);
-
-  setTimeout(() => toast.classList.add('show'), 10);
-  setTimeout(() => {
-    toast.classList.remove('show');
-    setTimeout(() => toast.remove(), 400);
-  }, 3500);
-}
+function showToast(msg, type = 'info') { SF.toast(msg, type); }
 window.showToast = showToast;
 
 function emptyRow(cols, msg) {
@@ -205,6 +188,23 @@ let PENDING_SWIMMERS  = [];
 let PENDING_COACHES   = [];
 let PENDING_ACADEMIES = [];
 let PENDING_EVENTS    = [];
+let ACADEMY_NAMES     = {};        // academy_id → name (coaches only store the id)
+const academyOf = c => ACADEMY_NAMES[c.academy_id] || c.academy_name || '';
+
+// Search follows the tab: each tab searches its own key field first (Strategy pattern, core/components.js)
+const TAB_SEARCH = {
+  swimmersTab:  { placeholder: 'Search swimmers by name or SFI / ID', help: 'qSwimmers',
+                  strategy: SF.Search.by(['full_name', 'sfi_serial_no', s => s.swimmer_id], ['parent_name', 'parent_email', 'parent_phone', 'school_name']) },
+  coachesTab:   { placeholder: 'Search coaches by name', help: 'qCoaches',
+                  strategy: SF.Search.by(['full_name'], [academyOf, 'designation', 'created_by_email']) },
+  academiesTab: { placeholder: 'Search academies by name', help: 'qAcademies',
+                  strategy: SF.Search.by(['academy_name'], ['city', 'registration_no', 'created_by_email']) },
+  eventsTab:    { placeholder: 'Search organizer meets by title', help: 'qEvents',
+                  strategy: SF.Search.by(['title'], ['host_organization', 'city', 'venue_name']) },
+};
+let ACTIVE_TAB = 'swimmersTab';
+let tabSearch = null;
+const currentQuery = () => (tabSearch ? tabSearch.query : '');
 
 function switchAdminTab(tabId, btnEl) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -213,6 +213,19 @@ function switchAdminTab(tabId, btnEl) {
   const target = $(tabId);
   if (target) target.classList.add('active');
   if (btnEl) btnEl.classList.add('active');
+  ACTIVE_TAB = tabId;
+  if (tabSearch) { tabSearch.setTab(tabId); renderTab(tabId); }
+  const help = document.getElementById('approvalsTitle');
+  if (help && TAB_SEARCH[tabId]) SF.Info.attach(help, TAB_SEARCH[tabId].help);
+}
+function renderTab(tabId, q = currentQuery()) {
+  ({ swimmersTab: renderSwimmers, coachesTab: renderCoaches, academiesTab: renderAcademies, eventsTab: renderEvents })[tabId](q);
+  const count = $('adminConsoleCount');
+  if (count) {
+    const list = { swimmersTab: PENDING_SWIMMERS, coachesTab: PENDING_COACHES, academiesTab: PENDING_ACADEMIES, eventsTab: PENDING_EVENTS }[tabId];
+    const shown = SF.Search.run(list, TAB_SEARCH[tabId].strategy, q).length;
+    count.textContent = q ? `${shown} of ${list.length} match` : '';
+  }
 }
 window.switchAdminTab = switchAdminTab;
 
@@ -238,7 +251,7 @@ async function loadAllQueues() {
     return;
   }
 
-  const queryTerm = ($('adminConsoleSearch') ? $('adminConsoleSearch').value : '').toLowerCase().trim();
+
 
   // Helper check for pending statuses (captures PENDING_VERIFICATION, PENDING, pending, UNVERIFIED, null, empty)
   const isPending = (status) => {
@@ -270,6 +283,8 @@ async function loadAllQueues() {
   // 3. Load Pending Academies
   try {
     const acRes = await window.sb.from('academies').select('*');
+    ACADEMY_NAMES = {};
+    (acRes.data || []).forEach(a => { ACADEMY_NAMES[a.academy_id] = a.academy_name; });
     PENDING_ACADEMIES = (!acRes.error && acRes.data) ? acRes.data.filter(a => a && isPending(a.status)) : [];
   } catch (e) {
     console.warn('[AdminConsole] academies load error:', e.message);
@@ -292,10 +307,8 @@ async function loadAllQueues() {
   }
 
   updateBadgesAndMetrics();
-  renderSwimmers(queryTerm);
-  renderCoaches(queryTerm);
-  renderAcademies(queryTerm);
-  renderEvents(queryTerm);
+  const q = currentQuery();
+  ['swimmersTab', 'coachesTab', 'academiesTab', 'eventsTab'].forEach(t => renderTab(t, t === ACTIVE_TAB ? q : ''));
 }
 window.loadAllQueues = loadAllQueues;
 
@@ -336,11 +349,7 @@ function actionCell(prefix, id, approveFn, rejectFn, name, approveLabel = 'Appro
 
 function renderSwimmers(q = '') {
   const tbody = $('swimmersTableBody');
-  const filtered = PENDING_SWIMMERS.filter(s => {
-    if (!q) return true;
-    const txt = `${s.full_name || ''} ${s.parent_name || ''} ${s.parent_email || ''} ${s.parent_phone || ''} ${s.school_name || ''} ${s.sfi_serial_no || ''}`.toLowerCase();
-    return txt.includes(q);
-  });
+  const filtered = SF.Search.run(PENDING_SWIMMERS, TAB_SEARCH.swimmersTab.strategy, q);
 
   if (!filtered.length) {
     tbody.innerHTML = emptyRow(6, q ? 'No pending swimmers match your search.' : 'No new swimmers are waiting for approval.');
@@ -370,11 +379,7 @@ function renderSwimmers(q = '') {
 
 function renderCoaches(q = '') {
   const tbody = $('coachesTableBody');
-  const filtered = PENDING_COACHES.filter(c => {
-    if (!q) return true;
-    const txt = `${c.full_name || ''} ${c.designation || ''} ${c.created_by_email || ''} ${c.academy_name || ''}`.toLowerCase();
-    return txt.includes(q);
-  });
+  const filtered = SF.Search.run(PENDING_COACHES, TAB_SEARCH.coachesTab.strategy, q);
 
   if (!filtered.length) {
     tbody.innerHTML = emptyRow(6, q ? 'No pending coaches match your search.' : 'No coaches are waiting for approval.');
@@ -386,7 +391,7 @@ function renderCoaches(q = '') {
       <td><div style="font-weight:700;">${escHtml(c.full_name)}</div></td>
       <td>
         <div>${escHtml(c.designation || 'Coach')}</div>
-        <div style="font-size:0.72rem;color:var(--ac-muted);">${escHtml(c.academy_name || 'Independent')}</div>
+        <div style="font-size:0.72rem;color:var(--ac-muted);">${escHtml(academyOf(c) || 'Independent')}</div>
       </td>
       <td style="font-size:0.8rem;color:var(--ac-blue);">${escHtml(c.created_by_email || '—')}</td>
       <td style="font-size:0.8rem;">${escHtml(Array.isArray(c.certifications) ? c.certifications.join(', ') : c.certifications || '—')}</td>
@@ -397,11 +402,7 @@ function renderCoaches(q = '') {
 
 function renderAcademies(q = '') {
   const tbody = $('academiesTableBody');
-  const filtered = PENDING_ACADEMIES.filter(a => {
-    if (!q) return true;
-    const txt = `${a.academy_name || ''} ${a.city || ''} ${a.created_by_email || ''} ${a.registration_no || ''}`.toLowerCase();
-    return txt.includes(q);
-  });
+  const filtered = SF.Search.run(PENDING_ACADEMIES, TAB_SEARCH.academiesTab.strategy, q);
 
   if (!filtered.length) {
     tbody.innerHTML = emptyRow(6, q ? 'No pending academies match your search.' : 'No academies are waiting for approval.');
@@ -421,11 +422,7 @@ function renderAcademies(q = '') {
 
 function renderEvents(q = '') {
   const tbody = $('eventsTableBody');
-  const filtered = PENDING_EVENTS.filter(e => {
-    if (!q) return true;
-    const txt = `${e.title || ''} ${e.host_organization || ''} ${e.city || ''} ${e.venue_name || ''}`.toLowerCase();
-    return txt.includes(q);
-  });
+  const filtered = SF.Search.run(PENDING_EVENTS, TAB_SEARCH.eventsTab.strategy, q);
 
   if (!filtered.length) {
     tbody.innerHTML = emptyRow(5, q ? 'No pending events match your search.' : 'No organizer events are waiting for review.');
@@ -601,6 +598,7 @@ window.submitCoach = async function() {
     full_name: name,
     mobile_number: $('coPhone')?.value.trim() || null,
     certifications: [`${certBody} · ${license}`],
+    academy_id: $('coAcademy') && $('coAcademy').value ? $('coAcademy').value : null,
     document_url: docUrl,
     status: 'PENDING_VERIFICATION',
     created_by_email: userEmail,
@@ -761,23 +759,6 @@ function renderSidebarUser() {
   }
 }
 
-// ── Toast styles ──────────────────────────────────────────────
-(function() {
-  const s = document.createElement('style');
-  s.textContent = `
-    .admin-toast{position:fixed;bottom:28px;right:28px;z-index:99999;
-      padding:12px 20px;background:var(--dark);color:var(--white);
-      border-radius:var(--radius-sm);font-size:0.85rem;font-weight:500;
-      display:flex;align-items:center;gap:10px;
-      box-shadow:0 8px 24px rgba(0,0,0,0.25);
-      transform:translateY(20px);opacity:0;transition:all 0.3s ease;
-      max-width:420px;font-family:'Inter',sans-serif;}
-    .admin-toast.show{transform:translateY(0);opacity:1;}
-    .admin-toast i{color:var(--accent);}
-    .admin-toast.admin-toast-success i{color:var(--success);}
-    .admin-toast.admin-toast-warn i{color:var(--warning);}`;
-  document.head.appendChild(s);
-})();
 
 // ── Bootstrap ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -790,17 +771,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const searchInput = $('adminConsoleSearch');
   const clearBtn    = $('adminConsoleSearchClear');
-  const rerender = (val) => { renderSwimmers(val); renderCoaches(val); renderAcademies(val); renderEvents(val); };
-  searchInput.addEventListener('input', () => {
-    const val = searchInput.value.trim().toLowerCase();
-    clearBtn.style.display = val ? 'block' : 'none';
-    rerender(val);
+  tabSearch = new SF.TabbedSearch({
+    input: searchInput, tabs: TAB_SEARCH,
+    onChange: (tab, q) => { if (clearBtn) clearBtn.style.display = q ? 'block' : 'none'; renderTab(tab, q); },
   });
-  clearBtn.addEventListener('click', () => {
+  tabSearch.setTab(ACTIVE_TAB);
+  if (clearBtn) clearBtn.addEventListener('click', () => {
     searchInput.value = '';
-    clearBtn.style.display = 'none';
-    rerender('');
+    searchInput.dispatchEvent(new Event('input'));
+    searchInput.focus();
   });
+  SF.Tabs.enhance(document.querySelector('.admin-nav-tabs'), { tabSelector: '.admin-tab-btn' });
+  SF.Info.attach(document.getElementById('approvalsTitle'), 'qSwimmers');
 
   loadPipeline();
   loadAllQueues();

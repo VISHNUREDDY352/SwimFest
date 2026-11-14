@@ -4,8 +4,7 @@
 'use strict';
 
 const $ = id => document.getElementById(id);
-function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
+const escHtml = SF.esc;
 // ── Age category derivation ───────────────────────────────────
 const MEET_YEAR = 2026;
 const PF_CATEGORIES = [
@@ -376,29 +375,8 @@ function initLogout() {
 }
 
 // ── Toast ─────────────────────────────────────────────────────
-function showToast(msg, type='info') {
-  const e = document.querySelector('.admin-toast'); if(e) e.remove();
-  const t = document.createElement('div');
-  t.className = `admin-toast admin-toast-${type}`;
-  const icon = type==='success'?'check-circle':type==='warn'?'exclamation-triangle':'info-circle';
-  t.innerHTML = `<i class="fas fa-${icon}"></i> ${escHtml(msg)}`;
-  document.body.appendChild(t);
-  setTimeout(()=>t.classList.add('show'),10);
-  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400);},3000);
-}
+function showToast(msg, type = 'info') { SF.toast(msg, type); }
 
-(function(){
-  const s=document.createElement('style');
-  s.textContent=`
-    .admin-toast{position:fixed;bottom:28px;right:28px;z-index:99999;padding:12px 20px;
-      background:var(--dark);color:var(--white);border-radius:var(--radius-sm);font-size:0.85rem;
-      font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,0.25);
-      transform:translateY(20px);opacity:0;transition:all 0.3s ease;max-width:400px;font-family:'Inter',sans-serif;}
-    .admin-toast.show{transform:translateY(0);opacity:1;}
-    .admin-toast i{color:var(--accent);}
-    .admin-toast.admin-toast-success i{color:var(--success);}`;
-  document.head.appendChild(s);
-})();
 
 // ── Bootstrap ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {

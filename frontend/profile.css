@@ -324,3 +324,8 @@
     .pf-header-actions { flex-direction: column; }
     .pf-btn { width: 100%; flex: none; }
 }
+
+/* Simpler profile: the empty best-times box is white, not a grey slab,
+   and the header doesn't show a second "Profile" button on the profile page */
+.pf-pb-grid:has(> :only-child[style*="grid-column"]) { background: var(--white, #fff); }
+.navbar .nav-container a.btn-profile { display: none !important; }

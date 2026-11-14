@@ -16,7 +16,7 @@
   const STATUS_TEXT = { DNS: 'DNS (did not start)', DNF: 'DNF (did not finish)' };
   const REFRESH_MS = 30000;   // while racing, pick up new times every 30 s
 
-  const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const esc = SF.esc;
   const ordinal = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
 
   // 31420 → "00:31.42", 65230 → "01:05.23"

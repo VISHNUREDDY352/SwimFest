@@ -55,12 +55,27 @@ document.addEventListener('keydown', (e) => {
   }
   function money(n) { return '₹' + Number(n || 0).toLocaleString('en-IN'); }
   function setText(id, txt) { const el = document.getElementById(id); if (el && txt) el.textContent = txt; }
-  function escHtml(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-
+  const escHtml = SF.esc;
   const STATUS_LABEL = {
     PUBLISHED: 'Entries Open', CLOSED: 'Closing Soon', LOCKED: 'Live Now',
     COMPLETED: 'Completed', PENDING_APPROVAL: 'Pending Approval', DRAFT: 'Draft',
   };
+
+  // Birth years per age group, from the meet's own year (age on 31 Dec of that year).
+  // Same rule as registration and the spreadsheet import.
+  function renderAgeRules(t) {
+    const year = t.start_date ? new Date(t.start_date).getFullYear() : new Date().getFullYear();
+    const groups = [['U-10', 'Under-10', 8, 9], ['U-12', 'Under-12', 10, 11], ['U-14', 'Under-14', 12, 13], ['U-16', 'Under-16', 14, 15]];
+    const rows = document.getElementById('evAgeRows');
+    if (rows) rows.innerHTML = groups.map(([code, name, lo, hi]) => `<tr>
+        <td><strong>${name} (${code})</strong></td>
+        <td>Born 01-Jan-${year - hi} to 31-Dec-${year - lo}</td>
+        <td>${lo}–${hi} Yrs</td></tr>`).join('');
+    const list = document.getElementById('evAgeRuleList');
+    if (list) list.innerHTML = groups.map(([code, , lo, hi]) => `<li><strong>${code}:</strong> Born ${year - hi}–${year - lo}</li>`).join('');
+    setText('evAgeCutoff', `Cutoff date: 31 December ${year}`);
+    setText('evAgeYearText', `For ${year}:`);
+  }
 
   async function loadEvent() {
     const params = new URLSearchParams(location.search);
@@ -111,6 +126,7 @@ document.addEventListener('keydown', (e) => {
       }).join('');
     }
     setText('evDates', `${fmtDate(t.start_date)} – ${fmtDate(t.end_date)}`);
+    renderAgeRules(t);
     if (t.registration_deadline) setText('evDeadline', fmtDate(t.registration_deadline));
 
     // Fees + rules

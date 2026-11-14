@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="core/sf.js?v=2"></script>
+    <script src="core/icons.js?v=1"></script>
+    <script src="core/components.js?v=2"></script>
+    <script src="core/help.js?v=2"></script>
     <title>Register — SwimFest</title>
     <link rel="stylesheet" href="styles.css?v=24">
     <link rel="stylesheet" href="register.css?v=3">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="core/sf.css?v=4">
 </head>
 <body>
 
@@ -23,15 +25,37 @@
             </div>
             <nav class="nav-links">
                 <a href="index.html" class="nav-link">Home</a>
-                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
                 <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
                 <a href="index.html#past-events-archives" class="nav-link">Past</a>
                 <a href="academy.html" class="nav-link">Academy</a>
             </nav>
             <a href="index.html" class="btn-profile"><i class="fas fa-home"></i> Home</a>
             <a href="profile.html" class="btn-register-login">My Profile</a>
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu" aria-controls="mobileMenu" aria-expanded="false">
+                <i class="fas fa-bars"></i>
+            </button>
         </div>
     </header>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+        <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
+        <a href="index.html#past-events-archives" class="nav-link">Past</a>
+        <a href="academy.html" class="nav-link">Academy</a>
+        <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> My Profile</a>
+    </div>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        var btn = document.getElementById('mobileMenuBtn'), menu = document.getElementById('mobileMenu');
+        btn.addEventListener('click', function () {
+          var open = menu.classList.toggle('active');
+          btn.setAttribute('aria-expanded', String(open));
+        });
+      });
+    </script>
 
     <!-- Registration Page -->
     <main class="reg-page">
@@ -524,12 +548,11 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="datepicker.js?v=3"></script>
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
-    <script src="assistant.js?v=2" data-mode="public"></script>
     <script src="events.js?v=1"></script>
-    <script src="register.js?v=7"></script>
+    <script src="register.js?v=8"></script>
 </body>
 </html>

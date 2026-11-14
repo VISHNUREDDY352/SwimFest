@@ -120,11 +120,7 @@ function formatDate(dateStr) {
   return `${d}/${m}/${y}`;
 }
 
-function escHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+const escHtml = SF.esc;
 
 // ─── DOM helpers ──────────────────────────────────────────────
 const $  = id  => document.getElementById(id);

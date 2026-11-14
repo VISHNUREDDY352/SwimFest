@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="core/sf.js?v=2"></script>
+    <script src="core/icons.js?v=1"></script>
+    <script src="core/components.js?v=2"></script>
+    <script src="core/help.js?v=2"></script>
     <title>Search Profile — SwimFest</title>
     <link rel="stylesheet" href="styles.css?v=24">
     <link rel="stylesheet" href="search.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="core/sf.css?v=4">
 </head>
 <body>
 
@@ -19,8 +21,8 @@
             <button class="state-selector"><i class="fas fa-map-marker-alt"></i> Tamil Nadu <i class="fas fa-caret-down"></i></button>
             <nav class="nav-links">
                 <a href="index.html" class="nav-link">Home</a>
-                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
                 <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
                 <a href="index.html#past-events-archives" class="nav-link">Past</a>
                 <a href="academy.html" class="nav-link">Academy</a>
             </nav>
@@ -32,8 +34,8 @@
 
     <div class="mobile-menu" id="mobileMenu">
         <a href="index.html" class="nav-link">Home</a>
-        <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
         <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+        <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
         <a href="index.html#past-events-archives" class="nav-link">Past</a>
         <a href="academy.html" class="nav-link">Academy</a>
         <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> My Profile</a>
@@ -44,30 +46,31 @@
         <div class="sp-hero">
             <div class="sp-hero-inner">
                 <p class="sp-eyebrow"><i class="fas fa-search"></i> Swimmer Directory</p>
-                <h1 class="sp-title">Search Swimmer Profiles</h1>
-                <p class="sp-sub">Find a swimmer by name, then filter by category or academy.</p>
+                <h1 class="sp-title" data-help="swimmerSearch">Search Swimmer Profiles</h1>
+                <p class="sp-sub">Find a swimmer by name or swimmer ID, then filter by age group or academy.</p>
 
                 <div class="sp-searchbar">
                     <i class="fas fa-search sp-search-icon"></i>
-                    <input type="text" id="spQuery" class="sp-search-input"
-                           placeholder="Type a swimmer's name…" autocomplete="off">
-                    <button class="sp-search-btn" id="spSearchBtn">Search</button>
+                    <label for="spQuery" class="sr-only">Swimmer name or ID</label>
+                    <input type="search" id="spQuery" class="sp-search-input"
+                           placeholder="Swimmer name or ID (e.g. SFI1001)" autocomplete="off">
+                    <button type="button" class="sp-search-btn" id="spSearchBtn">Search</button>
                 </div>
 
                 <div class="sp-filters">
-                    <select id="spCategory" class="sp-select">
+                    <select id="spCategory" class="sp-select" aria-label="Age group">
                         <option value="">All Categories</option>
                         <option value="U-10">U-10</option>
                         <option value="U-12">U-12</option>
                         <option value="U-14">U-14</option>
                         <option value="U-16">U-16</option>
                     </select>
-                    <select id="spGender" class="sp-select">
+                    <select id="spGender" class="sp-select" aria-label="Gender">
                         <option value="">All Genders</option>
                         <option value="Boy">Boys</option>
                         <option value="Girl">Girls</option>
                     </select>
-                    <select id="spAcademy" class="sp-select">
+                    <select id="spAcademy" class="sp-select" aria-label="Academy">
                         <option value="">All Academies</option>
                     </select>
                 </div>
@@ -85,10 +88,9 @@
         </div>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
-    <script src="assistant.js?v=2" data-mode="public"></script>
-    <script src="search.js"></script>
+    <script src="search.js?v=2"></script>
 </body>
 </html>

@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="core/sf.js?v=2"></script>
+    <script src="core/icons.js?v=1"></script>
+    <script src="core/components.js?v=2"></script>
+    <script src="core/help.js?v=2"></script>
     <title>Heat Sheets & Schedule — SwimFest</title>
     <link rel="stylesheet" href="styles.css?v=24">
-    <link rel="stylesheet" href="heatsheets.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="heatsheets.css?v=2">
+    <link rel="stylesheet" href="core/sf.css?v=4">
 </head>
 <body>
 
@@ -19,8 +21,8 @@
             <button class="state-selector"><i class="fas fa-map-marker-alt"></i> Tamil Nadu <i class="fas fa-caret-down"></i></button>
             <nav class="nav-links">
                 <a href="index.html" class="nav-link">Home</a>
-                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
                 <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+                <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
                 <a href="index.html#past-events-archives" class="nav-link">Past</a>
                 <a href="academy.html" class="nav-link">Academy</a>
             </nav>
@@ -32,8 +34,8 @@
 
     <div class="mobile-menu" id="mobileMenu">
         <a href="index.html" class="nav-link">Home</a>
-        <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
         <a href="index.html#ongoing-tournaments" class="nav-link">Ongoing</a>
+        <a href="index.html#upcoming-tournaments" class="nav-link">Upcoming</a>
         <a href="index.html#past-events-archives" class="nav-link">Past</a>
         <a href="academy.html" class="nav-link">Academy</a>
         <a href="profile.html" class="nav-link"><i class="fas fa-user"></i> My Profile</a>
@@ -45,7 +47,7 @@
             <div class="hs-hero-inner">
                 <div>
                     <p class="hs-eyebrow"><i class="fas fa-list-ol"></i> Schedule &amp; Heat Sheets</p>
-                    <h1 class="hs-title" id="hsTournamentTitle">Loading tournament…</h1>
+                    <h1 class="hs-title" id="hsTournamentTitle" data-help="heatsheets">Loading tournament…</h1>
                     <p class="hs-sub" id="hsTournamentMeta"></p>
                 </div>
                 <div class="hs-hero-actions">
@@ -58,9 +60,14 @@
         <div class="hs-container">
             <!-- Filters -->
             <div class="hs-filters">
-                <select id="hsTournamentFilter" class="hs-select"></select>
-                <select id="hsEventFilter" class="hs-select"><option value="">All Events</option></select>
-                <select id="hsCatFilter" class="hs-select"><option value="">All Categories</option></select>
+                <select id="hsTournamentFilter" class="hs-select" aria-label="Meet"></select>
+                <label class="sf-search" style="flex:1 1 220px">
+                    <i class="fas fa-search"></i>
+                    <span class="sr-only">Find a swimmer</span>
+                    <input type="search" id="hsSearch" class="sf-input" placeholder="Find a swimmer by name" autocomplete="off">
+                </label>
+                <select id="hsEventFilter" class="hs-select" aria-label="Event"><option value="">All Events</option></select>
+                <select id="hsCatFilter" class="hs-select" aria-label="Age group"><option value="">All Categories</option></select>
                 <div class="hs-count" id="hsCount"></div>
             </div>
 
@@ -71,10 +78,9 @@
         </div>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
-    <script src="assistant.js?v=2" data-mode="public"></script>
-    <script src="heatsheets.js?v=3"></script>
+    <script src="heatsheets.js?v=5"></script>
 </body>
 </html>

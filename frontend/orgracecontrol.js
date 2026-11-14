@@ -7,7 +7,7 @@
 
 const $ = id => document.getElementById(id);
 
-function escHtml(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+const escHtml = SF.esc;
 
 function fmtDates(s, e) {
   const f = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '';
@@ -56,7 +56,8 @@ async function loadMeets() {
   const { data, error } = await query;
   if (error) { sel.innerHTML = `<option>Could not load meets</option>`; console.error('[SwimFest] race control meets:', error.message); return; }
 
-  MEETS = data || [];
+  const mine = window.SwimGov ? await window.SwimGov.assignedMeetIds() : null;   // Admins: assigned meets only
+  MEETS = mine ? (data || []).filter(t => mine.has(t.tournament_id)) : (data || []);
   if (!MEETS.length) {
     sel.innerHTML = '<option>No approved meets yet</option>';
     sel.disabled = true;
@@ -89,6 +90,7 @@ async function selectMeet(id) {
   // The buttons that were "coming soon" now open the real tools for this meet
   const t = encodeURIComponent(id);
   $('rcBulkLink').href = `playerlist.html?t=${t}&bulk=1`;
+  if ($('rcPlayerLink')) $('rcPlayerLink').href = `playerlist.html?t=${t}`;
   // Role matrix: organizers view and export the player list; the meet's Admin changes it
   const organizer = ((window.SwimAuth && window.SwimAuth.getSession()) || {}).role === 'organizer';
   $('rcBulkLink').hidden = organizer;
@@ -105,21 +107,19 @@ async function selectMeet(id) {
 // ── Entries (with swimmer names from the public directory) ────
 async function loadEntries() {
   ENTRIES = [];
-  const { data, error } = await window.sb.from('event_entries')
-    .select('entry_id, swimmer_id, event_name, stroke, distance, category, gender, seed_time_ms, is_relay')
-    .eq('tournament_id', MEET.tournament_id);
-  if (error) { console.error('[SwimFest] race control entries:', error.message); return; }
-  const rows = data || [];
+  let rows;
+  try {
+    rows = await SF.db.fetchAll(() => window.sb.from('event_entries')
+      .select('entry_id, swimmer_id, event_name, stroke, distance, category, gender, seed_time_ms, is_relay')
+      .eq('tournament_id', MEET.tournament_id).order('entry_id'));
+  } catch (e) { console.error('[SwimFest] race control entries:', e.message); return; }
 
-  const ids = [...new Set(rows.map(r => r.swimmer_id).filter(Boolean))];
   const swimmers = {};
-  if (ids.length) {
-    try {
-      const { data: dir } = await window.sb.from('swimmer_directory')
-        .select('swimmer_id, full_name, academy_name').in('swimmer_id', ids);
-      (dir || []).forEach(s => { swimmers[s.swimmer_id] = s; });
-    } catch (_) {}
-  }
+  try {
+    const dir = await SF.db.inChunks(rows.map(r => r.swimmer_id),
+      chunk => window.sb.from('swimmer_directory').select('swimmer_id, full_name, academy_name').in('swimmer_id', chunk));
+    dir.forEach(s => { swimmers[s.swimmer_id] = s; });
+  } catch (_) {}
   ENTRIES = rows.map(r => ({
     ...r,
     swimmer: (swimmers[r.swimmer_id] || {}).full_name || 'Unknown swimmer',
@@ -130,13 +130,16 @@ async function loadEntries() {
 // ── Heats: heat_rows grouped by event + heat ──────────────────
 async function loadHeats() {
   HEATS = [];
-  const { data, error } = await window.sb.from('heat_rows')
-    .select('heat_row_id, event_entry_id, pool_label, event_no, heat_number, lane_number, finish_time_ms, status, dq_code')
-    .eq('tournament_id', MEET.tournament_id)
-    .order('event_no', { ascending: true })
-    .order('heat_number', { ascending: true })
-    .order('lane_number', { ascending: true });
-  if (error) { console.error('[SwimFest] race control heats:', error.message); return; }
+  let data;
+  try {
+    data = await SF.db.fetchAll(() => window.sb.from('heat_rows')
+      .select('heat_row_id, event_entry_id, pool_label, event_no, heat_number, lane_number, finish_time_ms, status, dq_code')
+      .eq('tournament_id', MEET.tournament_id)
+      .order('event_no', { ascending: true })
+      .order('heat_number', { ascending: true })
+      .order('lane_number', { ascending: true })
+      .order('heat_row_id', { ascending: true }));
+  } catch (e) { console.error('[SwimFest] race control heats:', e.message); return; }
 
   const groups = new Map();
   (data || []).forEach(r => {
@@ -302,9 +305,13 @@ window.closeClosureModal = function() {
 
 window.confirmClosure = async function() {
   if (!MEET || !window.sb) return;
-  const { error } = await window.sb.from('tournaments')
-    .update({ status: 'CLOSURE_REQUESTED' }).eq('tournament_id', MEET.tournament_id);
+  // Only a meet that is still racing can be sent for closure; logged for the audit trail
+  const { data: done, error } = await window.sb.from('tournaments')
+    .update({ status: 'CLOSURE_REQUESTED' }).eq('tournament_id', MEET.tournament_id).eq('status', MEET.status)
+    .select('tournament_id');
   if (error) { showToast('Could not send the request: ' + error.message, 'warn'); return; }
+  if (!done || !done.length) { showToast('This meet changed meanwhile (someone else updated it). Reload and try again.', 'warn'); return; }
+  if (window.SwimGov) window.SwimGov.audit('CLOSURE_REQUESTED', 'TOURNAMENT', MEET.tournament_id, `${MEET.title}: closure requested`);
   closeClosureModal();
   MEET.status = 'CLOSURE_REQUESTED';
   const pill = STATUS_PILL.CLOSURE_REQUESTED;
@@ -357,28 +364,9 @@ async function renderOrgIdentity() {
 }
 
 // ── Toast ─────────────────────────────────────────────────────
-function showToast(msg, type = 'info') {
-  const e = document.querySelector('.admin-toast'); if (e) e.remove();
-  const t = document.createElement('div');
-  t.className = `admin-toast admin-toast-${type}`;
-  const icon = type === 'success' ? 'check-circle' : type === 'warn' ? 'exclamation-triangle' : 'info-circle';
-  t.innerHTML = `<i class="fas fa-${icon}"></i> ${escHtml(msg)}`;
-  document.body.appendChild(t);
-  setTimeout(() => t.classList.add('show'), 10);
-  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 3200);
-}
+function showToast(msg, type = 'info') { SF.toast(msg, type); }
 window.showToast = showToast;
 
-(function() {
-  const s = document.createElement('style');
-  s.textContent = `
-    .admin-toast{position:fixed;bottom:28px;right:28px;z-index:99999;padding:12px 20px;background:var(--dark);color:var(--white);border-radius:var(--radius-sm);font-size:0.85rem;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,0.25);transform:translateY(20px);opacity:0;transition:all 0.3s ease;max-width:420px;font-family:'Inter',sans-serif;}
-    .admin-toast.show{transform:translateY(0);opacity:1;}
-    .admin-toast i{color:var(--accent);}
-    .admin-toast.admin-toast-success i{color:var(--success);}
-    .admin-toast.admin-toast-warn i{color:var(--warning);}`;
-  document.head.appendChild(s);
-})();
 
 // ── Bootstrap ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {

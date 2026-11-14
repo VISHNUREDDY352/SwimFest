@@ -16,7 +16,7 @@
   const LIVE = ['LOCKED', 'CLOSURE_REQUESTED'];
   const R = window.SwimResults;
   const $ = id => document.getElementById(id);
-  const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const esc = SF.esc;
   const ordinal = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
   const fmtDate = d => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
   const DQ = { FS: 'False start', IT: 'Illegal turn', IS: 'Illegal stroke', IK: 'Illegal kick', OT: 'One-hand touch', LV: 'Lane violation', ET: 'Early take-off' };
@@ -184,9 +184,40 @@
     }
   }
 
+  // No meet in the link (e.g. "Watch live results" on the homepage): let people pick one.
+  // Happening now first, then upcoming, then the most recent finished meets.
+  async function showPicker() {
+    $('lvTitle').textContent = 'Live results';
+    $('lvSub').textContent = 'Pick a meet to follow its times as each heat finishes.';
+    $('lvBack').href = 'index.html';
+    $('lvBack').innerHTML = '<i class="fas fa-arrow-left"></i> Home';
+    const MS = window.SwimMeetState;
+    const { data } = await window.sb.from('tournaments')
+      .select('tournament_id, title, start_date, end_date, venue_name, city, status')
+      .in('status', MS ? MS.PUBLIC : ['PUBLISHED', 'CLOSED', 'LOCKED', 'CLOSURE_REQUESTED', 'COMPLETED'])
+      .order('start_date', { ascending: false }).limit(60);
+    const rows = (data || []).map(t => ({ t, phase: MS ? MS.phase(t) : 'upcoming' }));
+    const groups = [
+      ['ongoing', 'Happening now', rows.filter(r => r.phase === 'ongoing')],
+      ['upcoming', 'Coming up', rows.filter(r => r.phase === 'upcoming').reverse()],
+      ['past', 'Recently finished', rows.filter(r => r.phase === 'past').slice(0, 6)],
+    ].filter(g => g[2].length);
+    if (!groups.length) { state('flag-checkered', 'No meets yet', 'Meets appear here once they are published.'); return; }
+    const when = t => `${fmtDate(t.start_date)}${t.end_date && t.end_date !== t.start_date ? ' – ' + fmtDate(t.end_date) : ''}`;
+    $('lvBody').innerHTML = groups.map(([key, label, list]) => `
+      <section class="lv-pick">
+        <h2>${key === 'ongoing' ? '<span class="lv-dot" aria-hidden="true"></span>' : ''}${esc(label)}</h2>
+        <ul>${list.map(({ t }) => `<li><a href="live.html?t=${encodeURIComponent(t.tournament_id)}">
+          <strong>${esc(t.title)}</strong>
+          <span>${esc([when(t), t.venue_name, t.city].filter(Boolean).join(' · '))}</span>
+          <i class="fas fa-chevron-right" aria-hidden="true"></i></a></li>`).join('')}</ul>
+      </section>`).join('');
+  }
+
   async function start() {
     R.ensureStyle();
-    if (!TID || !window.sb) { state('circle-question', 'Meet not found', 'Open the live board from a meet page.'); return; }
+    if (!window.sb) { state('circle-question', 'Can\'t connect', 'Check your internet connection and reload.'); return; }
+    if (!TID) { await showPicker(); return; }
     const { data } = await window.sb.from('tournaments').select('*').eq('tournament_id', TID).maybeSingle();
     if (!data) { state('circle-question', 'Meet not found', 'This link may be out of date.'); return; }
     MEET = data;

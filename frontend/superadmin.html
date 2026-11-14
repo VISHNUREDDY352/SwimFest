@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="core/sf.js?v=2"></script>
+    <script src="core/icons.js?v=1"></script>
+    <script src="core/components.js?v=2"></script>
+    <script src="core/help.js?v=2"></script>
     <title>Super Admin Console — SwimFest</title>
     <script src="guard.js?v=5" data-roles="super_admin"></script>
     <link rel="stylesheet" href="styles.css?v=24">
     <link rel="stylesheet" href="admin.css?v=2">
     <link rel="stylesheet" href="dashboard.css?v=2">
     <link rel="stylesheet" href="emdashboard.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* ── Super Admin layout tokens ── */
         :root {
@@ -286,7 +287,65 @@
         .sa-tool[hidden], .sa-container[hidden] { display:none !important; }
         .sa-tool iframe { flex:1; width:100%; height:100vh; border:0; display:block; background:#f4f6fa; }
         @media (max-width: 900px) { .sa-tool iframe { height:calc(100vh - 3.5rem); } }
+
+        /* ── Simplified console ── */
+        .sa-allclear { text-align:center; padding:3.5rem 1.5rem; background:var(--sf-surface); border:1px solid var(--sf-line); border-radius:12px; }
+        .sa-allclear h2 { margin:14px 0 6px; font-size:1.25rem; }
+        .sa-allclear p { margin:0 auto; max-width:30rem; color:var(--sf-muted); }
+        .sa-allclear-icon { display:inline-flex; width:56px; height:56px; border-radius:999px; align-items:center; justify-content:center;
+            background:var(--sf-ok-soft); color:var(--sf-ok); font-size:1.4rem; }
+        .sa-allclear-actions { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:20px; }
+        .sa-qtab[hidden] { display:none !important; }
+        .sa-main { min-width:0; }
+        /* All meets / History filters on phones: tidy two-column grid instead of ragged wrapping */
+        @media (max-width:640px) {
+            #allMeetsSection .sf-toolbar, #panel-history .sf-toolbar { display:grid; grid-template-columns:1fr 1fr; }
+            #allMeetsSection .sf-toolbar .sf-search, #allMeetsShow,
+            #panel-history .sf-toolbar .sf-search, #histExport { grid-column:1 / -1; }
+            #allMeetsSection .sf-toolbar select, #panel-history .sf-toolbar select { width:100% !important; }
+            #histCount { grid-column:1 / -1; }
+        }   /* never grow wider than the screen to fit a table */
+
+        /* Approval tables on phones: one block per row, label on the left (labels set by superadmin.js) */
+        @media (max-width:640px) {
+            .sa-queue-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+            .sa-queue-table, .sa-queue-table tbody, .sa-queue-table tr, .sa-queue-table td { display:block; width:100%; box-sizing:border-box; }
+            .sa-queue-table tr { border-bottom:1px solid var(--sf-line); padding:8px 0; }
+            .sa-queue-table td { border:0 !important; padding:4px 16px !important; display:grid; grid-template-columns:minmax(6.5rem, auto) 1fr; gap:0 12px; }
+            .sa-queue-table td::before { content:attr(data-label); grid-row:1 / span 4; font-weight:600; font-size:.8rem; color:var(--sf-muted); }
+            .sa-queue-table td:first-child, .sa-queue-table td.sa-empty-cell { display:block; }
+            .sa-queue-table td:first-child::before, .sa-queue-table td.sa-empty-cell::before, .sa-queue-table td[data-label=""]::before { content:none; }
+            .sa-qtabs { padding:0 4px; }
+            .sa-toolbar { flex-wrap:wrap; }
+        }
+
+        /* All meets + History: plain tables */
+        .sm-summary { margin:0 0 12px; color:var(--sf-muted); font-size:.92rem; }
+        .sm-summary strong { color:var(--sf-text); }
+        .sm-table td { vertical-align:top; }
+        .sm-title { font-weight:600; color:var(--sf-text); text-decoration:none; }
+        .sm-title:hover { color:var(--sf-brand); text-decoration:underline; }
+        .sm-when { white-space:nowrap; }
+        .sa-page-sub[hidden] { display:none !important; }
+        .sm-sub { display:block; font-size:.82rem; color:var(--sf-muted); margin-top:2px; }
+        .sm-actions { display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap; }
+        .sm-group th { background:var(--sf-bg) !important; color:var(--sf-text) !important; text-transform:none !important; letter-spacing:0 !important; font-size:.85rem !important; }
+        .sm-group .sf-badge { margin-left:6px; }
+        .sm-live { display:inline-block; width:8px; height:8px; border-radius:999px; background:var(--sf-ok); margin-right:6px; vertical-align:middle; }
+        .sm-tools { display:grid; gap:8px; grid-template-columns:1fr; margin:0; padding:0; list-style:none; }
+        @media (min-width:560px) { .sm-tools { grid-template-columns:1fr 1fr; } }
+        .sm-tools button, .sm-tools a { all:unset; box-sizing:border-box; width:100%; display:flex; gap:10px; align-items:flex-start; padding:10px 12px;
+            border:1px solid var(--sf-line); border-radius:10px; cursor:pointer; }
+        .sm-tools button:hover, .sm-tools a:hover { border-color:var(--sf-brand); background:var(--sf-brand-soft); }
+        .sm-tools button:focus-visible, .sm-tools a:focus-visible { outline:3px solid var(--sf-focus); outline-offset:2px; }
+        .sm-tools .sf-icon, .sm-tools i { color:var(--sf-brand); margin-top:3px; }
+        .sm-tools strong { display:block; font-size:.92rem; }
+        .sm-tools span span { display:block; font-size:.8rem; color:var(--sf-muted); }
+        .sm-tools .is-warn .sf-icon, .sm-tools .is-warn i { color:var(--sf-warn); }
+        .hist-when { white-space:nowrap; }
+        .hist-what { font-weight:600; }
     </style>
+    <link rel="stylesheet" href="core/sf.css?v=4">
 </head>
 <body class="sa-body" data-no-back>
 <div class="sa-shell" id="saShell">
@@ -301,35 +360,33 @@
             </span>
         </a>
 
-        <nav class="sa-side-group">
+        <nav class="sa-side-group" aria-label="Console">
             <button class="sa-side-link sa-nav-tab" data-tab="dashboard"><i class="fas fa-clipboard-check"></i> Approvals
                 <span class="sa-side-count" id="saTotalPending">0</span></button>
-            <div class="sa-side-sub">
-                <button class="sa-side-link" data-queue="s2">Verifications <span class="sa-mini" data-count-for="s2">0</span></button>
-                <button class="sa-side-link" data-queue="s1a">Internal meets <span class="sa-mini" data-count-for="s1a">0</span></button>
-                <button class="sa-side-link" data-queue="s1b">Third-party meets <span class="sa-mini" data-count-for="s1b">0</span></button>
-                <button class="sa-side-link" data-queue="reopen">Reopen requests <span class="sa-mini" data-count-for="reopen">0</span></button>
-                <button class="sa-side-link" data-queue="sentback">Sent back <span class="sa-mini" data-count-for="sentback">0</span></button>
-            </div>
             <button class="sa-side-link sa-nav-tab" data-tab="meets"><i class="fas fa-trophy"></i> All meets</button>
-            <button class="sa-side-link sa-nav-tab" data-tab="academies"><i class="fas fa-building"></i> Academies &amp; coaches</button>
             <button class="sa-side-link sa-nav-tab" data-tab="financials"><i class="fas fa-indian-rupee-sign"></i> Financials</button>
+            <button class="sa-side-link sa-nav-tab" data-tab="history"><i class="fas fa-history"></i> History</button>
             <!-- Owner only (shown by superadmin.js) -->
             <button class="sa-side-link sa-nav-tab" data-tab="team" id="saTeamNav" hidden><i class="fas fa-user-shield"></i> Team</button>
         </nav>
 
-        <nav class="sa-side-group" aria-label="Tools">
-            <div class="sa-side-label">Tools</div>
-            <a href="playerlist.html" data-tool="playerlist" class="sa-side-link"><i class="fas fa-list-check"></i> Master player list</a>
+        <nav class="sa-side-group" aria-label="Run a meet">
+            <div class="sa-side-label">Run a meet</div>
+            <a href="playerlist.html" data-tool="playerlist" class="sa-side-link"><i class="fas fa-list-check"></i> Player list</a>
             <a href="heatgen.html" data-tool="heatgen" class="sa-side-link"><i class="fas fa-bolt"></i> Heat generation</a>
             <a href="orgracecontrol.html" data-tool="racecontrol" class="sa-side-link"><i class="fas fa-flag-checkered"></i> Race control</a>
             <a href="results.html" data-tool="results" class="sa-side-link"><i class="fas fa-broadcast-tower"></i> Live results</a>
-            <a href="orgcreate.html" data-tool="createmeet" class="sa-side-link"><i class="fas fa-plus"></i> Create meet</a>
-            <a href="academy.html" class="sa-side-link"><i class="fas fa-building-columns"></i> Academy directory</a>
-            <a href="admin.html" class="sa-side-link"><i class="fas fa-cogs"></i> Admin console</a>
-            <a href="orgdashboard.html" data-tool="organizer" class="sa-side-link"><i class="fas fa-user-tie"></i> Organizer dashboard</a>
-            <a href="saoverride.html" data-tool="override" class="sa-side-link warn"><i class="fas fa-unlock-alt"></i> Universal override</a>
         </nav>
+
+        <details class="sa-side-more">
+            <summary class="sa-side-label">More</summary>
+            <nav class="sa-side-group" aria-label="More">
+                <a href="academy.html" class="sa-side-link"><i class="fas fa-building-columns"></i> Academies &amp; coaches</a>
+                <a href="admin.html" class="sa-side-link"><i class="fas fa-cogs"></i> Admin console</a>
+                <a href="orgdashboard.html" data-tool="organizer" class="sa-side-link"><i class="fas fa-user-tie"></i> Organizer view</a>
+                <a href="saoverride.html" data-tool="override" class="sa-side-link warn"><i class="fas fa-unlock-alt"></i> Universal override</a>
+            </nav>
+        </details>
 
         <div class="sa-side-user">
             <span class="sa-avatar-lg" id="saUserInitials">SA</span>
@@ -355,40 +412,27 @@
             <div class="sa-page-head">
                 <div>
                     <h1 class="sa-page-title" id="saPageTitle">Approvals</h1>
-                    <p class="sa-page-sub"><span class="sa-live-dot"></span> <span id="saPageSub">Live — updates as submissions arrive</span></p>
+                    <p class="sa-page-sub"><span class="sa-live-dot"></span> <span id="saPageSub">Checking for new submissions…</span></p>
                 </div>
                 <div class="sa-head-actions">
                     <button class="sa-btn sa-btn-ghost" onclick="openNoticeModal()"><i class="fas fa-bell"></i> Emergency notice</button>
                     <a href="orgcreate.html" data-tool="createmeet" class="sa-btn sa-btn-primary" data-head-for="other"><i class="fas fa-plus"></i> Create meet</a>
-                    <a href="admin.html#add-coach" class="sa-btn sa-btn-ghost" data-head-for="academies" hidden><i class="fas fa-chalkboard-teacher"></i> Add coach</a>
-                    <a href="admin.html#add-academy" class="sa-btn sa-btn-primary" data-head-for="academies" hidden><i class="fas fa-building"></i> Add academy</a>
-                </div>
-            </div>
-
-            <!-- KPI strip: operational numbers only (money lives on the Financials tab).
-                 Shown on the Approvals tab only (see switchTab) -->
-            <div class="sa-metrics-grid" id="saKpis">
-                <div class="sa-metric-card">
-                    <span class="sa-metric-icon"><i class="fas fa-trophy"></i></span>
-                    <div><div class="sa-metric-label">Active meets</div><div class="sa-metric-value">—</div></div>
-                </div>
-                <div class="sa-metric-card green">
-                    <span class="sa-metric-icon"><i class="fas fa-users"></i></span>
-                    <div><div class="sa-metric-label">Athletes</div><div class="sa-metric-value">—</div></div>
-                </div>
-                <div class="sa-metric-card orange" title="Everything waiting for your decision: verifications, internal and third-party meets, and reopen requests">
-                    <span class="sa-metric-icon"><i class="fas fa-hourglass-half"></i></span>
-                    <div><div class="sa-metric-label">Pending reviews</div><div class="sa-metric-value" id="kpiPending">—</div></div>
-                </div>
-                <div class="sa-metric-card purple" title="Average time from a submission arriving to an approve or reject decision, over the last 30 days">
-                    <span class="sa-metric-icon"><i class="fas fa-stopwatch"></i></span>
-                    <div><div class="sa-metric-label">Avg review time</div><div class="sa-metric-value" id="kpiTurnaround">—</div></div>
                 </div>
             </div>
 
             <!-- TAB 1: APPROVALS -->
             <div class="sa-tab-panel active" id="panel-dashboard" data-tab-panel="dashboard" data-title="Approvals">
-                <section class="sa-section" aria-label="Approval queues">
+                <!-- Shown instead of the queues when nothing is waiting -->
+                <div class="sa-allclear" id="saAllClear" hidden>
+                    <span class="sa-allclear-icon" aria-hidden="true"><i class="fas fa-check"></i></span>
+                    <h2>You're all caught up</h2>
+                    <p>Nothing is waiting for your decision. New sign-ups, meets and reopen requests appear here as soon as they arrive.</p>
+                    <div class="sa-allclear-actions">
+                        <button type="button" class="sf-btn" data-tab-link="meets"><i class="fas fa-trophy"></i> See all meets</button>
+                        <a href="orgcreate.html" data-tool="createmeet" class="sf-btn sf-btn-primary"><i class="fas fa-plus"></i> Create a meet</a>
+                    </div>
+                </div>
+                <section class="sa-section" id="saQueues" aria-label="Approval queues">
                     <div class="sa-qtabs" role="tablist" aria-label="Queues">
                         <button class="sa-qtab active" role="tab" data-queue="s2">Verifications <span class="sa-qcount" id="s2Badge">…</span></button>
                         <button class="sa-qtab" role="tab" data-queue="s1a">Internal meets <span class="sa-qcount" id="s1aBadge">…</span></button>
@@ -404,8 +448,10 @@
                         </div>
                         <label class="sa-search-wrap">
                             <i class="fas fa-search" aria-hidden="true"></i>
-                            <input type="search" id="saQueueSearch" placeholder="Search this queue…" aria-label="Search this queue">
+                            <input type="search" id="saQueueSearch" placeholder="Search by name or club" aria-label="Search by name or club">
                         </label>
+                        <select id="saQueueType" class="sf-select" style="width:auto" aria-label="Filter by type"><option value="">All types</option></select>
+                        <span class="sf-count" id="saQueueCount" aria-live="polite"></span>
                     </div>
 
                     <!-- Verifications -->
@@ -461,58 +507,71 @@
             </div>
 
             <!-- TAB 2: ALL MEETS -->
-            <div class="sa-tab-panel" id="panel-meets" data-tab-panel="meets" data-title="All Meets">
-                <section class="sa-section" id="allMeetsSection">
-                    <div class="sa-section-header">
-                        <span class="sa-section-title"><i class="fas fa-trophy"></i> Meets &amp; tournaments</span>
-                        <span>
-                            <span class="sa-badge green" id="allMeetsCountBadge">0 Meets</span>
-                            <span class="sa-badge" id="allMeetsEntriesBadge" title="Race entries across every meet (one per swimmer per race)">— race entries</span>
-                        </span>
-                    </div>
-                    <div class="sa-meets-toolbar">
-                        <label class="sa-search-wrap">
-                            <i class="fas fa-search" aria-hidden="true"></i>
-                            <input type="search" id="allMeetsSearch" placeholder="Search by title, host, city, venue…" aria-label="Search meets" oninput="handleMeetsSearch(this.value)">
-                        </label>
-                        <!-- State first, then only the cities in that state -->
-                        <select class="sa-meet-select" id="allMeetsState" aria-label="Filter by state"><option value="">All states</option></select>
-                        <select class="sa-meet-select" id="allMeetsCity" aria-label="Filter by city"><option value="">All cities</option></select>
-                        <div class="sa-status-filters" id="meetsStatusFilters">
-                            <button class="sa-filter-btn active" onclick="filterMeetsByStatus('ALL', this)">All</button>
-                            <button class="sa-filter-btn" onclick="filterMeetsByStatus('PUBLISHED', this)">Published</button>
-                            <button class="sa-filter-btn" onclick="filterMeetsByStatus('LOCKED', this)">Locked</button>
-                            <button class="sa-filter-btn" onclick="filterMeetsByStatus('PENDING_APPROVAL', this)">Pending</button>
-                            <button class="sa-filter-btn" onclick="filterMeetsByStatus('CLOSURE_REQUESTED', this)">Closure requested</button>
-                            <button class="sa-filter-btn" onclick="filterMeetsByStatus('COMPLETED', this)">Completed</button>
-                            <button class="sa-filter-btn" onclick="filterMeetsByStatus('DRAFT', this)">Draft / Rejected</button>
+            <div class="sa-tab-panel" id="panel-meets" data-tab-panel="meets" data-title="All meets">
+                <p class="sm-summary" id="allMeetsSummary" aria-live="polite">Loading meets…</p>
+                <section class="sf-section" id="allMeetsSection" aria-label="Meets">
+                    <div class="sf-toolbar">
+                        <div class="sf-search">
+                            <i class="fas fa-search"></i>
+                            <input type="search" id="allMeetsSearch" class="sf-input" placeholder="Search by meet, host, city or venue" aria-label="Search meets" oninput="handleMeetsSearch(this.value)">
                         </div>
+                        <select class="sf-select" id="allMeetsShow" style="width:auto" aria-label="Show">
+                            <option value="ALL">All meets</option>
+                            <option value="ongoing">Happening now</option>
+                            <option value="upcoming">Upcoming</option>
+                            <option value="action">Needs your action</option>
+                            <option value="past">Finished</option>
+                            <option value="draft">Drafts &amp; sent back</option>
+                        </select>
+                        <!-- State first, then only the cities in that state -->
+                        <select class="sf-select" id="allMeetsState" style="width:auto" aria-label="Filter by state"><option value="">All states</option></select>
+                        <select class="sf-select" id="allMeetsCity" style="width:auto" aria-label="Filter by city"><option value="">All cities</option></select>
                     </div>
-                    <div class="sa-table-wrap">
-                        <table class="sa-queue-table" id="allMeetsTable">
+                    <div class="sf-table-wrap">
+                        <table class="sf-table sf-stack sm-table" id="allMeetsTable">
+                            <caption class="sf-visually-hidden">All meets, happening now first</caption>
                             <thead>
-                                <tr><th>Tournament / meet</th><th>Host &amp; venue</th><th>Dates</th><th>Status</th><th style="min-width:320px;">Sites &amp; operations</th></tr>
+                                <tr><th scope="col">Meet</th><th scope="col">When</th><th scope="col">Where</th><th scope="col">Status</th><th scope="col"><span class="sf-visually-hidden">Actions</span></th></tr>
                             </thead>
                             <tbody id="allMeetsBody">
-                                <tr><td colspan="5" class="sa-empty-cell">Loading tournaments…</td></tr>
+                                <tr><td colspan="5" class="sf-empty">Loading meets…</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </section>
             </div>
 
-            <!-- TAB 3: ACADEMIES & COACHES -->
-            <div class="sa-tab-panel" id="panel-academies" data-tab-panel="academies" data-title="Academies &amp; Coaches">
-                <section class="sa-section">
-                    <div class="sa-section-header">
-                        <span class="sa-section-title"><i class="fas fa-building"></i> Verified academy &amp; coach directory</span>
-                        <a href="academy.html" target="_blank" class="sa-btn sa-btn-primary" style="height:36px;font-size:0.8rem;">
-                            <i class="fas fa-external-link-alt"></i> Open public directory
-                        </a>
+            <!-- HISTORY: everything staff have done, newest first (system_audit_logs) -->
+            <div class="sa-tab-panel" id="panel-history" data-tab-panel="history" data-title="History">
+                <section class="sf-section" aria-label="Activity history">
+                    <div class="sf-toolbar">
+                        <div class="sf-search">
+                            <i class="fas fa-search"></i>
+                            <input type="search" id="histSearch" class="sf-input" placeholder="Search by person, meet or note" aria-label="Search history">
+                        </div>
+                        <select class="sf-select" id="histType" style="width:auto" aria-label="Kind of activity">
+                            <option value="">Everything</option>
+                            <option value="approvals">Approvals &amp; verifications</option>
+                            <option value="meets">Meets</option>
+                            <option value="entries">Entries &amp; player lists</option>
+                            <option value="results">Results</option>
+                            <option value="team">Team &amp; access</option>
+                        </select>
+                        <select class="sf-select" id="histRange" style="width:auto" aria-label="Time period">
+                            <option value="1">Today</option>
+                            <option value="7" selected>Last 7 days</option>
+                            <option value="30">Last 30 days</option>
+                            <option value="365">Last year</option>
+                        </select>
+                        <button type="button" class="sf-btn" id="histExport"><i class="fas fa-file-export"></i> Download CSV</button>
+                        <span class="sf-count" id="histCount" aria-live="polite"></span>
                     </div>
-                    <div style="padding:18px;color:var(--sa-muted);font-size:0.86rem;line-height:1.6;">
-                        Approved academies and coaches are automatically indexed in the public directory and made available for swimmer affiliation during registration.
-                        Pending submissions appear under <button type="button" class="sa-filter-btn" data-queue="s2" style="height:28px;">Approvals → Verifications</button>.
+                    <div class="sf-table-wrap">
+                        <table class="sf-table sf-stack">
+                            <caption class="sf-visually-hidden">Activity history, newest first</caption>
+                            <thead><tr><th scope="col">When</th><th scope="col">Who</th><th scope="col">What happened</th><th scope="col">Details</th></tr></thead>
+                            <tbody id="histBody"><tr><td colspan="4" class="sf-empty">Loading…</td></tr></tbody>
+                        </table>
                     </div>
                 </section>
             </div>
@@ -562,9 +621,6 @@
                     <div class="sa-fin-row"><span>Entry fees not paid yet</span><span id="saPendingFees" style="color:#b45309;">—</span></div>
                     <div class="sa-fin-row"><span>Software fees due (offline meets, ₹5,000 each)</span><span id="saPendingPayouts" style="color:#b45309;">—</span></div>
                     <div class="sa-actions-bar">
-                        <button class="sa-action-btn sa-btn-export" onclick="exportAuditLog()">
-                            <i class="fas fa-file-export"></i> Export audit logs
-                        </button>
                         <button class="sa-action-btn sa-btn-notice" onclick="openNoticeModal()">
                             <i class="fas fa-bell"></i> Publish emergency notice
                         </button>
@@ -629,12 +685,13 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
-    <script src="assistant.js?v=2"></script>
-    <script src="reason.js?v=1"></script>
+    <script src="meetstate.js?v=1"></script>
+    <script src="consolenav.js?v=7"></script>
+    <script src="reason.js?v=2"></script>
     <script src="governance.js?v=1"></script>
-    <script src="superadmin.js?v=24"></script>
+    <script src="superadmin.js?v=28"></script>
 </body>
 </html>

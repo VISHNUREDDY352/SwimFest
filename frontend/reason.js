@@ -27,7 +27,7 @@
   style.textContent = css;
   document.head.appendChild(style);
 
-  const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const esc = SF.esc;
 
   function ask({ title = 'Reason for rejecting', subject = '', action = 'Reject', placeholder } = {}) {
     return new Promise(resolve => {

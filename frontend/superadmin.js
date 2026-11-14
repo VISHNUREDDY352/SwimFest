@@ -11,9 +11,7 @@ let S2_QUEUE  = [];   // pending academy / coach verifications
 
 // ── Utilities ─────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
-function escHtml(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+const escHtml = SF.esc;
 
 // Initials avatar used in the first column of each queue row
 function avatarHtml(name, i) {
@@ -38,30 +36,42 @@ function setQueueCount(key, n, label) {
     pill.textContent = label || String(n);
     pill.classList.toggle('has-items', n > 0);
   }
-  document.querySelectorAll(`[data-count-for="${key}"]`).forEach(el => { el.textContent = n; });
   const total = Object.values(QUEUE_COUNTS).reduce((a, b) => a + b, 0);
-  if ($('kpiPending')) $('kpiPending').textContent = total;
   const totalEl = $('saTotalPending');
   if (totalEl) {
     totalEl.textContent = total;
     totalEl.classList.toggle('is-zero', total === 0);
   }
+  QUEUES_LOADED.add(key);
+  updateApprovalView();
+}
+
+// Only queues with something in them get a tab. When every queue is empty the
+// tabs, search and tables are replaced by one "all caught up" message.
+const QUEUES_LOADED = new Set();
+function updateApprovalView() {
+  const counts = Object.assign({}, QUEUE_COUNTS, { sentback: SENT_BACK.length });
+  const loaded = ['s2', 's1a', 's1b', 'reopen'].every(k => QUEUES_LOADED.has(k));
+  const total = Object.values(QUEUE_COUNTS).reduce((a, b) => a + b, 0);
+  const sub = $('saPageSub');
+  if (sub && loaded) {
+    sub.textContent = total
+      ? `${total} ${total === 1 ? 'item needs' : 'items need'} your decision`
+      : 'Nothing waiting for you · updates live';
+  }
+  if (!loaded) return;
+  const nonEmpty = Object.keys(QUEUE_META).filter(k => counts[k] > 0);
+  document.querySelectorAll('.sa-qtab[data-queue]').forEach(t => { t.hidden = !counts[t.dataset.queue]; });
+  $('saAllClear').hidden = nonEmpty.length > 0;
+  $('saQueues').hidden = nonEmpty.length === 0;
+  if (nonEmpty.length && !nonEmpty.includes(ACTIVE_QUEUE)) switchQueue(nonEmpty[0]);
 }
 
 function openModal(id)  { const m=$(id); m.classList.add('active'); m.style.display='flex'; }
 function closeModal(id) { const m=$(id); m.classList.remove('active'); m.style.display='none'; }
 window.closeModal = closeModal;
 
-function showToast(msg, type='info') {
-  const e = document.querySelector('.admin-toast'); if(e) e.remove();
-  const t = document.createElement('div');
-  t.className = `admin-toast admin-toast-${type}`;
-  const icon = type==='success'?'check-circle':type==='warn'?'exclamation-triangle':'info-circle';
-  t.innerHTML = `<i class="fas fa-${icon}"></i> ${escHtml(msg)}`;
-  document.body.appendChild(t);
-  setTimeout(()=>t.classList.add('show'),10);
-  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400);},3500);
-}
+function showToast(msg, type = 'info') { SF.toast(msg, type); }
 window.showToast = showToast;
 
 // ── Supabase: metrics ─────────────────────────────────────────
@@ -74,64 +84,10 @@ const money = n => '₹' + n.toLocaleString('en-IN');
 
 // Numbers worked out from the meets list (no extra requests)
 function renderMeetMetrics() {
-  const cards = document.querySelectorAll('.sa-metric-value');
-  if (cards[0]) cards[0].textContent = ALL_MEETS.filter(t => t.status === 'PUBLISHED' || t.status === 'LOCKED').length;
   // Offline (Option B) meets that are live owe the ₹5,000 software fee, which can't be paid online yet
   const offline = ALL_MEETS.filter(t => t.gateway_option === 'OPTION_B_NO_GATEWAY'
     && ['PUBLISHED', 'CLOSED', 'LOCKED', 'CLOSURE_REQUESTED', 'COMPLETED'].includes(t.status)).length;
   $('saPendingPayouts').textContent = `${offline} meet${offline === 1 ? '' : 's'} · ${money(offline * 5000)} not collected`;
-}
-
-// Swimmer and academy counts
-async function loadPeopleMetrics() {
-  if (!window.sb) return;
-  const cards = document.querySelectorAll('.sa-metric-value');
-  try {
-    const swimmers = await window.sb.from('swimmer_directory').select('swimmer_id', { count:'exact', head:true });
-    if (cards[1]) cards[1].textContent = (swimmers.count ?? 0).toLocaleString('en-IN');
-  } catch (e) { console.warn('[SwimFest] people metrics:', e.message); }
-}
-
-// Average time from a submission arriving to the first approve / reject
-// decision on it, over the last 30 days (read from the audit log)
-const REVIEW_TABLES = {
-  TOURNAMENT: ['tournaments', 'tournament_id'], SWIMMER: ['swimmers', 'swimmer_id'],
-  ACADEMY: ['academies', 'academy_id'], COACH: ['coaches', 'coach_id'], ORGANIZER: ['organizers', 'organizer_id'],
-};
-async function loadTurnaround() {
-  const el = $('kpiTurnaround');
-  if (!window.sb || !el) return;
-  try {
-    const since = new Date(Date.now() - 30 * 864e5).toISOString();
-    const { data: logs } = await window.sb.from('system_audit_logs')
-      .select('action_type, target_entity, target_entity_id, created_at')
-      .gte('created_at', since)
-      .or('action_type.like.%_VERIFIED,action_type.like.%_REJECTED,action_type.eq.EVENT_APPROVED')
-      .order('created_at', { ascending: true });
-    // First decision per submission
-    const first = {};
-    (logs || []).forEach(l => {
-      const key = `${l.target_entity}:${l.target_entity_id}`;
-      if (REVIEW_TABLES[l.target_entity] && l.target_entity_id && !first[key]) first[key] = l;
-    });
-    const byEntity = {};
-    Object.values(first).forEach(l => (byEntity[l.target_entity] = byEntity[l.target_entity] || []).push(l));
-    const hours = [];
-    await Promise.all(Object.entries(byEntity).map(async ([entity, list]) => {
-      const [table, idCol] = REVIEW_TABLES[entity];
-      const { data } = await window.sb.from(table).select(`${idCol}, created_at`).in(idCol, list.map(l => l.target_entity_id));
-      const created = Object.fromEntries((data || []).map(r => [String(r[idCol]), r.created_at]));
-      list.forEach(l => {
-        const c = created[String(l.target_entity_id)];
-        const h = c ? (new Date(l.created_at) - new Date(c)) / 36e5 : NaN;
-        if (h >= 0) hours.push(h);
-      });
-    }));
-    if (!hours.length) { el.textContent = '—'; el.title = 'No decisions in the last 30 days'; return; }
-    const avg = hours.reduce((a, b) => a + b, 0) / hours.length;
-    el.textContent = avg < 1 ? `${Math.max(1, Math.round(avg * 60))} min` : avg < 48 ? `${avg.toFixed(1)} hrs` : `${(avg / 24).toFixed(1)} days`;
-    el.title = `Based on ${hours.length} decision${hours.length === 1 ? '' : 's'} in the last 30 days`;
-  } catch (e) { console.warn('[SwimFest] review turnaround:', e.message); }
 }
 
 // Money: registrations, paid and not paid yet
@@ -209,7 +165,7 @@ function renderSentBack() {
   const n = SENT_BACK.length;
   const pill = $('sentbackBadge');
   if (pill) { pill.textContent = String(n); pill.classList.remove('has-items'); }
-  document.querySelectorAll('[data-count-for="sentback"]').forEach(el => { el.textContent = n; });
+  updateApprovalView();
   if (!n) {
     $('sentbackBody').innerHTML = emptyRow('No meets are waiting on their organizer for changes.');
     return;
@@ -530,7 +486,6 @@ window.doApprove = async function(section, idx) {
   actEl.innerHTML = `<span class="sa-action-done approved-tag"><i class="fas fa-check-circle"></i> Approved</span>`;
   showToast(`Approved: ${name}`, 'success');
   recountBadge(section);
-  loadTurnaround();
 };
 
 window.doReject = async function(section, idx) {
@@ -559,7 +514,6 @@ Reason: ${reason}`);
   actEl.innerHTML = `<span class="sa-action-done rejected-tag"><i class="fas fa-times-circle"></i> Rejected</span>`;
   showToast(`Rejected: ${name} — Returned to submitter.`, 'warn');
   recountBadge(section);
-  loadTurnaround();
 };
 
 function recountBadge(section) {
@@ -646,7 +600,6 @@ function showEmergencyBanner(title, msg) {
 
 // ── All Tournaments / Meets Directory ─────────────────────────
 let ALL_MEETS = [];
-let ALL_MEETS_FILTER = 'ALL';
 let ALL_MEETS_SEARCH = '';
 let ALL_MEETS_STATE = '';
 let ALL_MEETS_CITY = '';
@@ -683,11 +636,11 @@ function initPlaceFilters() {
 document.addEventListener('DOMContentLoaded', initPlaceFilters);
 
 // Total race entries across all meets (the All meets headline number)
+let ENTRY_TOTAL = null;
 async function loadEntryTotal() {
-  const badge = $('allMeetsEntriesBadge');
-  if (!window.sb || !badge) return;
+  if (!window.sb) return;
   const { count, error } = await window.sb.from('event_entries').select('entry_id', { count: 'exact', head: true });
-  if (!error) badge.textContent = `${(count ?? 0).toLocaleString('en-IN')} race entr${count === 1 ? 'y' : 'ies'}`;
+  if (!error) { ENTRY_TOTAL = count ?? 0; renderAllMeets(); }
 }
 
 // One request for every meet; the All meets tab, the meet approval
@@ -723,31 +676,20 @@ window.handleMeetsSearch = function(val) {
   renderAllMeets();
 };
 
-window.filterMeetsByStatus = function(status, btn) {
-  ALL_MEETS_FILTER = status;
-  document.querySelectorAll('#meetsStatusFilters .sa-filter-btn').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  renderAllMeets();
-};
-
-window.openAllMeetSites = function(title, tid) {
-  const encTitle = encodeURIComponent(title);
-  window.open(`event.html?id=${encodeURIComponent(tid)}`, '_blank');
-  window.open(`admin.html?t=${encTitle}`, '_blank');
-  window.open(`results.html`, '_blank');
-  window.open(`heatsheets.html?tournament=${encTitle}`, '_blank');
-  showToast(`Opening all sites/portals for: ${title}`, 'success');
-};
-
 // Organizer asked to close a finished meet → mark it COMPLETED (read-only)
 window.approveClosure = async function(tid, title) {
   if (!window.sb) return;
-  const { error } = await window.sb.from('tournaments')
-    .update({ status: 'COMPLETED' }).eq('tournament_id', tid);
+  const { data: closed, error } = await window.sb.from('tournaments')
+    .update({ status: 'COMPLETED' }).eq('tournament_id', tid).eq('status', 'CLOSURE_REQUESTED').select('tournament_id');
   if (error) {
     showToast('Closure failed: ' + error.message, 'warn');
     return;
   }
+  if (!closed || !closed.length) {
+    showToast('This meet is no longer waiting for closure (someone else changed it). Reload to see the latest.', 'warn');
+    return;
+  }
+  if (window.SwimGov) window.SwimGov.audit('MEET_CLOSED', 'TOURNAMENT', tid, `${title}: closure approved`);
   await writeAudit('MEET_CLOSED', 'TOURNAMENT', tid, `Closure approved: ${title}`);
   showToast(`Meet closed: ${title}`, 'success');
   loadTournaments();
@@ -765,134 +707,252 @@ window.approveMeetDirect = async function(tid, title) {
   loadTournaments();
 };
 
+// Where a meet sits right now. Public meets go by their dates (ongoing /
+// upcoming / past); the rest wait on someone (you, or their organizer).
+function meetGroup(t) {
+  if (t.status === 'PENDING_APPROVAL' || t.status === 'CLOSURE_REQUESTED') return 'action';
+  if (t.status === 'DRAFT' || t.status === 'REJECTED_DRAFT') return 'draft';
+  return (window.SwimMeetState && SwimMeetState.phase(t)) || 'upcoming';
+}
+const MEET_GROUPS = [
+  ['action',   'Needs your action'],
+  ['ongoing',  'Happening now'],
+  ['upcoming', 'Upcoming'],
+  ['past',     'Finished'],
+  ['draft',    'Drafts & sent back'],
+];
+const MEET_STATUS = {
+  PUBLISHED:         ['Registration open', 'sf-badge-ok'],
+  CLOSED:            ['Registration closed', 'sf-badge-warn'],
+  LOCKED:            ['Player list locked', 'sf-badge-info'],
+  COMPLETED:         ['Completed', ''],
+  PENDING_APPROVAL:  ['Waiting for approval', 'sf-badge-warn'],
+  CLOSURE_REQUESTED: ['Closure requested', 'sf-badge-warn'],
+  REJECTED_DRAFT:    ['Sent back', 'sf-badge-bad'],
+  DRAFT:             ['Draft', ''],
+};
+let ALL_MEETS_SHOW = 'ALL';
+
+// Status in words that fit where the meet is in time: a finished meet that
+// was never closed says so, instead of still reading "Registration open".
+function meetStatus(t) {
+  const g = meetGroup(t);
+  if (g === 'past' && t.status !== 'COMPLETED') return ['Finished, not closed', 'sf-badge-warn'];
+  if (g === 'ongoing') return t.status === 'LOCKED' ? ['Racing now', 'sf-badge-ok'] : ['Racing, list not locked', 'sf-badge-warn'];
+  return MEET_STATUS[t.status] || [t.status, ''];
+}
+
+// "11–14 Nov 2026", "30 Oct – 3 Nov 2026", "28 Dec 2026 – 2 Jan 2027"
+function shortDates(s, e) {
+  const parse = d => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d || '')); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+  const a = parse(s), b = parse(e) || a;
+  if (!a) return '—';
+  const f = (d, o) => d.toLocaleDateString('en-IN', o);
+  if (+a === +b) return f(a, { day: 'numeric', month: 'short', year: 'numeric' });
+  if (a.getFullYear() !== b.getFullYear()) return `${f(a, { day: 'numeric', month: 'short', year: 'numeric' })} – ${f(b, { day: 'numeric', month: 'short', year: 'numeric' })}`;
+  if (a.getMonth() !== b.getMonth()) return `${f(a, { day: 'numeric', month: 'short' })} – ${f(b, { day: 'numeric', month: 'short', year: 'numeric' })}`;
+  return `${a.getDate()}–${f(b, { day: 'numeric', month: 'short', year: 'numeric' })}`;
+}
+
 function renderAllMeets() {
-  const badge = $('allMeetsCountBadge');
-  const body  = $('allMeetsBody');
-  if (badge) badge.textContent = `${ALL_MEETS.length} Total Meets`;
+  const body = $('allMeetsBody');
   if (!body) return;
   fillPlaceFilters();
 
-  let filtered = ALL_MEETS;
-  if (ALL_MEETS_STATE) filtered = filtered.filter(t => String(t.state || '').trim() === ALL_MEETS_STATE);
-  if (ALL_MEETS_CITY)  filtered = filtered.filter(t => String(t.city || '').trim() === ALL_MEETS_CITY);
-  if (ALL_MEETS_FILTER !== 'ALL') {
-    if (ALL_MEETS_FILTER === 'DRAFT') {
-      filtered = filtered.filter(t => t.status === 'DRAFT' || t.status === 'REJECTED_DRAFT');
-    } else {
-      filtered = filtered.filter(t => t.status === ALL_MEETS_FILTER);
-    }
+  const counts = {};
+  ALL_MEETS.forEach(t => { const g = meetGroup(t); counts[g] = (counts[g] || 0) + 1; });
+  const summary = $('allMeetsSummary');
+  if (summary) {
+    const bits = [`<strong>${ALL_MEETS.length}</strong> meets`];
+    if (counts.ongoing) bits.push(`<strong>${counts.ongoing}</strong> happening now`);
+    if (counts.upcoming) bits.push(`<strong>${counts.upcoming}</strong> upcoming`);
+    if (counts.action) bits.push(`<strong>${counts.action}</strong> need your action`);
+    summary.innerHTML = bits.join(' · ') + (ENTRY_TOTAL != null ? ` · <strong>${ENTRY_TOTAL.toLocaleString('en-IN')}</strong> race entries` : '');
   }
 
-  if (ALL_MEETS_SEARCH) {
-    const q = ALL_MEETS_SEARCH.toLowerCase();
-    filtered = filtered.filter(t => 
-      (t.title || '').toLowerCase().includes(q) ||
-      (t.host_organization || '').toLowerCase().includes(q) ||
-      (t.city || '').toLowerCase().includes(q) ||
-      (t.venue_name || '').toLowerCase().includes(q)
-    );
-  }
+  const q = SF.norm(ALL_MEETS_SEARCH);
+  const rows = ALL_MEETS.filter(t =>
+    (!ALL_MEETS_STATE || String(t.state || '').trim() === ALL_MEETS_STATE)
+    && (!ALL_MEETS_CITY || String(t.city || '').trim() === ALL_MEETS_CITY)
+    && (ALL_MEETS_SHOW === 'ALL' || meetGroup(t) === ALL_MEETS_SHOW)
+    && (!q || SF.norm(`${t.title} ${t.host_organization} ${t.city} ${t.venue_name}`).includes(q)));
 
-  if (!filtered.length) {
-    body.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--gray);">
-      <i class="fas fa-search" style="font-size:1.5rem;opacity:0.4;margin-bottom:8px;display:block;"></i>
-      No meets found matching filter.
-    </td></tr>`;
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="5" class="sf-empty">${ALL_MEETS.length ? 'No meets match these filters.' : 'No meets yet.'}</td></tr>`;
     return;
   }
 
-  body.innerHTML = filtered.map(t => {
-    const encTitle = encodeURIComponent(t.title || '');
-    const tid = encodeURIComponent(t.tournament_id || '');
-    const statusMap = {
-      PUBLISHED:        { cls: 'chip-published', label: 'Published (Live)' },
-      LOCKED:           { cls: 'chip-published', label: 'Locked (Roster Set)' },
-      COMPLETED:        { cls: 'chip-completed', label: 'Completed' },
-      PENDING_APPROVAL: { cls: 'chip-pending',   label: 'Pending Approval' },
-      CLOSURE_REQUESTED:{ cls: 'chip-pending',   label: 'Closure Requested' },
-      REJECTED_DRAFT:   { cls: 'chip-draft',     label: 'Rejected' },
-      DRAFT:            { cls: 'chip-draft',     label: 'Draft' },
-    };
-    const sc = statusMap[t.status] || { cls: 'chip-draft', label: t.status };
-    const dateRange = fmtDateRange(t.start_date, t.end_date);
-    const regClose = t.registration_deadline ? new Date(t.registration_deadline).toLocaleDateString('en-IN', { day:'2-digit', month:'short' }) : '—';
-    const isPending = t.status === 'PENDING_APPROVAL';
-    const isClosureRequested = t.status === 'CLOSURE_REQUESTED';
-
-    return `
-      <tr>
-        <td>
-          <a href="event.html?id=${encodeURIComponent(t.tournament_id)}" target="_blank" class="sa-meet-title" style="color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
-            ${escHtml(t.title)} <i class="fas fa-external-link-alt" style="font-size:0.65rem;color:var(--gray);"></i>
-          </a>
-          <div class="sa-meet-sub">
-            <span class="sa-cat-pill" style="font-size:0.65rem;">${escHtml(t.state || 'India')}</span>
-            <span>Fee: ₹${t.reg_fee_amount || 0}</span>
-            <span>·</span>
-            <span>Pool: ${escHtml(t.pool_length || '50m')} (${t.lane_count || 8} Lanes)</span>
-          </div>
-        </td>
-        <td>
-          <div style="font-weight:700;font-size:0.83rem;">${escHtml(t.host_organization || '—')}</div>
-          ${t.created_by_email ? `<div style="font-size:0.72rem;color:var(--primary);margin-top:1px;"><i class="fas fa-envelope" style="font-size:0.65rem;"></i> ${escHtml(t.created_by_email)}</div>` : ''}
-          <div style="font-size:0.72rem;color:var(--gray);margin-top:2px;">
-            <i class="fas fa-map-marker-alt" style="color:var(--danger);font-size:0.65rem;"></i>
-            ${escHtml(t.venue_name || '')}${t.city ? ', ' + escHtml(t.city) : ''}
-          </div>
-        </td>
-        <td>
-          <div style="font-weight:700;font-size:0.8rem;">${dateRange}</div>
-          <div style="font-size:0.7rem;color:var(--gray);margin-top:2px;">Reg closes: ${regClose}</div>
-        </td>
-        <td>
-          <span class="em-status-chip ${sc.cls}">
-            <span class="status-dot"></span> ${sc.label}
-          </span>
-        </td>
-        <td>
-          <div class="em-action-group">
-            <a href="event.html?id=${encodeURIComponent(t.tournament_id)}" target="_blank" class="em-action-btn em-btn-view" title="Open Public Event Page">
-              <i class="fas fa-globe"></i> Public Site
-            </a>
-            <a href="admin.html?t=${encTitle}" target="_blank" class="em-action-btn em-btn-manage" title="Master Player List / Roster">
-              <i class="fas fa-users"></i> Roster
-            </a>
-            <a href="heatgen.html" target="_blank" class="em-action-btn em-btn-race" title="Heat Generation">
-              <i class="fas fa-bolt"></i> Heat Gen
-            </a>
-            <a href="results.html" target="_blank" class="em-action-btn em-btn-race" title="Live Results">
-              <i class="fas fa-broadcast-tower"></i> Results
-            </a>
-            <a href="heatsheets.html?tournament=${encTitle}" target="_blank" class="em-action-btn em-btn-view" title="Heat Sheets & Schedule">
-              <i class="fas fa-file-alt"></i> Sheets
-            </a>
-            <a href="orgracecontrol.html" target="_blank" class="em-action-btn em-btn-manage" title="Poolside Race Control">
-              <i class="fas fa-stopwatch"></i> Race Control
-            </a>
-            <a href="saoverride.html?id=${tid}" target="_blank" class="em-action-btn em-btn-edit" title="Universal Override">
-              <i class="fas fa-unlock-alt"></i> Override
-            </a>
-            <button type="button" onclick="openAssignAdmins('${t.tournament_id}')" class="em-action-btn em-btn-manage" title="Choose which Admins run this meet">
-              <i class="fas fa-user-gear"></i> Admins${ASSIGNED[t.tournament_id] ? ` (${ASSIGNED[t.tournament_id].length})` : ''}
-            </button>
-            <button onclick="openAllMeetSites('${escHtml(t.title.replace(/'/g, "\\'"))}', '${t.tournament_id}')" class="em-action-btn em-btn-all-sites" title="Open all associated pages for this meet in new tabs">
-              <i class="fas fa-external-link-square-alt"></i> Open All Sites
-            </button>
-            ${isPending ? `
-              <button class="sa-btn-approve" onclick="approveMeetDirect('${tid}', '${escHtml(t.title.replace(/'/g, "\\'"))}')" style="padding:4px 10px;font-size:0.7rem;"><i class="fas fa-check"></i> Approve</button>
-            ` : ''}
-            ${isClosureRequested ? `
-              <button class="sa-btn-approve" onclick="approveClosure('${tid}', '${escHtml(t.title.replace(/'/g, "\\'"))}')" style="padding:4px 10px;font-size:0.7rem;"><i class="fas fa-flag-checkered"></i> Approve closure</button>
-            ` : ''}
-          </div>
-        </td>
-      </tr>`;
+  const byStart = (a, b) => String(a.start_date || '').localeCompare(String(b.start_date || ''));
+  const html = MEET_GROUPS.map(([key, label]) => {
+    let list = rows.filter(t => meetGroup(t) === key);
+    if (!list.length) return '';
+    list = key === 'past' ? list.sort((a, b) => byStart(b, a)) : list.sort(byStart);
+    return `<tr class="sf-group-row sm-group"><th colspan="5" scope="rowgroup">${key === 'ongoing' ? '<span class="sm-live" aria-hidden="true"></span>' : ''}${escHtml(label)}<span class="sf-badge">${list.length}</span></th></tr>`
+      + list.map(meetRow).join('');
   }).join('');
-  applyQueueSearch();
+  body.innerHTML = html;
 }
 
+function meetRow(t) {
+  const id = t.tournament_id;
+  const [label, cls] = meetStatus(t);
+  const deadline = t.registration_deadline ? SwimNav.day(t.registration_deadline) : '';
+  const admins = ASSIGNED[id] ? ASSIGNED[id].length : 0;
+  let primary = `<button type="button" class="sf-btn sf-btn-sm" data-meet-manage="${escHtml(id)}">Manage</button>`;
+  if (t.status === 'PENDING_APPROVAL') {
+    primary = `<button type="button" class="sf-btn sf-btn-sm sf-btn-primary" data-meet-approve="${escHtml(id)}"><i class="fas fa-check"></i> Approve</button>` + primary;
+  } else if (t.status === 'CLOSURE_REQUESTED') {
+    primary = `<button type="button" class="sf-btn sf-btn-sm sf-btn-primary" data-meet-close="${escHtml(id)}"><i class="fas fa-flag-checkered"></i> Approve closure</button>` + primary;
+  }
+  return `<tr>
+    <td data-label="Meet"><a class="sm-title" href="event.html?id=${encodeURIComponent(id)}" target="_blank" rel="noopener">${escHtml(t.title)}</a>
+      <span class="sm-sub">${escHtml(t.host_organization || 'No host listed')}${admins ? ` · ${admins} admin${admins === 1 ? '' : 's'}` : ''}</span></td>
+    <td data-label="When" class="sm-when">${escHtml(shortDates(t.start_date, t.end_date))}
+      ${deadline && meetGroup(t) === 'upcoming' ? `<span class="sm-sub">Entries close ${escHtml(deadline)}</span>` : ''}</td>
+    <td data-label="Where">${escHtml(t.venue_name || '—')}<span class="sm-sub">${escHtml([t.city, t.state].filter(Boolean).join(', '))}</span></td>
+    <td data-label="Status"><span class="sf-badge ${cls}">${escHtml(label)}</span></td>
+    <td data-label=""><div class="sm-actions">${primary}</div></td>
+  </tr>`;
+}
+
+// One "Manage" dialog per meet instead of nine buttons on every row
+const MEET_TOOLS = [
+  { tool: 'playerlist',  page: 'playerlist.html',     icon: 'list-check',      label: 'Player list',     hint: 'Swimmers, walk-ins, lock the list' },
+  { tool: 'heatgen',     page: 'heatgen.html',        icon: 'bolt',            label: 'Heat generation', hint: 'Draw and save heats' },
+  { tool: 'racecontrol', page: 'orgracecontrol.html', icon: 'flag-checkered',  label: 'Race control',    hint: 'Run heats poolside' },
+  { tool: 'results',     page: 'results.html',        icon: 'broadcast-tower', label: 'Live results',    hint: 'Enter and publish times' },
+];
+function openMeetManage(id) {
+  const t = ALL_MEETS.find(m => m.tournament_id === id);
+  if (!t) return;
+  const enc = encodeURIComponent(id);
+  const item = (attrs, icon, label, hint, extra) =>
+    `<li><${attrs.startsWith('href') ? 'a' : 'button type="button"'} ${attrs}${extra ? ` class="${extra}"` : ''}><i class="fas fa-${icon}"></i><span><strong>${label}</strong><span>${hint}</span></span></${attrs.startsWith('href') ? 'a' : 'button'}></li>`;
+  const admins = ASSIGNED[id] ? ASSIGNED[id].length : 0;
+  const body = `<p class="sf-hint" style="margin:0 0 12px">${escHtml(SwimNav.dates(t.start_date, t.end_date) || '')}${t.venue_name ? ' · ' + escHtml(t.venue_name) : ''}</p>
+    <ul class="sm-tools">
+      ${MEET_TOOLS.map(x => item(`data-open-tool="${x.tool}" data-src="${x.page}?t=${enc}"`, x.icon, x.label, x.hint)).join('')}
+      ${item(`href="event.html?id=${enc}" target="_blank" rel="noopener"`, 'globe', 'Public page', 'What parents and swimmers see')}
+      ${item(`href="heatsheets.html?tournament=${encodeURIComponent(t.title || '')}" target="_blank" rel="noopener"`, 'file-alt', 'Heat sheets', 'Published heats and schedule')}
+      ${item(`data-assign-admins="${escHtml(id)}"`, 'user-gear', `Admins${admins ? ` (${admins})` : ''}`, 'Choose who runs this meet')}
+      ${item(`data-open-tool="override" data-src="saoverride.html?id=${enc}"`, 'unlock-alt', 'Universal override', 'Change anything, with a reason', 'is-warn')}
+    </ul>`;
+  SF.Dialog.open({ title: t.title, body, actions: [{ label: 'Close' }] });
+}
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-meet-manage],[data-meet-approve],[data-meet-close],[data-open-tool],[data-assign-admins]');
+  if (!el) return;
+  const t = id => ALL_MEETS.find(m => m.tournament_id === id) || {};
+  const closeDialog = () => { const d = el.closest('dialog'); if (d) d.close(); };
+  if (el.dataset.meetManage) openMeetManage(el.dataset.meetManage);
+  else if (el.dataset.meetApprove) approveMeetDirect(el.dataset.meetApprove, t(el.dataset.meetApprove).title || '');
+  else if (el.dataset.meetClose) approveClosure(el.dataset.meetClose, t(el.dataset.meetClose).title || '');
+  else if (el.dataset.assignAdmins) { closeDialog(); openAssignAdmins(el.dataset.assignAdmins); }
+  else if (el.dataset.openTool) { closeDialog(); openTool(el.dataset.openTool, el.dataset.src); }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const show = $('allMeetsShow');
+  if (show) show.addEventListener('change', () => { ALL_MEETS_SHOW = show.value; renderAllMeets(); });
+});
+
+// ── History: the audit log in plain words ─────────────────────
+const HIST_KIND = {
+  EVENT_APPROVED: ['Approved a meet', 'approvals'],
+  EVENT_REJECTED: ['Sent a meet back', 'approvals'],
+  MEET_CLOSED: ['Closed a meet', 'meets'],
+  MEET_REOPENED: ['Reopened a meet', 'meets'],
+  MEET_REOPEN_DENIED: ['Declined a reopen request', 'meets'],
+  CLOSURE_REQUESTED: ['Asked to close a meet', 'meets'],
+  MEET_ADMINS_CHANGED: ['Changed who runs a meet', 'team'],
+  EMERGENCY_NOTICE: ['Posted an emergency notice', 'meets'],
+  PLAYER_LIST_LOCKED: ['Locked a player list', 'entries'],
+  WALKIN_ADDED: ['Added a walk-in swimmer', 'entries'],
+  ENTRY_EDITED: ['Edited an entry', 'entries'],
+  ENTRY_REMOVED: ['Removed an entry', 'entries'],
+  RESULTS_SAVED: ['Saved results', 'results'],
+  RESULTS_PUBLISHED: ['Published results', 'results'],
+};
+const ENTITY_WORD = { SWIMMER: 'swimmer', ACADEMY: 'academy', COACH: 'coach', ORGANIZER: 'organizer', TOURNAMENT: 'meet', PROFILE: 'person' };
+function histKind(l) {
+  const a = String(l.action_type || '');
+  if (HIST_KIND[a]) return HIST_KIND[a];
+  const word = ENTITY_WORD[l.target_entity] || 'record';
+  if (/_VERIFIED$|_APPROVED$/.test(a)) return [`Verified a ${word}`, 'approvals'];
+  if (/_REJECTED$/.test(a)) return [`Rejected a ${word}`, 'approvals'];
+  if (/ROLE|TEAM|ADMIN/.test(a)) return [a.toLowerCase().replace(/_/g, ' ').replace(/^./, c => c.toUpperCase()), 'team'];
+  if (/RESULT/.test(a)) return [a.toLowerCase().replace(/_/g, ' ').replace(/^./, c => c.toUpperCase()), 'results'];
+  if (/ENTRY|ENTRIES|PLAYER|WALKIN|IMPORT/.test(a)) return [a.toLowerCase().replace(/_/g, ' ').replace(/^./, c => c.toUpperCase()), 'entries'];
+  return [a.toLowerCase().replace(/_/g, ' ').replace(/^./, c => c.toUpperCase()) || 'Activity', 'meets'];
+}
+
+let HIST_ROWS = [];
+const HIST_NAMES = {};       // profile id → name, kept between loads
+let histSeq = 0;
+async function loadHistory() {
+  if (!window.sb) return;
+  const seq = ++histSeq;
+  const days = Number($('histRange').value) || 7;
+  const since = new Date(Date.now() - days * 864e5).toISOString();
+  $('histBody').innerHTML = '<tr><td colspan="4" class="sf-empty">Loading…</td></tr>';
+  const { data, error } = await window.sb.from('system_audit_logs')
+    .select('log_id, admin_id, action_type, target_entity, target_entity_id, notes, created_at, ip_address')
+    .gte('created_at', since).order('created_at', { ascending: false }).limit(1000);
+  if (seq !== histSeq) return;
+  if (error) { $('histBody').innerHTML = `<tr><td colspan="4" class="sf-empty">Couldn't load history: ${escHtml(error.message)}</td></tr>`; return; }
+  const missing = [...new Set((data || []).map(l => l.admin_id).filter(id => id && !(id in HIST_NAMES)))];
+  if (missing.length) {
+    const { data: ps } = await window.sb.from('profiles').select('id, full_name, role').in('id', missing);
+    (ps || []).forEach(p => { HIST_NAMES[p.id] = p.full_name || 'Unnamed account'; });
+    missing.forEach(id => { if (!(id in HIST_NAMES)) HIST_NAMES[id] = 'Unknown'; });
+  }
+  if (seq !== histSeq) return;
+  HIST_ROWS = (data || []).map(l => {
+    const [what, kind] = histKind(l);
+    const meet = l.target_entity === 'TOURNAMENT' ? ALL_MEETS.find(m => String(m.tournament_id) === String(l.target_entity_id)) : null;
+    return { l, what, kind, who: l.admin_id ? HIST_NAMES[l.admin_id] : 'System', target: meet ? meet.title : '' };
+  });
+  renderHistory();
+}
+
+function renderHistory() {
+  const q = SF.norm($('histSearch').value);
+  const kind = $('histType').value;
+  const rows = HIST_ROWS.filter(r => (!kind || r.kind === kind)
+    && (!q || SF.norm(`${r.who} ${r.what} ${r.target} ${r.l.notes || ''}`).includes(q)));
+  $('histCount').textContent = `${rows.length} ${rows.length === 1 ? 'entry' : 'entries'}`;
+  if (!rows.length) {
+    $('histBody').innerHTML = `<tr><td colspan="4" class="sf-empty">${HIST_ROWS.length ? 'Nothing matches these filters.' : 'No activity in this period.'}</td></tr>`;
+    return;
+  }
+  const when = d => new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: 'numeric', minute: '2-digit' });
+  $('histBody').innerHTML = rows.slice(0, 500).map(r => `<tr>
+      <td data-label="When" class="hist-when"><time datetime="${escHtml(r.l.created_at)}">${escHtml(when(r.l.created_at))}</time></td>
+      <td data-label="Who"${r.l.ip_address ? ` title="From ${escHtml(r.l.ip_address)}"` : ''}>${escHtml(r.who)}</td>
+      <td data-label="What happened"><span class="hist-what">${escHtml(r.what)}</span>${r.target ? `<span class="sm-sub">${escHtml(r.target)}</span>` : ''}</td>
+      <td data-label="Details">${escHtml(r.l.notes || '—')}</td>
+    </tr>`).join('');
+}
+
+function exportHistory() {
+  if (!HIST_ROWS.length) { showToast('Nothing to download for this period.', 'info'); return; }
+  const rows = [['When', 'Who', 'What happened', 'Meet', 'Details', 'Action code', 'Record', 'Record id', 'IP address']]
+    .concat(HIST_ROWS.map(r => [r.l.created_at, r.who, r.what, r.target, r.l.notes || '', r.l.action_type, r.l.target_entity, r.l.target_entity_id, r.l.ip_address || '']));
+  SF.csv.download('SwimFest_history.csv', rows);
+  showToast('History downloaded.', 'success');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (!$('histBody')) return;
+  $('histSearch').addEventListener('input', SF.debounce(renderHistory, 150));
+  $('histType').addEventListener('change', renderHistory);
+  $('histRange').addEventListener('change', loadHistory);
+  $('histExport').addEventListener('click', exportHistory);
+});
+
 // ── Sidebar navigation (tabs + approval queues) ──────────────
-const VALID_TABS = ['dashboard', 'meets', 'academies', 'financials', 'team'];
+const VALID_TABS = ['dashboard', 'meets', 'financials', 'history', 'team'];
 
 // `sub` is shown under the tabs; it also becomes each tab's hover tooltip (see initTabs)
 const QUEUE_META = {
@@ -939,7 +999,6 @@ function openTool(key, src) {
   $('saContainer').hidden = true;
   $('saTool').hidden = false;
   document.querySelectorAll('.sa-nav-tab[data-tab]').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.sa-side-sub [data-queue]').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.sa-side-link[data-tool]').forEach(a => a.classList.toggle('active', a.dataset.tool === key));
   document.title = `${tool.title} — SwimFest Super Admin`;
   setHash(key);
@@ -980,23 +1039,16 @@ function switchTab(tabKey) {
   });
   const titleEl = $('saPageTitle');
   if (titleEl) titleEl.textContent = title;
+  const PAGE_HELP = { dashboard: 'saApprovals', meets: 'saMeets', financials: 'saFinancials', history: 'saHistory', team: 'saTeam' };
+  if (titleEl && PAGE_HELP[tabKey]) SF.Info.attach(titleEl, PAGE_HELP[tabKey]);
 
-  // The four number boxes belong to Approvals only
-  $('saKpis').hidden = tabKey !== 'dashboard';
   // Team is about people, not meets: no Emergency notice / Create meet buttons there
-  document.querySelector('.sa-head-actions').hidden = tabKey === 'team';
+  document.querySelector('.sa-head-actions').hidden = tabKey === 'team' || tabKey === 'history';
+  document.querySelector('.sa-page-sub').hidden = tabKey !== 'dashboard';
   if (tabKey === 'team') loadTeam();
+  if (tabKey === 'history') loadHistory();
 
-  // Header buttons follow the tab: academies get Add academy / Add coach, the rest Create meet
-  document.querySelectorAll('[data-head-for]').forEach(b => {
-    b.hidden = b.dataset.headFor !== (tabKey === 'academies' ? 'academies' : 'other');
-  });
-
-  if (tabKey === 'dashboard') {
-    switchQueue(ACTIVE_QUEUE);
-  } else {
-    document.querySelectorAll('.sa-side-sub [data-queue]').forEach(b => b.classList.remove('active'));
-  }
+  if (tabKey === 'dashboard') switchQueue(ACTIVE_QUEUE);
 
   setHash(tabKey);
   // Remembered so Back on other pages returns to this section (see auth.js)
@@ -1012,28 +1064,59 @@ function switchQueue(key) {
     t.classList.toggle('active', on);
     t.setAttribute('aria-selected', on ? 'true' : 'false');
   });
-  document.querySelectorAll('.sa-side-sub [data-queue]').forEach(t => {
-    t.classList.toggle('active', t.getAttribute('data-queue') === key);
-  });
   document.querySelectorAll('.sa-qpanel').forEach(p => {
     p.classList.toggle('active', p.getAttribute('data-qpanel') === key);
   });
   $('saQueueTitle').textContent = QUEUE_META[key].title;
   $('saQueueSub').textContent = QUEUE_META[key].sub;
+  if (queueSearch) queueSearch.setTab(key);
+  if (QUEUE_SEARCH[key]) SF.Info.attach($('saQueueTitle'), QUEUE_SEARCH[key].help);
+  syncQueueTypeFilter();
   applyQueueSearch();
 }
 window.switchQueue = switchQueue;
 
-// Client-side text filter over the rows of the visible queue
+// Each queue's search key (column index) — the search follows the queue (Strategy pattern)
+const QUEUE_SEARCH = {
+  s2:       { keyCol: 2, typeCol: 1, placeholder: 'Search by name or club', help: 's2' },
+  s1a:      { keyCol: 1, placeholder: 'Search by meet title', help: 's1a' },
+  s1b:      { keyCol: 1, placeholder: 'Search by meet title', help: 's1b' },
+  reopen:   { keyCol: 1, placeholder: 'Search by meet title', help: 'reopen' },
+  sentback: { keyCol: 1, placeholder: 'Search by meet title', help: 'sentback' },
+};
+let queueSearch = null;
+
+// Filter + rank the rows of the visible queue: key-column matches first, then other columns
 function applyQueueSearch() {
-  const input = $('saQueueSearch');
-  const q = (input ? input.value : '').trim().toLowerCase();
+  if (QUEUE_SEARCH[ACTIVE_QUEUE] && QUEUE_SEARCH[ACTIVE_QUEUE].typeCol != null) syncQueueTypeFilter();
+  const cfg = QUEUE_SEARCH[ACTIVE_QUEUE] || { keyCol: 0 };
+  const q = queueSearch ? queueSearch.query : '';
+  const type = cfg.typeCol != null && $('saQueueType') ? $('saQueueType').value : '';
   const panel = document.querySelector(`.sa-qpanel[data-qpanel="${ACTIVE_QUEUE}"]`);
   if (!panel) return;
-  panel.querySelectorAll('tbody tr').forEach(tr => {
-    if (tr.querySelector('.sa-empty-cell')) return;
-    tr.style.display = !q || tr.textContent.toLowerCase().includes(q) ? '' : 'none';
-  });
+  const tbody = panel.querySelector('tbody');
+  const rows = [...tbody.querySelectorAll('tr')].filter(tr => !tr.querySelector('.sa-empty-cell'));
+  const strategy = SF.Search.by([tr => (tr.cells[cfg.keyCol] || {}).textContent || ''], [tr => tr.textContent]);
+  const ranked = SF.Search.run(rows, strategy, q).filter(tr => !type || SF.norm((tr.cells[cfg.typeCol] || {}).textContent).includes(SF.norm(type)));
+  const show = new Set(ranked);
+  rows.forEach(tr => { tr.style.display = show.has(tr) ? '' : 'none'; });
+  if (q) ranked.forEach(tr => tbody.appendChild(tr));
+  const count = $('saQueueCount');
+  if (count) count.textContent = q || type ? `${ranked.length} of ${rows.length} shown` : '';
+}
+
+// Type filter for the mixed Verifications queue (swimmer / academy / coach / organizer)
+function syncQueueTypeFilter() {
+  const sel = $('saQueueType');
+  if (!sel) return;
+  const cfg = QUEUE_SEARCH[ACTIVE_QUEUE] || {};
+  sel.hidden = cfg.typeCol == null;
+  if (sel.hidden) return;
+  const panel = document.querySelector(`.sa-qpanel[data-qpanel="${ACTIVE_QUEUE}"]`);
+  const types = [...new Set([...panel.querySelectorAll('tbody tr')].map(tr => (tr.cells[cfg.typeCol] || {}).textContent).filter(Boolean).map(t => t.trim()))].sort();
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All types</option>' + types.map(t => `<option value="${SF.esc(t)}">${SF.esc(t)}</option>`).join('');
+  if (types.includes(cur)) sel.value = cur;
 }
 
 // Mobile: sidebar slides in as a drawer
@@ -1049,6 +1132,8 @@ function initTabs() {
     const meta = QUEUE_META[el.getAttribute('data-queue')];
     if (meta) el.title = meta.sub;
   });
+
+  document.querySelectorAll('[data-tab-link]').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tabLink)));
 
   document.querySelectorAll('.sa-nav-tab[data-tab]').forEach(tab => {
     tab.addEventListener('click', function(e) {
@@ -1068,7 +1153,13 @@ function initTabs() {
   });
 
   const search = $('saQueueSearch');
-  if (search) search.addEventListener('input', applyQueueSearch);
+  if (search) {
+    queueSearch = new SF.TabbedSearch({ input: search, tabs: QUEUE_SEARCH, onChange: applyQueueSearch });
+    queueSearch.setTab(ACTIVE_QUEUE);
+  }
+  if ($('saQueueType')) $('saQueueType').addEventListener('change', applyQueueSearch);
+  SF.Tabs.enhance(document.querySelector('.sa-qtabs'), { tabSelector: '.sa-qtab' });
+  SF.Info.attach($('saQueueTitle'), 'saApprovals');
 
   const menuBtn = $('saMenuBtn');
   if (menuBtn) menuBtn.addEventListener('click', () => setNavOpen(!$('saShell').classList.contains('nav-open')));
@@ -1129,42 +1220,20 @@ document.addEventListener('input', e => {
   if (['noticeTitle','noticeMsg'].includes(e.target.id)) updateNoticePreview();
 });
 
-// ── Toast styles ──────────────────────────────────────────────
-(function(){
-  const s = document.createElement('style');
-  s.textContent = `
-    .admin-toast{position:fixed;bottom:28px;right:28px;z-index:99999;
-      padding:12px 20px;background:var(--dark);color:var(--white);
-      border-radius:var(--radius-sm);font-size:0.85rem;font-weight:500;
-      display:flex;align-items:center;gap:10px;
-      box-shadow:0 8px 24px rgba(0,0,0,0.25);transform:translateY(20px);opacity:0;
-      transition:all 0.3s ease;max-width:420px;font-family:'Inter',sans-serif;}
-    .admin-toast.show{transform:translateY(0);opacity:1;}
-    .admin-toast i{color:var(--accent);}
-    .admin-toast.admin-toast-success i{color:var(--success);}
-    .admin-toast.admin-toast-warn i{color:var(--warning);}
-    .sa-doc-link{display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:4px 10px;
-      border-radius:6px;background:#eef4ff;color:var(--primary);font-family:'Inter',sans-serif;
-      font-size:0.72rem;font-weight:700;text-decoration:none;}
-    .sa-doc-link:hover{background:var(--primary);color:#fff;}
-    .sa-doc-none{display:inline-flex;align-items:center;gap:5px;margin-top:6px;
-      font-family:'Inter',sans-serif;font-size:0.72rem;color:var(--gray);font-style:italic;}`;
-  document.head.appendChild(s);
-})();
 
 // ── Bootstrap ─────────────────────────────────────────────────
 // Which data each table feeds, so a change reloads only what it affects
 const LOADERS = {
   tournaments:     [loadTournaments],
   bookings:        [loadMetrics],
-  swimmers:        [loadVerificationQueue, loadPeopleMetrics],
-  academies:       [loadVerificationQueue, loadPeopleMetrics],
+  swimmers:        [loadVerificationQueue],
+  academies:       [loadVerificationQueue],
   coaches:         [loadVerificationQueue],
   organizers:      [loadVerificationQueue],
   reopen_requests: [loadReopenQueue],
   event_entries:   [loadEntryTotal],
 };
-const ALL_LOADERS = [loadTournaments, loadMetrics, loadPeopleMetrics, loadVerificationQueue, loadReopenQueue, loadTurnaround, loadEntryTotal];
+const ALL_LOADERS = [loadTournaments, loadMetrics, loadVerificationQueue, loadReopenQueue, loadEntryTotal];
 
 function refreshLiveData(loaders = ALL_LOADERS) {
   // Skip while a modal is open so an in-progress action isn't disrupted
@@ -1403,5 +1472,18 @@ document.addEventListener('DOMContentLoaded', () => {
   if (panel) panel.addEventListener('click', e => {
     const b = e.target.closest('[data-role][data-user]');
     if (b) changeRole(b.dataset.user, b.dataset.role);
+  });
+});
+
+// ── Phones: label every approval cell with its column heading ──
+// The approval tables stack into one block per row on small screens (see
+// superadmin.html); each cell shows its heading from data-label.
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.sa-queue-table').forEach(table => {
+    const heads = [...table.querySelectorAll('thead th')].map(th => th.textContent.trim());
+    const label = () => table.querySelectorAll('tbody tr').forEach(tr =>
+      [...tr.cells].forEach((td, i) => { if (!td.hasAttribute('data-label')) td.setAttribute('data-label', i === heads.length - 1 && /action/i.test(heads[i]) ? '' : heads[i] || ''); }));
+    label();
+    new MutationObserver(label).observe(table.querySelector('tbody'), { childList: true });
   });
 });

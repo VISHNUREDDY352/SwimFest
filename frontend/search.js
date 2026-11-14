@@ -10,11 +10,7 @@
 (function () {
   const $ = (id) => document.getElementById(id);
 
-  function esc(s) {
-    return String(s || '')
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
+  const esc = SF.esc;
 
   function initials(name) {
     const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
@@ -65,18 +61,22 @@
       <p>Searching…</p></div>`;
     meta.textContent = '';
 
-    let query = window.sb
-      .from('swimmer_directory')
-      .select('swimmer_id, full_name, gender, category, academy_id, academy_name')
-      .order('full_name')
-      .limit(60);
-
-    if (q)        query = query.ilike('full_name', `%${q}%`);
-    if (category) query = query.eq('category', category);
-    if (gender)   query = query.eq('gender', gender);
-    if (academy)  query = query.eq('academy_id', academy);
-
-    const { data, error } = await query;
+    // Name or swimmer ID (SFI number). The ID column exists once perf_and_bulk.sql has run.
+    const build = withId => {
+      let query = window.sb
+        .from('swimmer_directory')
+        .select(`swimmer_id, full_name, gender, category, academy_id, academy_name${withId ? ', sfi_serial_no' : ''}`)
+        .order('full_name')
+        .limit(100);
+      const term = q.replace(/[,()%*]/g, ' ').trim();
+      if (term) query = withId ? query.or(`full_name.ilike.%${term}%,sfi_serial_no.ilike.%${term}%`) : query.ilike('full_name', `%${term}%`);
+      if (category) query = query.eq('category', category);
+      if (gender)   query = query.eq('gender', gender);
+      if (academy)  query = query.eq('academy_id', academy);
+      return query;
+    };
+    let { data, error } = await build(true);
+    if (error && /sfi_serial_no/.test(error.message)) ({ data, error } = await build(false));
 
     if (error) {
       console.error('[SwimFest] swimmer search:', error.message);
@@ -85,6 +85,8 @@
       return;
     }
 
+    // Name / ID matches that start with the typed text come first
+    if (q) data = SF.Search.run(data || [], SF.Search.by(['full_name', 'sfi_serial_no'], ['academy_name']), q);
     render(data || [], meta, results);
   }
 
@@ -97,25 +99,19 @@
       return;
     }
 
-    meta.textContent = `${rows.length} swimmer${rows.length === 1 ? '' : 's'} found`;
+    meta.textContent = `${rows.length} swimmer${rows.length === 1 ? '' : 's'} found${rows.length === 100 ? ' (showing the first 100; narrow the search)' : ''}`;
 
-    results.innerHTML = `<div class="sp-grid">` + rows.map((s) => {
-      const academyName = s.academy_name || 'Unattached';
-      const gCls = s.gender === 'Girl' ? 'girl' : 'boy';
-      const gLabel = s.gender === 'Girl' ? 'Girl' : 'Boy';
-      return `
-        <div class="sp-card">
-          <div class="sp-avatar">${esc(initials(s.full_name))}</div>
-          <div class="sp-card-body">
-            <h3 class="sp-name">${esc(s.full_name)}</h3>
-            <p class="sp-academy"><i class="fas fa-building"></i> ${esc(academyName)}</p>
-            <div class="sp-badges">
-              ${s.category ? `<span class="sp-badge">${esc(s.category)}</span>` : ''}
-              <span class="sp-badge ${gCls}">${gLabel}</span>
-            </div>
-          </div>
-        </div>`;
-    }).join('') + `</div>`;
+    results.innerHTML = `<div class="sf-section"><div class="sf-table-wrap"><table class="sf-table sf-stack">
+      <caption class="sr-only">Swimmers matching your search</caption>
+      <thead><tr><th scope="col">Swimmer</th><th scope="col">Swimmer ID</th><th scope="col">Academy</th><th scope="col">Age group</th><th scope="col">Gender</th></tr></thead>
+      <tbody>` + rows.map((s) => `
+        <tr>
+          <td data-label="Swimmer"><strong>${esc(s.full_name)}</strong></td>
+          <td data-label="Swimmer ID"><span class="sf-mono">${esc(s.sfi_serial_no || "—")}</span></td>
+          <td data-label="Academy">${esc(s.academy_name || 'Unattached')}</td>
+          <td data-label="Age group">${esc(s.category || '—')}</td>
+          <td data-label="Gender">${s.gender === 'Girl' ? 'Girl' : 'Boy'}</td>
+        </tr>`).join('') + `</tbody></table></div></div>`;
   }
 
   // ── Bootstrap ────────────────────────────────────────────────
