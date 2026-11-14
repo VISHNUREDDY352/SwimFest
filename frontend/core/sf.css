@@ -292,10 +292,14 @@ i[class*="fa-"]:empty { font-style: normal; }
   /* Label on the left, the whole value (text + any second line) together on the right */
   .sf-table.sf-stack td { display: grid; grid-template-columns: minmax(6.5rem, auto) 1fr; gap: 0 12px; align-items: start; text-align: right; }
   .sf-table.sf-stack td::before { grid-column: 1; grid-row: 1 / span 4; }
-  .sf-table.sf-stack td:not(:first-child):not([data-label=""]) > * { grid-column: 2; justify-self: end; text-align: right; }
+  .sf-table.sf-stack td:not(:first-child):not(.sf-cell-head):not([data-label=""]) > * { grid-column: 2; justify-self: end; text-align: right; }
   .sf-table.sf-stack td[data-label=""] { display: block; text-align: left; padding-top: 8px; }
   .sf-table.sf-stack td[data-label=""] .sm-actions { justify-content: flex-start; }
-  .sf-table.sf-stack td:first-child, .sf-table.sf-stack td:first-child > * { text-align: left; }
+  .sf-table.sf-stack td:first-child, .sf-table.sf-stack td:first-child > *,
+  .sf-table.sf-stack td.sf-cell-head, .sf-table.sf-stack td.sf-cell-head > * { text-align: left; }
+  /* A heading cell that isn't first (e.g. after a hidden row number) still reads as the row title */
+  .sf-table.sf-stack td.sf-cell-head { display: block; font-size: 1rem; padding-top: 6px; }
+  .sf-table.sf-stack td.sf-cell-head::before { content: none; }
   .sf-table.sf-stack td:first-child { display: block; text-align: left; font-size: 1rem; padding-top: 6px; }
   .sf-table.sf-stack td:first-child::before { content: none; }
   .sf-table.sf-stack td { padding: 2px 16px; font-size: .9rem; }
