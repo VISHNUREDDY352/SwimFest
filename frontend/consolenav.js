@@ -66,9 +66,18 @@
     if (!m) return '';
     return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   }
+  // Short ranges so meet pickers fit on a phone:
+  // "6–14 Jan 2027", "30 Oct – 3 Nov 2026", "28 Dec 2026 – 2 Jan 2027", "20 Jun 2026"
   function dates(start, end) {
-    if (!start) return '';
-    return end && String(end).slice(0, 10) !== String(start).slice(0, 10) ? `${day(start)} – ${day(end)}` : day(start);
+    const parse = d => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d || '')); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+    const a = parse(start), b = parse(end) || a;
+    if (!a) return '';
+    const f = (d, o) => d.toLocaleDateString('en-IN', o);
+    const full = d => f(d, { day: 'numeric', month: 'short', year: 'numeric' });
+    if (+a === +b) return full(a);
+    if (a.getFullYear() !== b.getFullYear()) return `${full(a)} – ${full(b)}`;
+    if (a.getMonth() !== b.getMonth()) return `${f(a, { day: 'numeric', month: 'short' })} – ${full(b)}`;
+    return `${a.getDate()}–${full(b)}`;
   }
   function todayIso() {
     const n = new Date();

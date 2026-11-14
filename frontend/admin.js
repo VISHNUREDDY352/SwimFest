@@ -369,7 +369,7 @@ function renderGrid() {
 
     tr.innerHTML = `
       <td class="pl-idx" style="color:var(--ac-muted);font-variant-numeric:tabular-nums;">${idx + 1}</td>
-      <td data-label="Swimmer" class="pl-who">
+      <td data-label="Swimmer" class="pl-who sf-cell-head">
         <div class="pl-name">${escHtml(row.name)} ${statusTag}</div>
         <div class="pl-sub">${escHtml(row.swimId)}</div>
         ${flagsHtml}
