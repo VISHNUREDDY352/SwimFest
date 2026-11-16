@@ -58,7 +58,7 @@
     if ($(ids.initials)) $(ids.initials).textContent = String(name).split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'SA';
     if ($(ids.role)) $(ids.role).textContent = 'Super Admin';
     const mobilebar = document.querySelector('.ac-mobilebar');
-    if (mobilebar && !mobilebar.querySelector('.sa-profile-mobile-link')) {
+    if (mobilebar && active !== 'saprofile.html' && !mobilebar.querySelector('.sa-profile-mobile-link')) {
       const pLink = document.createElement('a');
       pLink.className = 'ac-icon-btn sa-profile-mobile-link';
       pLink.href = 'saprofile.html';

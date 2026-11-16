@@ -45,14 +45,14 @@
         @media (max-width:900px) { .ov-actions, .ov-meet { grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); } }
         @media (max-width:600px) { .ov-actions, .ov-meet, .ov-row { grid-template-columns:minmax(0, 1fr); } }
     </style>
-    <link rel="stylesheet" href="core/sf.css?v=5">
+    <link rel="stylesheet" href="core/sf.css?v=6">
 </head>
 <body class="ac-body">
 <div class="ac-shell" id="acShell">
 
     <!-- ── Sidebar ── -->
     <aside class="ac-sidebar" id="acSidebar" aria-label="Super admin navigation">
-        <a href="superadmin.html" class="ac-brand" data-back-anchor>
+        <a href="superadmin.html" class="ac-brand" id="ovBrand" data-back-anchor>
             <span class="ac-brand-mark"><i class="fas fa-swimmer"></i></span>
             <span>
                 <span class="ac-brand-name">SwimFest</span>
@@ -60,27 +60,19 @@
             </span>
         </a>
 
+        <!-- Filled from the shared Super Admin menu so links match the console -->
+        <div id="ovNav" style="display:flex;flex-direction:column;gap:1.1rem;">
         <nav class="ac-side-group">
-            <a href="superadmin.html" class="ac-side-link"><i class="fas fa-clipboard-check"></i> Approvals</a>
+            <a href="superadmin.html#dashboard" class="ac-side-link"><i class="fas fa-clipboard-check"></i> Approvals</a>
         </nav>
-
-        <nav class="ac-side-group" aria-label="Tools">
-            <div class="ac-side-label">Tools</div>
-            <a href="playerlist.html" class="ac-side-link"><i class="fas fa-list-check"></i> Master player list</a>
-            <a href="heatgen.html" class="ac-side-link"><i class="fas fa-bolt"></i> Heat generation</a>
-            <a href="results.html" class="ac-side-link"><i class="fas fa-broadcast-tower"></i> Live results</a>
-            <a href="academy.html" class="ac-side-link"><i class="fas fa-building-columns"></i> Academy directory</a>
-            <a href="admin.html" class="ac-side-link"><i class="fas fa-cogs"></i> Admin console</a>
-            <a href="orgdashboard.html" class="ac-side-link"><i class="fas fa-user-tie"></i> Organizer dashboard</a>
-            <a href="saoverride.html" class="ac-side-link warn active" aria-current="page"><i class="fas fa-unlock-alt"></i> Universal override</a>
-        </nav>
+        </div>
 
         <div class="ac-side-user">
-            <a href="saprofile.html" class="ac-side-user-link" title="Your profile">
+            <a href="saprofile.html" class="ac-side-user-link" id="ovUserLink" title="Your profile">
                 <span class="ac-avatar-lg" id="sideInitials">SA</span>
                 <div class="ac-side-user-info">
                     <span class="ac-side-user-name" id="sideName">Super Admin</span>
-                    <span class="ac-side-user-sub">Super Admin</span>
+                    <span class="ac-side-user-sub" id="ovRole">Super Admin</span>
                 </div>
             </a>
             <a href="#" class="ac-icon-btn dash-logout" aria-label="Log out" title="Log out"><i class="fas fa-sign-out-alt"></i></a>
@@ -179,6 +171,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
+    <script src="consolenav.js?v=9"></script>
     <script>
     'use strict';
 
@@ -399,6 +392,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
+      if (window.SwimNav) SwimNav.applySuperAdmin({ nav: 'ovNav', brand: 'ovBrand', userLink: 'ovUserLink', name: 'sideName', initials: 'sideInitials', role: 'ovRole' }, 'saoverride.html');
         SESSION = window.SwimAuth ? window.SwimAuth.getSession() : null;
         if (SESSION) {
             const name = SESSION.name || 'Super Admin';

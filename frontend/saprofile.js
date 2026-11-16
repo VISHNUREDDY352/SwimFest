@@ -107,6 +107,8 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    // Same menu as the console, with the console's own addresses (superadmin.html#…)
+    if (window.SwimNav) SwimNav.applySuperAdmin({ nav: 'spNav', brand: 'spBrand', userLink: 'spUserLink', name: 'sideName', initials: 'sideInitials', role: 'spRole' }, 'saprofile.html');
     load();
     $('saEditBtn').addEventListener('click', openEdit);
     $('saModalClose').addEventListener('click', closeEdit);
