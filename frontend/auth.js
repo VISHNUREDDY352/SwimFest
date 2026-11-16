@@ -240,6 +240,7 @@ const SwimAuth = {
       event_manager:'admin.html', super_admin:'saprofile.html',
     };
 
+    // Update desktop navbar profile button(s)
     document.querySelectorAll('.btn-profile').forEach(btn => {
       if (session) {
         btn.setAttribute('href', profilePage[session.role] || 'profile.html');
@@ -249,6 +250,23 @@ const SwimAuth = {
         btn.setAttribute('href', 'profile.html');
         btn.innerHTML = `<i class="fas fa-user"></i> Profile`;
       }
+    });
+
+    // Update mobile menu profile link(s) for all roles (including super_admin)
+    document.querySelectorAll('.mobile-menu').forEach(menu => {
+      menu.querySelectorAll('a[href*="profile.html"], a[href*="saprofile.html"], a[href*="orgprofile.html"]').forEach(btn => {
+        const isMyProfile = (btn.textContent || '').includes('My Profile');
+        if (session) {
+          btn.setAttribute('href', profilePage[session.role] || 'profile.html');
+          const label = (session.role === 'event_manager')
+            ? 'Dashboard'
+            : (isMyProfile ? 'My Profile' : 'Profile');
+          btn.innerHTML = `<i class="fas fa-user"></i> ${label}`;
+        } else {
+          btn.setAttribute('href', 'profile.html');
+          btn.innerHTML = `<i class="fas fa-user"></i> ${isMyProfile ? 'My Profile' : 'Profile'}`;
+        }
+      });
     });
 
     document.querySelectorAll('.btn-register-login').forEach(btn => {

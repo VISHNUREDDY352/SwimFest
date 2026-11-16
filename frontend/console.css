@@ -196,7 +196,7 @@
 /* Responsive */
 @media (max-width:1100px) { .ac-metrics { grid-template-columns:repeat(2, minmax(0,1fr)); } }
 @media (max-width:900px) {
-    .ac-sidebar { position:fixed; left:0; top:0; bottom:0; transform:translateX(-100%); transition:transform 0.25s ease; }
+    .ac-sidebar { position:fixed; left:0; top:0; bottom:0; height:100%; height:100dvh; max-height:100dvh; transform:translateX(-100%); transition:transform 0.25s ease; }
     .ac-shell.nav-open .ac-sidebar { transform:none; box-shadow:0 0 40px rgba(0,0,0,0.35); }
     .ac-shell.nav-open .ac-scrim { display:block; position:fixed; inset:0; background:rgba(15,23,42,0.5); z-index:999; }
     .ac-mobilebar { display:flex; }
