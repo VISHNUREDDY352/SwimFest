@@ -383,6 +383,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Auth guard — must be logged in to view profile
   const session = window.SwimAuth && window.SwimAuth.requireLogin();
   if (!session) return;
+  // If a super admin or staff lands on the swimmer profile, redirect to their role profile
+  if (session.role === 'super_admin') { window.location.replace('saprofile.html'); return; }
+  if (session.role === 'organizer') { window.location.replace('orgprofile.html'); return; }
+  if (session.role === 'event_manager') { window.location.replace('admin.html'); return; }
 
   await loadAccount();   // pull real account data from session + Supabase
 

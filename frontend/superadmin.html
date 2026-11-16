@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="core/sf.js?v=2"></script>
-    <script src="core/icons.js?v=1"></script>
+    <script src="core/icons.js?v=2"></script>
     <script src="core/components.js?v=2"></script>
     <script src="core/help.js?v=2"></script>
     <title>Super Admin Console — SwimFest</title>
@@ -77,6 +77,9 @@
 
         .sa-side-user { margin-top:auto; border-top:1px solid var(--sa-navy-line); padding:0.875rem 0.375rem 0;
             display:flex; align-items:center; gap:0.625rem; }
+        .sa-side-user-link { flex:1; min-width:0; display:flex; align-items:center; gap:0.625rem; padding:0.375rem; margin:-0.375rem;
+            border-radius:0.5rem; color:inherit; text-decoration:none; transition:background 0.15s; }
+        .sa-side-user-link:hover { background:rgba(255,255,255,0.08); }
         .sa-avatar-lg { width:2.25rem; height:2.25rem; flex:none; border-radius:62.4375rem; background:var(--sa-blue); color:#fff;
             display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:700; }
         .sa-side-user-info { min-width:0; display:flex; flex-direction:column; }
@@ -247,7 +250,7 @@
         /* ── Responsive ── */
         @media (max-width:1100px) { .sa-metrics-grid { grid-template-columns:repeat(2, minmax(0,1fr)); } }
         @media (max-width:900px) {
-            .sa-sidebar { position:fixed; left:0; top:0; bottom:0; transform:translateX(-100%); transition:transform 0.25s ease; }
+            .sa-sidebar { position:fixed; left:0; top:0; bottom:0; height:100%; height:100dvh; max-height:100dvh; transform:translateX(-100%); transition:transform 0.25s ease; }
             .sa-shell.nav-open .sa-sidebar { transform:none; box-shadow:0 0 2.5rem rgba(0,0,0,0.35); }
             .sa-shell.nav-open .sa-scrim { display:block; position:fixed; inset:0; background:rgba(15,23,42,0.5); z-index:999; }
             .sa-mobilebar { display:flex; }
@@ -345,7 +348,7 @@
         .hist-when { white-space:nowrap; }
         .hist-what { font-weight:600; }
     </style>
-    <link rel="stylesheet" href="core/sf.css?v=5">
+    <link rel="stylesheet" href="core/sf.css?v=6">
 </head>
 <body class="sa-body" data-no-back>
 <div class="sa-shell" id="saShell">
@@ -368,6 +371,7 @@
             <button class="sa-side-link sa-nav-tab" data-tab="history"><i class="fas fa-history"></i> History</button>
             <!-- Owner only (shown by superadmin.js) -->
             <button class="sa-side-link sa-nav-tab" data-tab="team" id="saTeamNav" hidden><i class="fas fa-user-shield"></i> Team</button>
+            <a href="saprofile.html" class="sa-side-link" id="saProfileNav"><i class="fas fa-user"></i> Profile</a>
         </nav>
 
         <nav class="sa-side-group" aria-label="Run a meet">
@@ -389,12 +393,14 @@
         </details>
 
         <div class="sa-side-user">
-            <span class="sa-avatar-lg" id="saUserInitials">SA</span>
-            <div class="sa-side-user-info">
-                <span class="sa-side-user-name" id="saUserName">Super Admin</span>
-                <span class="sa-side-user-mail" id="saUserEmail"></span>
-            </div>
-            <a href="saprofile.html" class="sa-icon-btn" aria-label="Profile" title="Profile"><i class="fas fa-user-shield"></i></a>
+            <a href="saprofile.html" class="sa-side-user-link" title="Your profile">
+                <span class="sa-avatar-lg" id="saUserInitials">SA</span>
+                <div class="sa-side-user-info">
+                    <span class="sa-side-user-name" id="saUserName">Super Admin</span>
+                    <span class="sa-side-user-mail" id="saUserEmail"></span>
+                </div>
+            </a>
+            <a href="saprofile.html" class="sa-icon-btn" aria-label="Profile" title="Profile"><i class="fas fa-user-circle"></i></a>
             <a href="#" class="sa-icon-btn sa-logout" aria-label="Log out" title="Log out"><i class="fas fa-sign-out-alt"></i></a>
         </div>
     </aside>
@@ -406,6 +412,7 @@
             <button class="sa-icon-btn" id="saMenuBtn" aria-label="Open menu" aria-controls="saSidebar" aria-expanded="false"><i class="fas fa-bars"></i></button>
             <span style="font-weight:700;">SwimFest</span>
             <span style="font-size:0.72rem;color:#94a3b8;">Super Admin</span>
+            <a href="saprofile.html" class="sa-icon-btn" style="margin-left:auto;" aria-label="Profile" title="Profile"><i class="fas fa-user-circle"></i></a>
         </div>
 
         <main class="sa-container" id="saContainer">
@@ -689,7 +696,7 @@
     <script src="supabase.js?v=7"></script>
     <script src="auth.js?v=14"></script>
     <script src="meetstate.js?v=1"></script>
-    <script src="consolenav.js?v=8"></script>
+    <script src="consolenav.js?v=9"></script>
     <script src="reason.js?v=2"></script>
     <script src="governance.js?v=1"></script>
     <script src="superadmin.js?v=28"></script>

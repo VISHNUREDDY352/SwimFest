@@ -480,3 +480,12 @@ i[class*="fa-"]:empty { font-style: normal; }
   .sa-head-actions { display: flex; gap: 8px; width: 100%; }
   .sa-head-actions > * { flex: 1 1 0; min-width: 0; justify-content: center; }
 }
+
+/* Sidebar footer (name, profile, log out) always visible: pinned to the bottom
+   of the menu even when the menu is taller than the screen, clear of the phone's
+   gesture bar. The menu itself fits the visible screen (dvh), not the full 100vh. */
+.ac-side-user, .sa-side-user { position: sticky; bottom: 0; background: var(--sf-surface); z-index: 1;
+  padding-bottom: max(0.875rem, env(safe-area-inset-bottom)); }
+@media (max-width: 900px) {
+  .ac-sidebar, .sa-sidebar { height: 100vh; height: 100dvh; max-height: 100dvh; }
+}

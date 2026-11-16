@@ -25,6 +25,8 @@
     arrowLeft:  '<path d="M19 12H5M12 19l-7-7 7-7"/>',
     arrowRight: '<path d="M5 12h14M12 5l7 7-7 7"/>',
     arrowDown:  '<path d="M12 5v14M5 12l7 7 7-7"/>',
+    arrowUp:  '<path d="M12 19V5M5 12l7-7 7 7"/>',
+    sort:     '<path d="M8 9l4-4 4 4M8 15l4 4 4-4"/>',
     chevronDown:  '<path d="m6 9 6 6 6-6"/>',
     chevronRight: '<path d="m9 6 6 6-6 6"/>',
     chevronLeft:  '<path d="m15 6-6 6 6 6"/>',
@@ -115,8 +117,9 @@
     trophy: 'trophy', medal: 'medal', certificate: 'medal', star: 'star',
     'map-marker-alt': 'pin', 'location-dot': 'pin', 'map-marked-alt': 'pin', globe: 'globe',
     check: 'check', 'check-circle': 'checkCircle', 'circle-check': 'checkCircle', 'square-check': 'squareCheck', square: 'square',
-    user: 'user', 'user-tie': 'user', 'id-badge': 'badge', child: 'user', 'user-slash': 'user', 'user-gear': 'user',
+    user: 'user', 'user-circle': 'user', 'circle-user': 'user', 'user-alt': 'user', 'user-large': 'user', 'user-tie': 'user', 'id-badge': 'badge', child: 'user', 'user-slash': 'user', 'user-gear': 'user',
     users: 'users', 'user-friends': 'users', 'users-cog': 'users', 'user-plus': 'userPlus', 'user-shield': 'shield',
+    'arrow-up': 'arrowUp', sort: 'sort', 'circle-question': 'info', 'file-lines': 'file', 'layer-group': 'list',
     'arrow-left': 'arrowLeft', 'arrow-right': 'arrowRight', 'arrow-down': 'arrowDown', 'arrow-up-right-dots': 'chart',
     'chevron-down': 'chevronDown', 'chevron-right': 'chevronRight', 'chevron-left': 'chevronLeft', 'caret-down': 'caretDown',
     building: 'building', 'building-columns': 'building',
@@ -173,7 +176,16 @@
     el.dataset.sfIcon = '1';
     const name = nameOf(el);
     const label = el.getAttribute('aria-label');
-    el.innerHTML = name ? svg(name, SPIN.test(el.className) ? 'is-spin' : '') : '';
+    if (!name) {
+      // Unknown icon name: say so in the console, and in an icon-only button or link
+      // draw a plain dot so the control never turns into an invisible empty box
+      console.warn('[SwimFest] no icon for', el.className);
+      const parent = el.parentElement;
+      const iconOnly = parent && parent.matches('a, button') && !parent.textContent.trim();
+      el.innerHTML = iconOnly ? '<svg class="sf-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/></svg>' : '';
+    } else {
+      el.innerHTML = svg(name, SPIN.test(el.className) ? 'is-spin' : '');
+    }
     if (!label) el.setAttribute('aria-hidden', 'true');
     else el.setAttribute('role', 'img');
   }

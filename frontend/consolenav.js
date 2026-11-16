@@ -22,6 +22,7 @@
         ${link('superadmin.html#meets', 'trophy', 'All meets')}
         ${link('superadmin.html#financials', 'indian-rupee-sign', 'Financials')}
         ${link('superadmin.html#history', 'history', 'History')}
+        ${link('saprofile.html', 'user', 'Profile', is('saprofile.html'))}
       </nav>
       <nav class="ac-side-group" aria-label="Run a meet">
         <div class="ac-side-label">Run a meet</div>
@@ -56,6 +57,17 @@
     if ($(ids.name)) $(ids.name).textContent = name;
     if ($(ids.initials)) $(ids.initials).textContent = String(name).split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'SA';
     if ($(ids.role)) $(ids.role).textContent = 'Super Admin';
+    const mobilebar = document.querySelector('.ac-mobilebar');
+    if (mobilebar && active !== 'saprofile.html' && !mobilebar.querySelector('.sa-profile-mobile-link')) {
+      const pLink = document.createElement('a');
+      pLink.className = 'ac-icon-btn sa-profile-mobile-link';
+      pLink.href = 'saprofile.html';
+      pLink.title = 'Your profile';
+      pLink.setAttribute('aria-label', 'Profile');
+      pLink.style.marginLeft = 'auto';
+      pLink.innerHTML = '<i class="fas fa-user-circle"></i>';
+      mobilebar.appendChild(pLink);
+    }
     return true;
   }
 

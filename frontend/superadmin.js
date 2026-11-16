@@ -1019,6 +1019,10 @@ window.openToolFromFrame = function (href) {
 };
 
 function switchTab(tabKey) {
+  if (tabKey === 'profile') {
+    location.href = 'saprofile.html';
+    return;
+  }
   if (TOOLS[tabKey]) return openTool(tabKey);
   if (!VALID_TABS.includes(tabKey)) tabKey = 'dashboard';
   $('saContainer').hidden = false;
