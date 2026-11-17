@@ -222,6 +222,7 @@ async function loadVerificationQueue() {
     email: s.parent_email || null,
     credentialId: s.sfi_serial_no || `SWM-${String(s.swimmer_id).slice(0,8).toUpperCase()}`,
     documentUrl: null,
+    swimmer: s,   // age proof + undertaking live in private storage (SwimDocs)
   }));
   (orgRes.data || []).forEach(o => S2_QUEUE.push({
     id: o.organizer_id, table: 'organizers', idCol: 'organizer_id',
@@ -425,7 +426,9 @@ function renderS2() {
       </td>
       <td style="font-family:monospace;font-size:0.78rem;">
         ${escHtml(item.credentialId)}
-        ${item.documentUrl
+        ${item.swimmer && window.SwimDocs
+          ? window.SwimDocs.linksHtml(item.swimmer, 'sa-doc-link')
+          : item.documentUrl
           ? `<a href="${escHtml(item.documentUrl)}" target="_blank" rel="noopener" class="sa-doc-link"><i class="fas fa-file-alt"></i> View Document</a>`
           : `<span class="sa-doc-none"><i class="fas fa-file-circle-xmark"></i> No document</span>`}
       </td>

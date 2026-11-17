@@ -372,7 +372,8 @@ function renderSwimmers(q = '') {
         <div style="font-size:0.72rem;color:var(--ac-blue);">${escHtml(s.parent_email || '—')}</div>
         <div style="font-size:0.72rem;color:var(--ac-muted);">${escHtml(s.school_name ? 'School: ' + s.school_name : '')}</div>
       </td>
-      <td style="font-family:monospace;font-size:0.8rem;">${escHtml(s.sfi_serial_no || s.id_ref || '—')}</td>
+      <td style="font-family:monospace;font-size:0.8rem;">${escHtml(s.sfi_serial_no || s.id_ref || '—')}
+        ${window.SwimDocs ? window.SwimDocs.linksHtml(s) : ''}</td>
       ${actionCell('sw', s.swimmer_id, 'approveSwimmer', 'rejectSwimmer', s.full_name)}
     </tr>`).join('');
 }
