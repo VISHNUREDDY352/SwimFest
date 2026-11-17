@@ -719,6 +719,22 @@ function parseEventName(name) {
   return m ? { distance: parseInt(m[1]), stroke: m[2] } : { distance: null, stroke: name };
 }
 
+// Optional details a database may not have columns for yet. If the API says one
+// is missing, drop it and retry rather than failing the whole registration.
+const OPTIONAL_SWIMMER_COLS = ['school_name', 'nationality', 'blood_group', 'id_ref', 'sfi_serial_no', 'academy_id'];
+
+async function writeSwimmer(run, row) {
+  row = { ...row };
+  for (let i = 0; i <= OPTIONAL_SWIMMER_COLS.length; i++) {
+    const res = await run(row);
+    const m = res.error && /could not find the '([a-z_]+)' column/i.exec(res.error.message || '');
+    if (!m || !OPTIONAL_SWIMMER_COLS.includes(m[1]) || !(m[1] in row)) return res;
+    console.warn(`[SwimFest] swimmers.${m[1]} missing in the database; saved without it`);
+    delete row[m[1]];
+  }
+  return run(row);
+}
+
 async function saveRegistrationToDB() {
   if (!window.sb) throw new Error('Not connected to the database. Refresh the page and try again.');
   const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
@@ -753,17 +769,18 @@ async function saveRegistrationToDB() {
         throw new Error('This swimmer\'s verification was declined. Contact the organisers before registering.');
       }
       state.savedSwimmerStatus = 'status' in existing ? (existing.status || 'PENDING_VERIFICATION') : 'APPROVED_ACTIVE';
-      const { error: upErr } = await window.sb.from('swimmers').update({
+      const { error: upErr } = await writeSwimmer(row => window.sb.from('swimmers').update(row).eq('swimmer_id', swimmerId), {
         gender: d.gender, date_of_birth: d.dob, category: d.category,
         sfi_serial_no: d.serialNo || null, parent_name: d.fullName,
         parent_phone: d.parentContact, parent_email: session ? session.email : null,
         academy_id: academyId, school_name: d.schoolName || null,
         nationality: d.nationality || 'Indian', blood_group: d.bloodGroup || null,
         id_ref: d.idRef || null,
-      }).eq('swimmer_id', swimmerId);
+      });
       if (upErr) throw upErr;
     } else {
-      const { data, error } = await window.sb.from('swimmers').insert({
+      // new swimmers start as PENDING_VERIFICATION (column default)
+      const { data, error } = await writeSwimmer(row => window.sb.from('swimmers').insert(row).select('*').single(), {
         owner_id: userId,
         full_name: d.fullName, gender: d.gender, date_of_birth: d.dob,
         category: d.category, sfi_serial_no: d.serialNo || null,
@@ -771,7 +788,7 @@ async function saveRegistrationToDB() {
         parent_email: session ? session.email : null, academy_id: academyId,
         school_name: d.schoolName || null, nationality: d.nationality || 'Indian',
         blood_group: d.bloodGroup || null, id_ref: d.idRef || null,
-      }).select('*').single();   // new swimmers start as PENDING_VERIFICATION (column default)
+      });
       if (error) throw error;
       swimmerId = data.swimmer_id;
       state.savedSwimmerStatus = 'status' in data ? (data.status || 'PENDING_VERIFICATION') : 'APPROVED_ACTIVE';
