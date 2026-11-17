@@ -64,6 +64,11 @@ const state = {
   // Declaration state machine (Rule 5.1)
   declarations   : { 1: false, 2: false, 3: false, 4: false },
 
+  // Mandatory documents: files chosen now, and paths already stored for this swimmer.
+  // Age proof on file is reused; the undertaking is signed afresh for every meet.
+  docFiles       : { age_proof: null, undertaking: null },
+  docsOnFile     : { age_proof: null },
+
   // Payment gateway state
   paymentState   : 'idle', // idle | processing | success | failed
   bookingRefNo   : null,
@@ -71,6 +76,17 @@ const state = {
 };
 
 // ─── Utilities ────────────────────────────────────────────────
+// In-app message popup (SF.Dialog) instead of the browser's alert()
+function notify(title, html) {
+  if (window.SF && SF.Dialog) {
+    SF.Dialog.open({ title, body: html, actions: [{ label: 'OK', primary: true }] });
+  } else {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    alert(title + '\n\n' + tmp.textContent);
+  }
+}
+
 function generateBookingRef() {
   return `BK-${TOURNAMENT_YEAR}-` + Math.floor(10000 + Math.random() * 90000);
 }
@@ -408,11 +424,11 @@ function validateStep2() {
     else if (!v) { state.imSeedTime = 'NT'; }
   }
   if (errors.length) {
-    alert(`Please fix seed time entries:\n\n• ${errors.join('\n• ')}`);
+    notify('Check the seed times', `<ul style="margin:0;padding-left:18px;">${errors.map(e => `<li>${escHtml(e)}</li>`).join('')}</ul>`);
     return;
   }
   if (countSelectedEvents() === 0) {
-    alert('Select at least one individual event before proceeding.');
+    notify('Pick an event', '<p style="margin:0;">Select at least one individual event to continue.</p>');
     return;
   }
   if (countSelectedEvents() < MAX_INDIV_EVENTS) {
@@ -497,6 +513,9 @@ function renderCheckout() {
   $('cartGrandTotal').textContent = formatCurrency(grandTotal);
   $('footerTotal').textContent    = formatCurrency(grandTotal);
 
+  /* ── B2. Mandatory documents ── */
+  syncDocs();
+
   /* ── C. Declarations — re-sync ── */
   syncDeclarations();
 
@@ -507,6 +526,69 @@ function renderCheckout() {
     $('step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 }
+
+// ─── Mandatory documents ─────────────────────────────────────
+const DOC_UI = {
+  age_proof  : { input: 'docAgeFile',         status: 'docAgeStatus',         btn: 'docAgeBtnText',         row: 'docRowAge' },
+  undertaking: { input: 'docUndertakingFile', status: 'docUndertakingStatus', btn: 'docUndertakingBtnText', row: 'docRowUndertaking' },
+};
+
+function syncDocs() {
+  Object.entries(DOC_UI).forEach(([kind, ui]) => {
+    const input = $(ui.input);
+    if (!input || input.dataset.bound) return;
+    input.dataset.bound = '1';
+    input.addEventListener('change', () => {
+      const file = input.files && input.files[0];
+      const err  = file && window.SwimDocs ? window.SwimDocs.check(file) : '';
+      state.docFiles[kind] = file && !err ? file : null;
+      renderDocStatus(kind, err);
+      refreshDeclUI();
+    });
+  });
+  loadDocsOnFile();
+  Object.keys(DOC_UI).forEach(k => renderDocStatus(k));
+}
+
+// Age proof already uploaded for this swimmer (same account + name) can be reused
+async function loadDocsOnFile() {
+  state.docsOnFile.age_proof = null;
+  const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
+  if (!window.sb || !session || !session.userId || !state.swimmerData.fullName) return;
+  try {
+    const { data } = await window.sb.from('swimmers').select('*')
+      .eq('owner_id', session.userId).eq('full_name', state.swimmerData.fullName).maybeSingle();
+    state.docsOnFile.age_proof = (data && data.age_proof_path) || null;
+  } catch (_) {}
+  renderDocStatus('age_proof');
+  refreshDeclUI();
+}
+
+function renderDocStatus(kind, err) {
+  const ui = DOC_UI[kind];
+  const el = $(ui.status);
+  if (!el) return;
+  const file = state.docFiles[kind];
+  const onFile = state.docsOnFile[kind];
+  if (err) {
+    el.className = 'doc-upload-status err';
+    el.textContent = err;
+  } else if (file) {
+    el.className = 'doc-upload-status ok';
+    el.textContent = `✓ ${file.name}`;
+  } else if (onFile) {
+    el.className = 'doc-upload-status ok';
+    el.textContent = '✓ Already on file. Choose a file only to replace it.';
+  } else {
+    el.className = 'doc-upload-status';
+    el.textContent = '';
+  }
+  $(ui.btn).textContent = file || onFile ? 'Replace' : 'Choose file';
+  $(ui.row).classList.toggle('doc-missing', false);
+}
+
+const docReady = kind => !!(state.docFiles[kind] || state.docsOnFile[kind]);
+const allDocsReady = () => Object.keys(DOC_UI).every(docReady);
 
 // ─── Declaration State Machine (Rule 5.1) ────────────────────
 function syncDeclarations() {
@@ -537,13 +619,16 @@ function refreshDeclUI() {
   const allSet = count === 4;
 
   // Progress bar
-  $('declProgressText').textContent = `${count} of 4 declarations accepted`;
+  const docsMissing = Object.keys(DOC_UI).filter(k => !docReady(k)).length;
+  $('declProgressText').textContent = `${count} of 4 declarations accepted` +
+    (docsMissing ? ` · ${docsMissing} document${docsMissing === 1 ? '' : 's'} still to upload` : '');
   $('declProgressFill').style.width = `${count * 25}%`;
 
-  // Gate the payment button (Rule 5.1 — state machine guard)
+  // Gate the submit button: every declaration ticked AND both documents attached
+  const ready = allSet && allDocsReady();
   const btn = $('confirmPay');
-  btn.disabled = !allSet;
-  btn.classList.toggle('unlocked', allSet);
+  btn.disabled = !ready;
+  btn.classList.toggle('unlocked', ready);
 
   // Highlight unchecked declarations in amber when attempted
   $$('.declaration-item').forEach(item => {
@@ -559,12 +644,22 @@ function allDeclarationsAccepted() {
 
 // ─── Payment Gateway State Engine (Rule 5.3) ─────────────────
 function initiatePayment() {
-  if (state.swimmerStatus === 'PENDING_VERIFICATION') {
-    alert('⚠️ Swimmer Verification Pending: Your swimmer profile is currently Pending Verification by Super Admin / Admin. Tournament registration submission is blocked until your account is approved.');
+  // A swimmer waiting for verification can still submit: the swimmer and the
+  // entry are saved, which is what puts them in the Admin / Super Admin
+  // approval queue. Blocking here meant nothing was ever saved, so nobody
+  // could reach the queue. Only a declined swimmer is stopped.
+  if (state.swimmerStatus === 'REJECTED') {
+    notify('Swimmer not verified',
+      '<p style="margin:0;">This swimmer\'s verification was declined, so the entry can\'t be submitted. Contact the organisers or update the swimmer\'s details.</p>' +
+      (state.swimmerReason ? `<p style="margin:8px 0 0;"><b>Reason:</b> ${escHtml(state.swimmerReason)}</p>` : ''));
     return;
   }
-  if (state.swimmerStatus === 'REJECTED') {
-    alert('❌ Swimmer Verification Declined: Your swimmer profile verification was declined by Super Admin. Please contact support or update your profile details.');
+
+  if (!allDocsReady()) {
+    Object.entries(DOC_UI).forEach(([kind, ui]) => {
+      if (!docReady(kind)) $(ui.row).classList.add('doc-missing');
+    });
+    $('docsCard') && $('docsCard').scrollIntoView({ behavior:'smooth', block:'center' });
     return;
   }
 
@@ -649,11 +744,15 @@ async function saveRegistrationToDB() {
     let existing = null;
     if (userId) {
       const { data } = await window.sb.from('swimmers')
-        .select('swimmer_id').eq('owner_id', userId).eq('full_name', d.fullName).maybeSingle();
+        .select('*').eq('owner_id', userId).eq('full_name', d.fullName).maybeSingle();
       existing = data;
     }
     if (existing) {
       swimmerId = existing.swimmer_id;
+      if (existing.status === 'REJECTED') {
+        throw new Error('This swimmer\'s verification was declined. Contact the organisers before registering.');
+      }
+      state.savedSwimmerStatus = 'status' in existing ? (existing.status || 'PENDING_VERIFICATION') : 'APPROVED_ACTIVE';
       const { error: upErr } = await window.sb.from('swimmers').update({
         gender: d.gender, date_of_birth: d.dob, category: d.category,
         sfi_serial_no: d.serialNo || null, parent_name: d.fullName,
@@ -672,11 +771,27 @@ async function saveRegistrationToDB() {
         parent_email: session ? session.email : null, academy_id: academyId,
         school_name: d.schoolName || null, nationality: d.nationality || 'Indian',
         blood_group: d.bloodGroup || null, id_ref: d.idRef || null,
-      }).select('swimmer_id').single();
+      }).select('*').single();   // new swimmers start as PENDING_VERIFICATION (column default)
       if (error) throw error;
       swimmerId = data.swimmer_id;
+      state.savedSwimmerStatus = 'status' in data ? (data.status || 'PENDING_VERIFICATION') : 'APPROVED_ACTIVE';
     }
   } catch (e) { throw new Error('Could not save the swimmer\'s details: ' + e.message); }
+
+  // 2b. Upload the mandatory documents and record them on the swimmer
+  try {
+    const docUpdate = {};
+    for (const kind of Object.keys(DOC_UI)) {
+      const file = state.docFiles[kind];
+      if (file) docUpdate[window.SwimDocs.KINDS[kind].col] = await window.SwimDocs.upload(file, userId, swimmerId, kind);
+      else if (!state.docsOnFile[kind]) throw new Error(`${window.SwimDocs.KINDS[kind].label} is missing.`);
+    }
+    if (Object.keys(docUpdate).length) {
+      const { error } = await window.sb.from('swimmers').update(docUpdate).eq('swimmer_id', swimmerId);
+      if (error) throw error;
+      if (docUpdate.age_proof_path) state.docsOnFile.age_proof = docUpdate.age_proof_path;
+    }
+  } catch (e) { throw new Error('Could not upload the documents: ' + e.message); }
 
   // 3. One registration per swimmer per meet
   const { data: dupe } = await window.sb.from('bookings')
@@ -752,7 +867,21 @@ function renderSuccessReceipt() {
   const ref  = state.bookingRefNo;
   const grand = calcGrandTotal();
 
-  // Banner
+  // Banner: say plainly when the entry is waiting for the swimmer to be approved
+  const pending = state.savedSwimmerStatus === 'PENDING_VERIFICATION';
+  const title = document.querySelector('#stepSuccess .success-banner-title');
+  if (title) title.textContent = pending ? 'Saved — waiting for approval' : 'Registration received';
+  let note = $('successPendingNote');
+  if (pending && !note && title) {
+    note = document.createElement('p');
+    note.id = 'successPendingNote';
+    note.className = 'success-banner-sub';
+    title.parentNode.appendChild(note);
+  }
+  if (note) {
+    note.textContent = pending ? 'An Admin will verify the swimmer. Your entry is confirmed once they approve.' : '';
+    note.style.display = pending ? '' : 'none';
+  }
   $('successRefNo').textContent = ref;
   $('receiptRef').textContent   = ref;
 
@@ -1180,7 +1309,7 @@ function renderSwimmerVerificationBanner() {
     banner.innerHTML = `<i class="fas fa-clock" style="font-size:1.4rem;color:#d39e00;"></i>
       <div>
         <strong style="display:block;margin-bottom:2px;font-size:0.9rem;">⚠️ Swimmer Profile Pending Verification</strong>
-        Your swimmer account is currently <strong>Pending Verification</strong> by Super Admin / Admin. You can select events and preview fees, but final registration submission requires admin approval.
+        The swimmer is waiting to be verified by an Admin. You can still submit: your entry is saved and sent for approval.
       </div>`;
   }
 

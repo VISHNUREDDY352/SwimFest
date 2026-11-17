@@ -1278,6 +1278,27 @@
     padding: 4px 0;
 }
 
+/* Mandatory document uploads */
+.doc-upload-list { padding: 4px 0; }
+.doc-upload-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    padding: 14px 20px; border-bottom: 1px solid var(--gray-light);
+}
+.doc-upload-row:last-child { border-bottom: none; }
+.doc-upload-row.doc-missing { background: #fff3cd; }
+.doc-upload-info { min-width: 0; flex: 1; }
+.doc-upload-title { font-weight: 700; font-size: 0.88rem; }
+.doc-upload-hint { font-size: 0.78rem; color: var(--gray); margin-top: 2px; }
+.doc-upload-status { font-size: 0.78rem; margin-top: 4px; overflow-wrap: anywhere; }
+.doc-upload-status.ok { color: #166534; }
+.doc-upload-status.err { color: var(--danger); }
+.doc-upload-btn { flex-shrink: 0; cursor: pointer; white-space: nowrap; }
+.doc-upload-note { padding: 10px 20px 14px; font-size: 0.75rem; color: var(--gray); }
+@media (max-width: 560px) {
+    .doc-upload-row { flex-direction: column; align-items: stretch; }
+    .doc-upload-btn { justify-content: center; }
+}
+
 .declaration-item {
     display: flex;
     align-items: flex-start;
