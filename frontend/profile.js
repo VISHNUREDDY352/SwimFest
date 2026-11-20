@@ -90,7 +90,7 @@ async function loadAccount() {
         PROFILE.parentName  = sw.parent_name  || PROFILE.parentName;
         PROFILE.parentPhone = sw.parent_phone || PROFILE.parentPhone;
         PROFILE.parentEmail = sw.parent_email || PROFILE.parentEmail;
-        PROFILE.status      = sw.status || 'PENDING_VERIFICATION';
+        PROFILE.status      = sw.status || 'APPROVED_ACTIVE';
         PROFILE.rejectionNotes = sw.rejection_notes || '';
       }
     } catch (_) { /* table may be empty for a new user — fine */ }
@@ -113,7 +113,7 @@ function renderHeader() {
   // Dynamic verification status pill
   const vEl = document.querySelector('.pf-verified');
   if (vEl) {
-    const st = PROFILE.status || 'PENDING_VERIFICATION';
+    const st = PROFILE.status || 'APPROVED_ACTIVE';   // accounts need no approval
     if (st === 'APPROVED_ACTIVE') {
       vEl.className = 'pf-verified';
       vEl.title = 'Verified Account';
@@ -212,7 +212,52 @@ function renderDetails() {
     </div>`).join('');
 }
 
-// ── Render Registrations ──────────────────────────────────────
+// ── My registrations: each meet entry and its approval decision ──
+// Decisions the parent hasn't seen yet are highlighted once (per browser)
+const SEEN_KEY = uid => `swimfest_reg_seen_${uid}`;
+let SEEN_BEFORE = 0;     // decisions after this time are "new" on this visit
+
+function fmtDay(d) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d || ''));
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+}
+
+async function loadRegistrations() {
+  const s = window.SwimAuth ? window.SwimAuth.getSession() : null;
+  if (!window.sb || !s || !s.userId) return;
+  try { SEEN_BEFORE = Number(localStorage.getItem(SEEN_KEY(s.userId))) || 0; } catch (_) {}
+  const { data, error } = await window.sb.from('bookings')
+    .select('*, tournaments(tournament_id, title, start_date, end_date, venue_name, city), swimmers(full_name), event_entries(event_name)')
+    .eq('booked_by', s.userId)
+    .order('created_at', { ascending: false });
+  if (error) { console.warn('[SwimFest] my registrations:', error.message); return; }
+  REGISTRATIONS = (data || []).map(b => {
+    const t = b.tournaments || {};
+    const decidedAt = b.decided_at ? new Date(b.decided_at).getTime() : 0;
+    return {
+      id: b.booking_id,
+      meetId: t.tournament_id || b.tournament_id,
+      meet: t.title || 'Meet',
+      swimmer: (b.swimmers || {}).full_name || '',
+      when: [fmtDay(t.start_date), fmtDay(t.end_date)].filter(Boolean).join(' – '),
+      where: [t.venue_name, t.city].filter(Boolean).join(', '),
+      races: (b.event_entries || []).map(e => e.event_name),
+      status: b.approval_status || 'APPROVED',
+      reason: b.decision_notes || '',
+      isNew: !!(b.approval_status && b.approval_status !== 'PENDING' && decidedAt > SEEN_BEFORE),
+    };
+  });
+  // Approved meets count toward the "Tournaments" stat
+  PROFILE.stats.tournaments = REGISTRATIONS.filter(r => r.status === 'APPROVED').length;
+  try { localStorage.setItem(SEEN_KEY(s.userId), String(Date.now())); } catch (_) {}
+}
+
+const REG_STATUS = {
+  PENDING:  { cls: 'reg-pending',   label: 'Waiting for approval', icon: 'clock',        color: '#d97706' },
+  APPROVED: { cls: 'reg-confirmed', label: 'Approved',             icon: 'check',        color: '#16a34a' },
+  REJECTED: { cls: 'reg-declined',  label: 'Declined',             icon: 'times',        color: '#dc2626' },
+};
+
 function renderRegistrations() {
   if (!REGISTRATIONS.length) {
     $('regList').innerHTML = `<div style="padding:24px;text-align:center;color:var(--gray);font-size:0.85rem;">
@@ -221,16 +266,44 @@ function renderRegistrations() {
       <a href="register.html" style="display:inline-block;margin-top:10px;color:var(--primary);font-weight:600;">Register for an event →</a></div>`;
     return;
   }
-  const statusCls = { CONFIRMED:'reg-confirmed', UPCOMING:'reg-upcoming', COMPLETED:'reg-completed' };
-  $('regList').innerHTML = REGISTRATIONS.map(r => `
-    <div class="pf-reg-item">
-      <div class="pf-reg-icon" style="background:${r.color};"><i class="fas fa-${r.icon}"></i></div>
+  $('regList').innerHTML = REGISTRATIONS.map(r => {
+    const st = REG_STATUS[r.status] || REG_STATUS.PENDING;
+    return `
+    <div class="pf-reg-item${r.isNew ? ' is-new' : ''}">
+      <div class="pf-reg-icon" style="background:${st.color};"><i class="fas fa-${st.icon}"></i></div>
       <div class="pf-reg-info">
-        <div class="pf-reg-name">${escHtml(r.name)}</div>
-        <div class="pf-reg-date"><i class="fas fa-calendar-alt"></i> ${escHtml(r.date)}</div>
+        <div class="pf-reg-name">${escHtml(r.meet)}${r.isNew ? '<span class="pf-reg-new">New</span>' : ''}</div>
+        <div class="pf-reg-date"><i class="fas fa-calendar-alt"></i> ${escHtml(r.when || 'Dates to be announced')}${r.where ? ' · ' + escHtml(r.where) : ''}</div>
+        ${r.swimmer || r.races.length ? `<div class="pf-reg-races">${escHtml(r.swimmer)}${r.swimmer && r.races.length ? ': ' : ''}${escHtml(r.races.join(', '))}</div>` : ''}
+        ${r.status === 'PENDING' ? '<div class="pf-reg-races">The organisers are checking the documents.</div>' : ''}
+        ${r.status === 'REJECTED' && r.reason ? `<div class="pf-reg-reason"><b>Reason:</b> ${escHtml(r.reason)}</div>` : ''}
+        ${r.status === 'REJECTED' ? `<a class="pf-reg-again" href="register.html?t=${encodeURIComponent(r.meetId)}">Fix and register again →</a>` : ''}
       </div>
-      <span class="pf-reg-status ${statusCls[r.status]}">${escHtml(r.status)}</span>
-    </div>`).join('');
+      <span class="pf-reg-status ${st.cls}">${st.label}</span>
+    </div>`;
+  }).join('');
+}
+
+// One-time notice at the top of the page for decisions made since the last visit
+function renderDecisionNotice() {
+  const fresh = REGISTRATIONS.filter(r => r.isNew);
+  if (!fresh.length) return;
+  const approved = fresh.filter(r => r.status === 'APPROVED');
+  const declined = fresh.filter(r => r.status === 'REJECTED');
+  const line = r => `<li>${escHtml(r.swimmer ? r.swimmer + ' · ' : '')}${escHtml(r.meet)}${r.races.length ? ` (${r.races.length} race${r.races.length === 1 ? '' : 's'})` : ''}</li>`;
+  const box = document.createElement('div');
+  box.className = 'pf-decision-notice ' + (declined.length ? 'bad' : 'ok');
+  box.setAttribute('role', 'status');
+  box.innerHTML = `
+    <i class="fas fa-${declined.length ? 'circle-exclamation' : 'circle-check'}" aria-hidden="true"></i>
+    <div>
+      ${approved.length ? `<strong>Approved for ${approved.length === 1 ? 'this meet' : 'these meets'}:</strong><ul>${approved.map(line).join('')}</ul>` : ''}
+      ${declined.length ? `<strong${approved.length ? ' style="display:block;margin-top:8px;"' : ''}>Declined. See the reason under My registrations:</strong><ul>${declined.map(line).join('')}</ul>` : ''}
+    </div>
+    <button type="button" class="pf-decision-close" aria-label="Dismiss"><i class="fas fa-times"></i></button>`;
+  box.querySelector('.pf-decision-close').addEventListener('click', () => box.remove());
+  const main = document.querySelector('.pf-grid');
+  if (main && main.parentNode) main.parentNode.insertBefore(box, main);
 }
 
 // ── Render Academy Card ───────────────────────────────────────
@@ -389,12 +462,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (session.role === 'event_manager') { window.location.replace('admin.html'); return; }
 
   await loadAccount();   // pull real account data from session + Supabase
+  await loadRegistrations();   // meet entries + approval decisions
 
   renderHeader();
+  renderDecisionNotice();
   renderPBs();
   renderHistory();
   renderDetails();
   renderRegistrations();
+  if (location.hash === '#registrations' && $('regList')) $('regList').scrollIntoView({ behavior: 'smooth', block: 'start' });
   renderAcademy();
   populateEditAcademy();
   initLogout();

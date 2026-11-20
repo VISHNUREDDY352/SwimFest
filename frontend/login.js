@@ -420,7 +420,7 @@ window.handleSignup = async function(e) {
           parent_name  : name,
           parent_phone : phone,
           parent_email : email,
-          status       : 'PENDING_VERIFICATION',
+          status       : 'APPROVED_ACTIVE',   // accounts don't need approval; event entries do
         };
         let { error: swErr } = await window.sb.from('swimmers').insert(swRow);
         if (swErr && swErr.message && swErr.message.includes('status')) {

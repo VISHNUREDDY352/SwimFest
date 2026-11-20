@@ -198,6 +198,26 @@
 .reg-confirmed { background: #d1fae5; color: #065f46; }
 .reg-upcoming { background: #dbeafe; color: #1e40af; }
 .reg-completed { background: var(--gray-light); color: var(--gray); }
+.reg-pending  { background: #fef3c7; color: #92400e; }
+.reg-declined { background: #fde8e8; color: #b91c1c; }
+.pf-reg-item { align-items: flex-start; }
+.pf-reg-item.is-new { background: #f0fdf4; }
+.pf-reg-races { font-size: 0.72rem; color: var(--gray); margin-top: 3px; }
+.pf-reg-reason { font-size: 0.75rem; color: #b91c1c; margin-top: 5px; }
+.pf-reg-again { display: inline-block; margin-top: 6px; font-size: 0.75rem; font-weight: 700; color: var(--primary); }
+.pf-reg-new { font-size: 0.6rem; font-weight: 800; color: #166534; margin-left: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
+
+/* One-time notice when an entry is approved or declined */
+.pf-decision-notice {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 14px 16px; margin-bottom: 16px; border-radius: var(--radius-sm);
+    font-size: 0.85rem; line-height: 1.5;
+}
+.pf-decision-notice.ok  { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+.pf-decision-notice.bad { background: #fde8e8; border: 1px solid #fca5a5; color: #991b1b; }
+.pf-decision-notice i { font-size: 1.2rem; margin-top: 2px; }
+.pf-decision-notice ul { margin: 4px 0 0; padding-left: 18px; }
+.pf-decision-close { margin-left: auto; background: none; border: none; color: inherit; cursor: pointer; font-size: 1rem; padding: 0 4px; }
 
 /* ── Academy card ── */
 .pf-academy-card { padding: 20px; text-align: center; }

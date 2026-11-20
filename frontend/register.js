@@ -72,7 +72,7 @@ const state = {
   // Payment gateway state
   paymentState   : 'idle', // idle | processing | success | failed
   bookingRefNo   : null,
-  swimmerStatus  : null,
+  bookingApproval: null,   // PENDING until an Admin / Super Admin approves
 };
 
 // ─── Utilities ────────────────────────────────────────────────
@@ -644,17 +644,8 @@ function allDeclarationsAccepted() {
 
 // ─── Payment Gateway State Engine (Rule 5.3) ─────────────────
 function initiatePayment() {
-  // A swimmer waiting for verification can still submit: the swimmer and the
-  // entry are saved, which is what puts them in the Admin / Super Admin
-  // approval queue. Blocking here meant nothing was ever saved, so nobody
-  // could reach the queue. Only a declined swimmer is stopped.
-  if (state.swimmerStatus === 'REJECTED') {
-    notify('Swimmer not verified',
-      '<p style="margin:0;">This swimmer\'s verification was declined, so the entry can\'t be submitted. Contact the organisers or update the swimmer\'s details.</p>' +
-      (state.swimmerReason ? `<p style="margin:8px 0 0;"><b>Reason:</b> ${escHtml(state.swimmerReason)}</p>` : ''));
-    return;
-  }
-
+  // Swimmer accounts need no approval. The registration itself is saved as
+  // PENDING and goes to the Admin / Super Admin approval queue.
   if (!allDocsReady()) {
     Object.entries(DOC_UI).forEach(([kind, ui]) => {
       if (!docReady(kind)) $(ui.row).classList.add('doc-missing');
@@ -765,10 +756,6 @@ async function saveRegistrationToDB() {
     }
     if (existing) {
       swimmerId = existing.swimmer_id;
-      if (existing.status === 'REJECTED') {
-        throw new Error('This swimmer\'s verification was declined. Contact the organisers before registering.');
-      }
-      state.savedSwimmerStatus = 'status' in existing ? (existing.status || 'PENDING_VERIFICATION') : 'APPROVED_ACTIVE';
       const { error: upErr } = await writeSwimmer(row => window.sb.from('swimmers').update(row).eq('swimmer_id', swimmerId), {
         gender: d.gender, date_of_birth: d.dob, category: d.category,
         sfi_serial_no: d.serialNo || null, parent_name: d.fullName,
@@ -779,7 +766,7 @@ async function saveRegistrationToDB() {
       });
       if (upErr) throw upErr;
     } else {
-      // new swimmers start as PENDING_VERIFICATION (column default)
+      // The swimmer account needs no approval; this registration does (see bookings)
       const { data, error } = await writeSwimmer(row => window.sb.from('swimmers').insert(row).select('*').single(), {
         owner_id: userId,
         full_name: d.fullName, gender: d.gender, date_of_birth: d.dob,
@@ -791,7 +778,6 @@ async function saveRegistrationToDB() {
       });
       if (error) throw error;
       swimmerId = data.swimmer_id;
-      state.savedSwimmerStatus = 'status' in data ? (data.status || 'PENDING_VERIFICATION') : 'APPROVED_ACTIVE';
     }
   } catch (e) { throw new Error('Could not save the swimmer\'s details: ' + e.message); }
 
@@ -810,10 +796,15 @@ async function saveRegistrationToDB() {
     }
   } catch (e) { throw new Error('Could not upload the documents: ' + e.message); }
 
-  // 3. One registration per swimmer per meet
+  // 3. One registration per swimmer per meet. A declined one can be replaced
+  //    by a corrected registration (its races are removed with it).
   const { data: dupe } = await window.sb.from('bookings')
-    .select('booking_id').eq('tournament_id', tournamentId).eq('swimmer_id', swimmerId).limit(1);
-  if (dupe && dupe.length) throw new Error(`${d.fullName} is already registered for this meet.`);
+    .select('*').eq('tournament_id', tournamentId).eq('swimmer_id', swimmerId).limit(1);
+  if (dupe && dupe.length) {
+    if (dupe[0].approval_status !== 'REJECTED') throw new Error(`${d.fullName} is already registered for this meet.`);
+    const { error: delErr } = await window.sb.from('bookings').delete().eq('booking_id', dupe[0].booking_id);
+    if (delErr) throw new Error('Could not replace the declined registration: ' + delErr.message);
+  }
 
   // 4. Create booking
   let bookingId = null;
@@ -825,9 +816,12 @@ async function saveRegistrationToDB() {
       relay_selected: state.relaySelected, im_selected: state.imSelected,
       payment_status: 'PENDING', payment_ref: null,
       booking_ref: state.bookingRefNo,
-    }).select('booking_id').single();
+    }).select('*').single();
     if (error) throw error;
     bookingId = data.booking_id;
+    // Parent registrations start PENDING until an Admin / Super Admin approves.
+    // (No column yet means the database doesn't track approval.)
+    state.bookingApproval = data.approval_status || 'APPROVED';
   } catch (e) { throw new Error('Could not save the registration: ' + e.message); }
 
   // 5. Insert event entries
@@ -884,10 +878,10 @@ function renderSuccessReceipt() {
   const ref  = state.bookingRefNo;
   const grand = calcGrandTotal();
 
-  // Banner: say plainly when the entry is waiting for the swimmer to be approved
-  const pending = state.savedSwimmerStatus === 'PENDING_VERIFICATION';
+  // Banner: say plainly that the entry is waiting for approval, and where to see the decision
+  const pending = state.bookingApproval === 'PENDING';
   const title = document.querySelector('#stepSuccess .success-banner-title');
-  if (title) title.textContent = pending ? 'Saved — waiting for approval' : 'Registration received';
+  if (title) title.textContent = pending ? 'Sent for approval' : 'Registration received';
   let note = $('successPendingNote');
   if (pending && !note && title) {
     note = document.createElement('p');
@@ -896,7 +890,9 @@ function renderSuccessReceipt() {
     title.parentNode.appendChild(note);
   }
   if (note) {
-    note.textContent = pending ? 'An Admin will verify the swimmer. Your entry is confirmed once they approve.' : '';
+    note.innerHTML = pending
+      ? 'The organisers will check the documents and approve the entry. You\'ll see the decision under <a href="profile.html#registrations" style="color:inherit;font-weight:700;text-decoration:underline;">My registrations</a> on your profile.'
+      : '';
     note.style.display = pending ? '' : 'none';
   }
   $('successRefNo').textContent = ref;
@@ -1282,58 +1278,6 @@ async function initAcademyCoachLinking() {
   });
 }
 
-// ─── Swimmer Verification Gate ───────────────────────────────
-async function checkSwimmerVerificationStatus() {
-  if (!window.sb) return;
-  const session = window.SwimAuth ? window.SwimAuth.getSession() : null;
-  if (!session || !session.userId) return;
-  try {
-    const { data: sw } = await window.sb.from('swimmers')
-      .select('*')  // '*' so a database without swimmers.status still loads
-      .eq('owner_id', session.userId)
-      .limit(1)
-      .maybeSingle();
-    if (sw) {
-      // No status column means verification isn't tracked, so don't block the parent
-      state.swimmerStatus = 'status' in sw ? (sw.status || 'PENDING_VERIFICATION') : 'APPROVED_ACTIVE';
-      state.swimmerReason = sw.rejection_notes || '';
-    } else {
-      state.swimmerStatus = 'PENDING_VERIFICATION';
-    }
-  } catch (_) { state.swimmerStatus = 'PENDING_VERIFICATION'; }
-  renderSwimmerVerificationBanner();
-}
-
-function renderSwimmerVerificationBanner() {
-  const existing = document.getElementById('swimmerVerificationBanner');
-  if (existing) existing.remove();
-
-  const st = state.swimmerStatus;
-  if (!st || st === 'APPROVED_ACTIVE') return;
-
-  const banner = document.createElement('div');
-  banner.id = 'swimmerVerificationBanner';
-  if (st === 'REJECTED') {
-    banner.style.cssText = 'background:#fde8e8;border:1px solid #fca5a5;color:var(--danger);padding:14px 18px;border-radius:var(--radius-sm);margin-bottom:20px;display:flex;align-items:center;gap:12px;font-size:0.85rem;line-height:1.5;';
-    banner.innerHTML = `<i class="fas fa-times-circle" style="font-size:1.4rem;color:var(--danger);"></i>
-      <div>
-        <strong style="display:block;margin-bottom:2px;font-size:0.9rem;">❌ Swimmer Profile Verification Declined</strong>
-        Your swimmer profile verification was declined by Super Admin. Please contact administration or update your profile details.
-        ${state.swimmerReason ? `<div style="margin-top:6px;"><b>Reason:</b> ${escHtml(state.swimmerReason)}</div>` : ''}
-      </div>`;
-  } else {
-    banner.style.cssText = 'background:#fff3cd;border:1px solid #ffc107;color:#856404;padding:14px 18px;border-radius:var(--radius-sm);margin-bottom:20px;display:flex;align-items:center;gap:12px;font-size:0.85rem;line-height:1.5;';
-    banner.innerHTML = `<i class="fas fa-clock" style="font-size:1.4rem;color:#d39e00;"></i>
-      <div>
-        <strong style="display:block;margin-bottom:2px;font-size:0.9rem;">⚠️ Swimmer Profile Pending Verification</strong>
-        The swimmer is waiting to be verified by an Admin. You can still submit: your entry is saved and sent for approval.
-      </div>`;
-  }
-
-  const step1 = $('step1');
-  if (step1) step1.insertBefore(banner, step1.firstChild);
-}
-
 // ─── Wizard init (runs once a tournament is chosen) ───────────
 let wizardStarted = false;
 function startWizard() {
@@ -1347,7 +1291,6 @@ function startWizard() {
   initSubCapModal();
   initNavButtons();
   updateStepper(1);
-  checkSwimmerVerificationStatus();
 }
 
 // ─── Bootstrap ────────────────────────────────────────────────

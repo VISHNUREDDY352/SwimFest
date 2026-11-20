@@ -104,7 +104,9 @@
 
   /* ── Super admin ── */
   H.saApprovals = { title: 'Approvals', what: 'Every queue waiting for a super admin decision.', actions: ['Switch queue with the tabs; the search follows the queue.', 'Approve or send back with a reason.'], rules: ['Sending back needs a reason.', 'Every decision is written to the audit log.'] };
-  H.s2 = { title: 'Verifications', what: 'Swimmers, coaches, academies and organizers waiting to be verified.', actions: ['Filter by type, search by name or ID.'], rules: ['Check documents before approving.'] };
+  H.s2 = { title: 'Verifications', what: 'Coaches, academies and organizers waiting to be verified.', actions: ['Filter by type, search by name or ID.'], rules: ['Check documents before approving.', 'Swimmer accounts don\'t need verifying; their event entries are approved instead.'] };
+  H.entries = { title: 'Event entries', what: 'Each registration a parent makes for a meet. It only goes into heats once approved.', actions: ['Open the age proof and undertaking to check them.', 'Approve, or decline with a reason the parent will see.'], rules: ['Super Admins decide any meet; Admins decide the meets they run.', 'The parent sees the decision on their profile.', 'Every decision is written to History.'] };
+  H.saLogs = { title: 'Logs', what: 'Every sign-in to SwimFest, newest first.', actions: ['Search by name or email.', 'Narrow by role and time period.', 'Download what you see as a CSV file.'], rules: ['Only Super Admins can see this.', 'The time and network address are recorded by the database.'] };
   H.s1a = { title: 'Internal meets', what: 'Meets created by Admins, waiting for approval.', actions: ['Search by meet title.'], rules: ['Approved meets open for registration.'] };
   H.s1b = { title: 'Third-party meets', what: 'Meets created by outside organizers.', actions: ['Search by meet title or organizer.'], rules: ['Check the organizer is verified first.'] };
   H.reopen = { title: 'Reopen requests', what: 'Organizers asking to reopen a completed meet.', actions: ['Search by meet title.', 'Approve (meet goes back to published) or deny.'], rules: [] };

@@ -193,8 +193,10 @@ const academyOf = c => ACADEMY_NAMES[c.academy_id] || c.academy_name || '';
 
 // Search follows the tab: each tab searches its own key field first (Strategy pattern, core/components.js)
 const TAB_SEARCH = {
-  swimmersTab:  { placeholder: 'Search swimmers by name or SFI / ID', help: 'qSwimmers',
-                  strategy: SF.Search.by(['full_name', 'sfi_serial_no', s => s.swimmer_id], ['parent_name', 'parent_email', 'parent_phone', 'school_name']) },
+  // Event entries: parent registrations waiting for approval (SwimEntries items)
+  swimmersTab:  { placeholder: 'Search by swimmer, parent or meet', help: 'entries',
+                  strategy: SF.Search.by([it => it.swimmer.full_name, it => it.booking.booking_ref],
+                                         [it => it.meet.title, it => it.swimmer.parent_name, it => it.swimmer.parent_phone, it => it.swimmer.parent_email]) },
   coachesTab:   { placeholder: 'Search coaches by name', help: 'qCoaches',
                   strategy: SF.Search.by(['full_name'], [academyOf, 'designation', 'created_by_email']) },
   academiesTab: { placeholder: 'Search academies by name', help: 'qAcademies',
@@ -260,14 +262,14 @@ async function loadAllQueues() {
     return st !== 'APPROVED_ACTIVE' && st !== 'APPROVED' && st !== 'REJECTED';
   };
 
-  // 1. Load Pending Swimmers
+  // 1. Event entries waiting for approval. Swimmer accounts themselves don't need
+  //    approval. A super admin sees every meet; an Admin the meets they run.
   try {
-    const swRes = await window.sb.from('swimmers').select('*');
-    // A database without swimmers.status doesn't track verification, so nobody is pending
-    // (same rule as the super admin Verifications queue)
-    PENDING_SWIMMERS = (!swRes.error && swRes.data) ? swRes.data.filter(s => s && 'status' in s && isPending(s.status)) : [];
+    const { items, error } = window.SwimEntries ? await SwimEntries.loadPending() : { items: [] };
+    if (error) console.warn('[AdminConsole] entries load error:', error);
+    PENDING_SWIMMERS = items;
   } catch (e) {
-    console.warn('[AdminConsole] swimmers load error:', e.message);
+    console.warn('[AdminConsole] entries load error:', e.message);
     PENDING_SWIMMERS = [];
   }
 
@@ -347,36 +349,18 @@ function actionCell(prefix, id, approveFn, rejectFn, name, approveLabel = 'Appro
   </td>`;
 }
 
+// Event entries: Admins approve these themselves for the meets they run
 function renderSwimmers(q = '') {
   const tbody = $('swimmersTableBody');
   const filtered = SF.Search.run(PENDING_SWIMMERS, TAB_SEARCH.swimmersTab.strategy, q);
-
-  if (!filtered.length) {
-    tbody.innerHTML = emptyRow(6, q ? 'No pending swimmers match your search.' : 'No new swimmers are waiting for approval.');
-    return;
-  }
-
-  tbody.innerHTML = filtered.map(s => `
-    <tr id="sw-row-${s.swimmer_id}">
-      <td>
-        <div style="font-weight:700;">${escHtml(s.full_name)}</div>
-        <div style="font-size:0.72rem;color:var(--ac-muted);">Ref: ${escHtml(s.sfi_serial_no || 'SWM-' + s.swimmer_id)}</div>
-      </td>
-      <td>
-        <div>${escHtml(s.gender || '—')}</div>
-        <div style="font-size:0.75rem;color:var(--ac-muted);">${escHtml(s.date_of_birth ? 'DOB: ' + s.date_of_birth : '—')}</div>
-      </td>
-      <td><span class="grid-cat-pill">${escHtml(s.category || 'Open')}</span></td>
-      <td>
-        <div style="font-weight:600;">${escHtml(s.parent_name || '—')} (${escHtml(s.parent_phone || '—')})</div>
-        <div style="font-size:0.72rem;color:var(--ac-blue);">${escHtml(s.parent_email || '—')}</div>
-        <div style="font-size:0.72rem;color:var(--ac-muted);">${escHtml(s.school_name ? 'School: ' + s.school_name : '')}</div>
-      </td>
-      <td style="font-family:monospace;font-size:0.8rem;">${escHtml(s.sfi_serial_no || s.id_ref || '—')}
-        ${window.SwimDocs ? window.SwimDocs.linksHtml(s) : ''}</td>
-      ${actionCell('sw', s.swimmer_id, 'approveSwimmer', 'rejectSwimmer', s.full_name)}
-    </tr>`).join('');
+  tbody.innerHTML = filtered.length
+    ? filtered.map(SwimEntries.rowHtml).join('')
+    : emptyRow(5, q ? 'No entries match your search.' : 'No event entries are waiting for approval.');
 }
+if (window.SwimEntries) SwimEntries.onDecided(id => {
+  PENDING_SWIMMERS = PENDING_SWIMMERS.filter(it => it.booking.booking_id !== id);
+  updateBadgesAndMetrics();
+});
 
 function renderCoaches(q = '') {
   const tbody = $('coachesTableBody');
@@ -456,8 +440,6 @@ function checkAdminAuth() {
 
 // ── Approve / reject (one helper for all four queues) ─────────
 const QUEUES = {
-  swimmer: { table: 'swimmers',    idCol: 'swimmer_id',    prefix: 'sw', entity: 'SWIMMER',    label: 'Swimmer',
-             approved: 'APPROVED_ACTIVE', rejected: 'REJECTED',       list: () => PENDING_SWIMMERS,  set: v => { PENDING_SWIMMERS = v; } },
   coach:   { table: 'coaches',     idCol: 'coach_id',      prefix: 'co', entity: 'COACH',      label: 'Coach',
              approved: 'APPROVED_ACTIVE', rejected: 'REJECTED',       list: () => PENDING_COACHES,   set: v => { PENDING_COACHES = v; } },
   academy: { table: 'academies',   idCol: 'academy_id',    prefix: 'ac', entity: 'ACADEMY',    label: 'Academy',
@@ -500,8 +482,6 @@ Reason: ${reason}` : ''}`);
   if (kind === 'event') loadPipeline();
 }
 
-window.approveSwimmer = (id, name) => decide('swimmer', true, id, name);
-window.rejectSwimmer  = (id, name) => decide('swimmer', false, id, name);
 window.approveCoach   = (id, name) => decide('coach', true, id, name);
 window.rejectCoach    = (id, name) => decide('coach', false, id, name);
 window.approveAcademy = (id, name) => decide('academy', true, id, name);
@@ -756,7 +736,7 @@ function renderSidebarUser() {
   }
   $('acUserInitials').textContent = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'AD';
   if (session.role === 'event_manager') {
-    $('approvalsSub').textContent = 'What is waiting for the super admin. You can add academies and coaches; the super admin approves them.';
+    $('approvalsSub').textContent = 'Approve event entries for the meets you run. Coaches, academies and organizer events wait for the super admin.';
   }
 }
 
@@ -783,7 +763,7 @@ document.addEventListener('DOMContentLoaded', () => {
     searchInput.focus();
   });
   SF.Tabs.enhance(document.querySelector('.admin-nav-tabs'), { tabSelector: '.admin-tab-btn' });
-  SF.Info.attach(document.getElementById('approvalsTitle'), 'qSwimmers');
+  SF.Info.attach(document.getElementById('approvalsTitle'), 'entries');
 
   loadPipeline();
   loadAllQueues();

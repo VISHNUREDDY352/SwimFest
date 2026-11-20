@@ -83,6 +83,16 @@ const SwimAuth = {
   // ── Supabase availability ─────────────────────────────────
   hasSupabase() { return !!(window.sb && window.sb.auth); },
 
+  // ── Sign-in log (Super Admin → Logs) ──────────────────────
+  // The database records who, when and from where (record_login); never blocks sign-in
+  recordLogin(method = 'password') {
+    if (!this.hasSupabase() || !window.sb.rpc) return;
+    try {
+      window.sb.rpc('record_login', { p_method: method, p_user_agent: navigator.userAgent || null })
+        .then(({ error }) => { if (error) console.warn('[SwimFest] sign-in log:', error.message); }, () => {});
+    } catch (_) {}
+  },
+
   // ── Sign up (Supabase Auth + profile role via metadata) ───
   async signUp({ email, password, fullName, phone, role = 'swimmer' }) {
     if (!this.hasSupabase()) {
@@ -128,6 +138,7 @@ const SwimAuth = {
       loginAt: new Date().toISOString(),
     };
     this.setSession(localSession, true);
+    if (session) this.recordLogin('signup');
 
     // needsConfirm only if we truly couldn't get a session (email confirm still on)
     return { ok: true, session: localSession, needsConfirm: !session };
@@ -164,6 +175,7 @@ const SwimAuth = {
       loginAt: new Date().toISOString(),
     };
     this.setSession(session, remember);
+    this.recordLogin('password');
     return { ok: true, session };
   },
 
@@ -195,6 +207,7 @@ const SwimAuth = {
       phone, userId: user.id, loginAt: new Date().toISOString(),
     };
     this.setSession(session, true);
+    this.recordLogin('password');
     return { ok: true, session, upgraded: true };
   },
 
@@ -493,5 +506,44 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         document.body.insertAdjacentElement('afterbegin', bar);
       });
+  })();
+
+  // ── Entry decisions (parents) ────────────────────────────────
+  // When an Admin / Super Admin approves or declines a registration, the
+  // parent sees a one-time bar on the next page they open. The profile page
+  // has its own fuller notice, so it's skipped there.
+  (function initDecisionNotice() {
+    const s = window.SwimAuth && window.SwimAuth.getSession();
+    if (!window.sb || !s || !s.userId || s.role !== 'swimmer') return;
+    if (/profile\.html$/.test(location.pathname) || document.querySelector('.ac-sidebar, .sa-sidebar')) return;
+    let since = 0;
+    try {
+      since = Math.max(Number(localStorage.getItem(`swimfest_reg_seen_${s.userId}`)) || 0,
+                       Number(localStorage.getItem(`swimfest_reg_bar_${s.userId}`)) || 0);
+    } catch (_) {}
+    window.sb.from('bookings')
+      .select('approval_status, decided_at, tournaments(title)')
+      .eq('booked_by', s.userId)
+      .in('approval_status', ['APPROVED', 'REJECTED'])
+      .gt('decided_at', new Date(since || 0).toISOString())
+      .order('decided_at', { ascending: false })
+      .then(({ data, error }) => {
+        if (error || !data || !data.length) return;
+        try { localStorage.setItem(`swimfest_reg_bar_${s.userId}`, String(Date.now())); } catch (_) {}
+        const esc = v => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const ok = data.filter(b => b.approval_status === 'APPROVED').map(b => (b.tournaments || {}).title || 'a meet');
+        const no = data.filter(b => b.approval_status === 'REJECTED').map(b => (b.tournaments || {}).title || 'a meet');
+        const parts = [];
+        if (ok.length) parts.push(`Approved for <strong>${ok.map(esc).join(', ')}</strong>.`);
+        if (no.length) parts.push(`Declined for <strong>${no.map(esc).join(', ')}</strong>.`);
+        const bar = document.createElement('div');
+        bar.setAttribute('role', 'status');
+        bar.style.cssText = `background:${no.length ? '#fef2f2' : '#ecfdf5'};color:${no.length ? '#991b1b' : '#065f46'};border-bottom:1px solid ${no.length ? '#fca5a5' : '#a7f3d0'};padding:10px 16px;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;font:500 0.88rem Inter,sans-serif;line-height:1.45;position:relative;z-index:1000;`;
+        bar.innerHTML = `<i class="fas fa-${no.length ? 'circle-exclamation' : 'circle-check'}" aria-hidden="true"></i>
+          <span>${parts.join(' ')} <a href="profile.html#registrations" style="color:inherit;font-weight:700;text-decoration:underline;">See My registrations</a></span>
+          <button type="button" aria-label="Dismiss" style="background:none;border:0;color:inherit;font-size:1.1rem;cursor:pointer;padding:0 4px;">&times;</button>`;
+        bar.querySelector('button').addEventListener('click', () => bar.remove());
+        document.body.insertAdjacentElement('afterbegin', bar);
+      }, () => {});
   })();
 });

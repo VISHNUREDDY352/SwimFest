@@ -22,6 +22,7 @@
         ${link('superadmin.html#meets', 'trophy', 'All meets')}
         ${link('superadmin.html#financials', 'indian-rupee-sign', 'Financials')}
         ${link('superadmin.html#history', 'history', 'History')}
+        ${link('superadmin.html#logs', 'right-to-bracket', 'Logs')}
         ${link('saprofile.html', 'user', 'Profile', is('saprofile.html'))}
       </nav>
       <nav class="ac-side-group" aria-label="Run a meet">

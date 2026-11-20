@@ -49,9 +49,12 @@
      * → [{ entryId, swimId, name, gender, category, event, seedMs, academy, isRelay, isIm }]
      */
     async listForMeet(tournamentId) {
-      const rows = await SF.db.fetchAll(() => sb().from('event_entries')
-        .select('entry_id, event_name, category, gender, seed_time_ms, swimmer_id, is_relay, is_im')
+      // '*' so a database without approval_status still loads; only approved
+      // entries race (parent registrations wait for Admin / Super Admin approval)
+      const all = await SF.db.fetchAll(() => sb().from('event_entries')
+        .select('*')
         .eq('tournament_id', tournamentId).order('entry_id'));
+      const rows = all.filter(r => !r.approval_status || r.approval_status === 'APPROVED');
       const dir = await SF.db.inChunks(rows.map(r => r.swimmer_id),
         chunk => sb().from('swimmer_directory').select('swimmer_id, full_name, academy_name').in('swimmer_id', chunk));
       const names = new Map(dir.map(s => [s.swimmer_id, s]));

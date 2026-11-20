@@ -6,7 +6,7 @@
     <script src="core/sf.js?v=2"></script>
     <script src="core/icons.js?v=2"></script>
     <script src="core/components.js?v=2"></script>
-    <script src="core/help.js?v=2"></script>
+    <script src="core/help.js?v=3"></script>
     <title>Super Admin Console — SwimFest</title>
     <script src="guard.js?v=5" data-roles="super_admin"></script>
     <link rel="stylesheet" href="styles.css?v=24">
@@ -369,6 +369,7 @@
             <button class="sa-side-link sa-nav-tab" data-tab="meets"><i class="fas fa-trophy"></i> All meets</button>
             <button class="sa-side-link sa-nav-tab" data-tab="financials"><i class="fas fa-indian-rupee-sign"></i> Financials</button>
             <button class="sa-side-link sa-nav-tab" data-tab="history"><i class="fas fa-history"></i> History</button>
+            <button class="sa-side-link sa-nav-tab" data-tab="logs"><i class="fas fa-right-to-bracket"></i> Logs</button>
             <!-- Owner only (shown by superadmin.js) -->
             <button class="sa-side-link sa-nav-tab" data-tab="team" id="saTeamNav" hidden><i class="fas fa-user-shield"></i> Team</button>
             <a href="saprofile.html" class="sa-side-link" id="saProfileNav"><i class="fas fa-user"></i> Profile</a>
@@ -433,7 +434,7 @@
                 <div class="sa-allclear" id="saAllClear" hidden>
                     <span class="sa-allclear-icon" aria-hidden="true"><i class="fas fa-check"></i></span>
                     <h2>You're all caught up</h2>
-                    <p>Nothing is waiting for your decision. New sign-ups, meets and reopen requests appear here as soon as they arrive.</p>
+                    <p>Nothing is waiting for your decision. New event entries, sign-ups, meets and reopen requests appear here as soon as they arrive.</p>
                     <div class="sa-allclear-actions">
                         <button type="button" class="sf-btn" data-tab-link="meets"><i class="fas fa-trophy"></i> See all meets</button>
                         <a href="orgcreate.html" data-tool="createmeet" class="sf-btn sf-btn-primary"><i class="fas fa-plus"></i> Create a meet</a>
@@ -441,7 +442,8 @@
                 </div>
                 <section class="sa-section" id="saQueues" aria-label="Approval queues">
                     <div class="sa-qtabs" role="tablist" aria-label="Queues">
-                        <button class="sa-qtab active" role="tab" data-queue="s2">Verifications <span class="sa-qcount" id="s2Badge">…</span></button>
+                        <button class="sa-qtab active" role="tab" data-queue="entries">Event entries <span class="sa-qcount" id="entriesBadge">…</span></button>
+                        <button class="sa-qtab" role="tab" data-queue="s2">Verifications <span class="sa-qcount" id="s2Badge">…</span></button>
                         <button class="sa-qtab" role="tab" data-queue="s1a">Internal meets <span class="sa-qcount" id="s1aBadge">…</span></button>
                         <button class="sa-qtab" role="tab" data-queue="s1b">Third-party meets <span class="sa-qcount" id="s1bBadge">…</span></button>
                         <button class="sa-qtab" role="tab" data-queue="reopen">Reopen requests <span class="sa-qcount" id="reopenBadge">…</span></button>
@@ -450,8 +452,8 @@
 
                     <div class="sa-toolbar">
                         <div>
-                            <div class="sa-toolbar-title" id="saQueueTitle">Swimmers, academies, coaches &amp; organizers</div>
-                            <div class="sa-toolbar-sub" id="saQueueSub">New sign-ups waiting to be verified. Approve once their details and documents check out.</div>
+                            <div class="sa-toolbar-title" id="saQueueTitle">Event entries</div>
+                            <div class="sa-toolbar-sub" id="saQueueSub">Parents' registrations for meets. Check the age proof and undertaking, then approve.</div>
                         </div>
                         <label class="sa-search-wrap">
                             <i class="fas fa-search" aria-hidden="true"></i>
@@ -461,8 +463,18 @@
                         <span class="sf-count" id="saQueueCount" aria-live="polite"></span>
                     </div>
 
+                    <!-- Event entries: each parent registration waits for approval -->
+                    <div class="sa-qpanel active" data-qpanel="entries">
+                        <div class="sa-table-wrap">
+                            <table class="sa-queue-table">
+                                <thead><tr><th>Swimmer</th><th>Meet</th><th>Races</th><th>Documents</th><th>Actions</th></tr></thead>
+                                <tbody id="entriesBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     <!-- Verifications -->
-                    <div class="sa-qpanel active" data-qpanel="s2">
+                    <div class="sa-qpanel" data-qpanel="s2">
                         <div class="sa-table-wrap">
                             <table class="sa-queue-table">
                                 <thead><tr><th>Submitted by</th><th>Type</th><th>Name / club</th><th>Credential / tax ID</th><th>Actions</th></tr></thead>
@@ -583,6 +595,40 @@
                 </section>
             </div>
 
+            <!-- LOGS: every sign-in (login_logs), Super Admins only -->
+            <div class="sa-tab-panel" id="panel-logs" data-tab-panel="logs" data-title="Logs">
+                <section class="sf-section" aria-label="Sign-in log">
+                    <div class="sf-toolbar">
+                        <div class="sf-search">
+                            <i class="fas fa-search"></i>
+                            <input type="search" id="logSearch" class="sf-input" placeholder="Search by name or email" aria-label="Search sign-ins">
+                        </div>
+                        <select class="sf-select" id="logRole" style="width:auto" aria-label="Role">
+                            <option value="">Everyone</option>
+                            <option value="swimmer">Parents &amp; swimmers</option>
+                            <option value="organizer">Organizers</option>
+                            <option value="event_manager">Admins</option>
+                            <option value="super_admin">Super Admins</option>
+                        </select>
+                        <select class="sf-select" id="logRange" style="width:auto" aria-label="Time period">
+                            <option value="1">Today</option>
+                            <option value="7" selected>Last 7 days</option>
+                            <option value="30">Last 30 days</option>
+                            <option value="365">Last year</option>
+                        </select>
+                        <button type="button" class="sf-btn" id="logExport"><i class="fas fa-file-export"></i> Download CSV</button>
+                        <span class="sf-count" id="logCount" aria-live="polite"></span>
+                    </div>
+                    <div class="sf-table-wrap">
+                        <table class="sf-table sf-stack">
+                            <caption class="sf-visually-hidden">Sign-ins, newest first</caption>
+                            <thead><tr><th scope="col">When</th><th scope="col">Who</th><th scope="col">Role</th><th scope="col">Device</th></tr></thead>
+                            <tbody id="logBody"><tr><td colspan="4" class="sf-empty">Loading…</td></tr></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
             <!-- TAB 4: FINANCIALS -->
             <!-- TEAM: who runs SwimFest (Owner only) -->
             <div class="sa-tab-panel" id="panel-team" data-tab-panel="team" data-title="Team">
@@ -694,12 +740,13 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="supabase.js?v=7"></script>
-    <script src="auth.js?v=14"></script>
+    <script src="auth.js?v=15"></script>
     <script src="meetstate.js?v=1"></script>
-    <script src="consolenav.js?v=9"></script>
+    <script src="consolenav.js?v=10"></script>
     <script src="reason.js?v=2"></script>
     <script src="governance.js?v=1"></script>
     <script src="swimmerdocs.js?v=1"></script>
-    <script src="superadmin.js?v=29"></script>
+    <script src="entryapprovals.js?v=1"></script>
+    <script src="superadmin.js?v=30"></script>
 </body>
 </html>

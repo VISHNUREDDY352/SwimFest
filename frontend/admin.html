@@ -6,7 +6,7 @@
     <script src="core/sf.js?v=2"></script>
     <script src="core/icons.js?v=2"></script>
     <script src="core/components.js?v=2"></script>
-    <script src="core/help.js?v=2"></script>
+    <script src="core/help.js?v=3"></script>
     <script src="embed.js?v=3"></script>
     <title>Admin Console — SwimFest</title>
     <script src="guard.js?v=5" data-roles="event_manager,super_admin"></script>
@@ -96,7 +96,7 @@
                 </div>
                 <div class="ac-metric">
                     <span class="ac-metric-icon" style="background:#fef3c7;color:#b45309;"><i class="fas fa-swimmer"></i></span>
-                    <div><div class="ac-metric-label">Pending swimmers</div><div class="ac-metric-value" id="cntSwimmers">—</div></div>
+                    <div><div class="ac-metric-label">Entries to approve</div><div class="ac-metric-value" id="cntSwimmers">—</div></div>
                 </div>
                 <div class="ac-metric">
                     <span class="ac-metric-icon" style="background:#ede9fe;color:#6d28d9;"><i class="fas fa-building"></i></span>
@@ -128,7 +128,7 @@
                 <div class="ac-card-head" style="border-bottom:none;padding-bottom:0.25rem;">
                     <div>
                         <h2 class="ac-card-title" id="approvalsTitle">Approvals</h2>
-                        <p class="ac-card-sub" id="approvalsSub">New swimmers, coaches, academies and organizer events waiting for review</p>
+                        <p class="ac-card-sub" id="approvalsSub">Event entries, coaches, academies and organizer events waiting for review</p>
                     </div>
                     <button type="button" class="ac-btn ac-btn-ghost" onclick="loadAllQueues()" style="height:2.25rem;font-size:0.8rem;">
                         <i class="fas fa-sync-alt"></i> Refresh
@@ -136,7 +136,7 @@
                 </div>
 
                 <div class="admin-nav-tabs" role="tablist" aria-label="Approval queues">
-                    <button class="admin-tab-btn active" role="tab" onclick="switchAdminTab('swimmersTab', this)">Swimmers <span class="badge" id="badgeSwimmers">0</span></button>
+                    <button class="admin-tab-btn active" role="tab" onclick="switchAdminTab('swimmersTab', this)">Event entries <span class="badge" id="badgeSwimmers">0</span></button>
                     <button class="admin-tab-btn" role="tab" onclick="switchAdminTab('coachesTab', this)">Coaches <span class="badge" id="badgeCoaches">0</span></button>
                     <button class="admin-tab-btn" role="tab" onclick="switchAdminTab('academiesTab', this)">Academies <span class="badge" id="badgeAcademies">0</span></button>
                     <button class="admin-tab-btn" role="tab" onclick="switchAdminTab('eventsTab', this)">Organizer events <span class="badge" id="badgeEvents">0</span></button>
@@ -152,8 +152,8 @@
                 <div id="swimmersTab" class="tab-content active">
                     <div class="ac-table-wrap">
                         <table class="ac-table">
-                            <thead><tr><th>Swimmer</th><th>Gender / DOB</th><th>Category</th><th>Parent &amp; school</th><th>ID &amp; documents</th><th>Actions</th></tr></thead>
-                            <tbody id="swimmersTableBody"><tr><td colspan="6" class="ac-empty-cell">Loading pending swimmers…</td></tr></tbody>
+                            <thead><tr><th>Swimmer</th><th>Meet</th><th>Races</th><th>Documents</th><th>Actions</th></tr></thead>
+                            <tbody id="swimmersTableBody"><tr><td colspan="5" class="ac-empty-cell">Loading event entries…</td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -263,10 +263,11 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="supabase.js?v=7"></script>
-    <script src="auth.js?v=14"></script>
+    <script src="auth.js?v=15"></script>
     <script src="reason.js?v=2"></script>
     <script src="governance.js?v=1"></script>
     <script src="swimmerdocs.js?v=1"></script>
-    <script src="adminconsole.js?v=15"></script>
+    <script src="entryapprovals.js?v=1"></script>
+    <script src="adminconsole.js?v=16"></script>
 </body>
 </html>

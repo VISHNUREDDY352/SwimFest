@@ -166,6 +166,8 @@ async function loadRoster(tournamentId, silent = false) {
     entries = await SF.db.fetchAll(() => window.sb.from('event_entries')
       .select('*')   // includes is_im: the medley doesn't count toward the 3-race limit
       .eq('tournament_id', tournamentId).order('entry_id'));
+    // Declined registrations are not part of the meet
+    entries = entries.filter(e => e.approval_status !== 'REJECTED');
     const ids = entries.map(e => e.swimmer_id);
     [swimmerRows, dirRows] = await Promise.all([
       SF.db.inChunks(ids, chunk => window.sb.from('swimmers').select('*').in('swimmer_id', chunk)).catch(() => []),
@@ -204,7 +206,7 @@ async function loadRoster(tournamentId, silent = false) {
       isIm: !!e.is_im || /individual medley/i.test(e.event_name || ''),
       seedMs: e.seed_time_ms,
       seedTime: msToSeed(e.seed_time_ms),
-      status: s.status || '',
+      approval: e.approval_status || 'APPROVED',   // parent registrations wait for approval
       flags: [],
     };
   });
@@ -235,8 +237,7 @@ function computeFlags() {
     }
     if (r.swimmerGender && r.swimmerGender !== r.gender) r.flags.push({ type: 'gender', msg: `${r.swimmerGender} entered in a ${r.gender === 'Girl' ? 'girls' : 'boys'} event` });
     if ((individualCount[r.swimmerId] || 0) > MAX_INDIVIDUAL_EVENTS) r.flags.push({ type: 'cap', msg: `In ${individualCount[r.swimmerId]} individual events (max ${MAX_INDIVIDUAL_EVENTS})` });
-    if (r.status === 'PENDING_VERIFICATION') r.flags.push({ type: 'pending', msg: 'Swimmer profile not verified yet' });
-    if (r.status === 'REJECTED') r.flags.push({ type: 'rejected', msg: 'Swimmer profile was rejected' });
+    if (r.approval === 'PENDING') r.flags.push({ type: 'pending', msg: 'Entry waiting for approval (not in heats yet)' });
   });
 }
 
@@ -361,9 +362,8 @@ function renderGrid() {
     tr.dataset.rowId = row.id;
     if (row.flags.length > 0) tr.classList.add('pl-flagged');
 
-    const statusTag = row.status === 'PENDING_VERIFICATION'
-      ? '<span class="pl-tag pl-tag-wait"><i class="fas fa-clock"></i> Pending</span>'
-      : row.status === 'REJECTED' ? '<span class="pl-tag pl-tag-bad"><i class="fas fa-times-circle"></i> Rejected</span>' : '';
+    const statusTag = row.approval === 'PENDING'
+      ? '<span class="pl-tag pl-tag-wait"><i class="fas fa-clock"></i> Awaiting approval</span>' : '';
     const flagsHtml = row.flags.map(f => `<div class="pl-flag"><i class="fas fa-triangle-exclamation"></i> ${escHtml(f.msg)}</div>`).join('');
     const isNT = row.seedTime === 'NT';
 
@@ -674,8 +674,8 @@ function runAuditChecks() {
     type: capIssues ? 'fail' : 'ok', label: `At most ${MAX_INDIVIDUAL_EVENTS} individual events each`,
     detail: capIssues ? `${capIssues} swimmer${capIssues === 1 ? ' is' : 's are'} over the limit.` : 'No swimmer is over the limit.',
   });
-  const unverified = new Set(ROSTER.filter(r => r.status === 'PENDING_VERIFICATION').map(r => r.swimmerId)).size;
-  if (unverified) results.push({ type: 'info', label: 'Unverified swimmers', detail: `${unverified} swimmer profile${unverified === 1 ? ' is' : 's are'} still waiting for approval.` });
+  const unapproved = ROSTER.filter(r => r.approval === 'PENDING').length;
+  if (unapproved) results.push({ type: 'info', label: 'Entries awaiting approval', detail: `${unapproved} race entr${unapproved === 1 ? 'y is' : 'ies are'} still waiting for approval and won't go into heats until approved (Approvals → Event entries).` });
   return results;
 }
 
