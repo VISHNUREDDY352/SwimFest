@@ -534,7 +534,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const ok = data.filter(b => b.approval_status === 'APPROVED').map(b => (b.tournaments || {}).title || 'a meet');
         const no = data.filter(b => b.approval_status === 'REJECTED').map(b => (b.tournaments || {}).title || 'a meet');
         const parts = [];
-        if (ok.length) parts.push(`Approved for <strong>${ok.map(esc).join(', ')}</strong>.`);
+        if (ok.length) parts.push(`Approved for <strong>${ok.map(esc).join(', ')}</strong>. Pay now to confirm your place.`);
         if (no.length) parts.push(`Declined for <strong>${no.map(esc).join(', ')}</strong>.`);
         const bar = document.createElement('div');
         bar.setAttribute('role', 'status');

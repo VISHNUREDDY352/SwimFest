@@ -349,3 +349,12 @@
    and the header doesn't show a second "Profile" button on the profile page */
 .pf-pb-grid:has(> :only-child[style*="grid-column"]) { background: var(--white, #fff); }
 .navbar .nav-container a.btn-profile { display: none !important; }
+
+/* Pay for an approved entry */
+.pf-reg-pay {
+    display: inline-flex; align-items: center; gap: 8px; margin-top: 8px;
+    min-height: 40px; padding: 8px 16px; border: none; border-radius: var(--radius-sm);
+    background: var(--primary); color: var(--white); font: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer;
+}
+.pf-reg-pay:hover { filter: brightness(1.08); }
+.pf-reg-pay:disabled { opacity: 0.7; cursor: wait; }

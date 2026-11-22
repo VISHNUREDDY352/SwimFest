@@ -1,5 +1,5 @@
 -- ============================================================
--- SwimFest — approve event registrations (not accounts) + login log
+-- SwimFest — approve event registrations, pay after approval, login log
 -- Run in: Supabase Dashboard → SQL Editor → New query → Run
 -- Safe to run more than once.
 --
@@ -9,7 +9,8 @@
 --    * Admin: meets they are assigned to, or created
 --    Only approved races go into heats. The parent sees the decision on
 --    their profile (My registrations).
--- 3. Every sign-in is recorded; only Super Admins can read the log.
+-- 3. Once approved, the parent pays online (Razorpay) to confirm the entry.
+-- 4. Every sign-in is recorded; only Super Admins can read the log.
 --
 -- Needs public.is_meet_staff() (staff_manage_swimmers.sql) and
 -- public.tournament_admins (rbac_governance.sql).
@@ -30,7 +31,11 @@ begin
     add column if not exists approval_status text not null default 'PENDING',
     add column if not exists decision_notes  text,
     add column if not exists decided_by      uuid references auth.users(id) on delete set null,
-    add column if not exists decided_at      timestamptz;
+    add column if not exists decided_at      timestamptz,
+    -- Online payment (Razorpay), only after approval; written by the server
+    add column if not exists razorpay_order_id text,
+    add column if not exists paid_at           timestamptz,
+    add column if not exists paid_amount       numeric(10,2);
 
   -- Races: walk-ins and imports added by staff are approved straight away
   alter table public.event_entries
@@ -65,9 +70,10 @@ end $$;
 alter table public.swimmers alter column status set default 'APPROVED_ACTIVE';
 update public.swimmers set status = 'APPROVED_ACTIVE' where status = 'PENDING_VERIFICATION';
 
--- ── 3. Parents can't approve their own entries ──────────────
--- A parent's new booking / race always starts PENDING, and only staff
--- can change the decision afterwards.
+-- ── 3. Parents can't approve or mark-paid their own entries ─
+-- A parent's new booking / race always starts PENDING and unpaid. Only
+-- staff can change the decision, and only the payment server (service
+-- role) marks a booking paid after Razorpay confirms it.
 create or replace function public.guard_entry_approval()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
@@ -78,11 +84,16 @@ begin
     new.approval_status := 'PENDING';
     if tg_table_name = 'bookings' then
       new.decision_notes := null; new.decided_by := null; new.decided_at := null;
+      new.payment_status := 'PENDING'; new.payment_ref := null;
+      new.razorpay_order_id := null; new.paid_at := null; new.paid_amount := null;
     end if;
   else
     new.approval_status := old.approval_status;
     if tg_table_name = 'bookings' then
       new.decision_notes := old.decision_notes; new.decided_by := old.decided_by; new.decided_at := old.decided_at;
+      new.payment_status := old.payment_status; new.payment_ref := old.payment_ref;
+      new.razorpay_order_id := old.razorpay_order_id; new.paid_at := old.paid_at;
+      new.paid_amount := old.paid_amount; new.total_amount := old.total_amount;
     end if;
   end if;
   return new;
@@ -218,4 +229,5 @@ notify pgrst, 'reload schema';
 -- ── Check: this result proves the script ran ────────────────
 select (select count(*) from public.bookings where approval_status = 'PENDING') as entries_waiting_for_approval,
        (select count(*) from public.bookings where approval_status = 'APPROVED') as entries_approved,
+       (select count(*) from public.bookings where payment_status = 'PAID')      as entries_paid,
        (select count(*) from public.login_logs)                                 as sign_ins_logged;

@@ -891,7 +891,7 @@ function renderSuccessReceipt() {
   }
   if (note) {
     note.innerHTML = pending
-      ? 'The organisers will check the documents and approve the entry. You\'ll see the decision under <a href="profile.html#registrations" style="color:inherit;font-weight:700;text-decoration:underline;">My registrations</a> on your profile.'
+      ? 'The organisers will check the documents. Once approved, you\'ll get an email and can pay to confirm the entry under <a href="profile.html#registrations" style="color:inherit;font-weight:700;text-decoration:underline;">My registrations</a> on your profile. Nothing is charged until then.'
       : '';
     note.style.display = pending ? '' : 'none';
   }

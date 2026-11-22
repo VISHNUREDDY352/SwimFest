@@ -242,22 +242,116 @@ async function loadRegistrations() {
       when: [fmtDay(t.start_date), fmtDay(t.end_date)].filter(Boolean).join(' – '),
       where: [t.venue_name, t.city].filter(Boolean).join(', '),
       races: (b.event_entries || []).map(e => e.event_name),
-      status: b.approval_status || 'RECEIVED',   // no approval column yet: don't claim it was approved
+      // RECEIVED: no approval column yet (don't claim it was approved).
+      // An approved entry is only CONFIRMED once it's paid.
+      status: !b.approval_status ? 'RECEIVED'
+        : b.approval_status === 'APPROVED' && b.payment_status === 'PAID' ? 'CONFIRMED'
+        : b.approval_status,
+      amount: Number(b.total_amount) || 0,
+      hasOrder: !!b.razorpay_order_id,
       reason: b.decision_notes || '',
       isNew: !!(b.approval_status && b.approval_status !== 'PENDING' && decidedAt > SEEN_BEFORE),
     };
   });
-  // Approved meets count toward the "Tournaments" stat
-  PROFILE.stats.tournaments = REGISTRATIONS.filter(r => r.status === 'APPROVED' || r.status === 'RECEIVED').length;
+  // Confirmed meets count toward the "Tournaments" stat
+  PROFILE.stats.tournaments = REGISTRATIONS.filter(r => r.status === 'CONFIRMED' || r.status === 'RECEIVED').length;
   try { localStorage.setItem(SEEN_KEY(s.userId), String(Date.now())); } catch (_) {}
 }
 
 const REG_STATUS = {
   RECEIVED: { cls: 'reg-upcoming',  label: 'Registered',           icon: 'clipboard-check', color: '#2563eb' },
-  PENDING:  { cls: 'reg-pending',   label: 'Waiting for approval', icon: 'clock',        color: '#d97706' },
-  APPROVED: { cls: 'reg-confirmed', label: 'Approved',             icon: 'check',        color: '#16a34a' },
-  REJECTED: { cls: 'reg-declined',  label: 'Declined',             icon: 'times',        color: '#dc2626' },
+  PENDING:   { cls: 'reg-pending',   label: 'Waiting for approval', icon: 'clock',        color: '#d97706' },
+  APPROVED:  { cls: 'reg-upcoming',  label: 'Approved · pay to confirm', icon: 'indian-rupee-sign', color: '#2563eb' },
+  CONFIRMED: { cls: 'reg-confirmed', label: 'Confirmed',            icon: 'check',        color: '#16a34a' },
+  REJECTED:  { cls: 'reg-declined',  label: 'Declined',             icon: 'times',        color: '#dc2626' },
 };
+
+const inr = n => '₹' + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// ── Pay for an approved entry (Razorpay) ─────────────────────
+async function authToken() {
+  try {
+    const { data } = await window.sb.auth.getSession();
+    return data && data.session ? data.session.access_token : null;
+  } catch (_) { return null; }
+}
+
+async function payApi(path, payload) {
+  const token = await authToken();
+  if (!token) throw new Error('Your sign-in has expired. Log in again, then pay.');
+  const r = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  const out = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(out.error || `Error ${r.status}`);
+  return out;
+}
+
+function loadRazorpay() {
+  if (window.Razorpay) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Could not load the payment window. Check your connection.'));
+    document.head.appendChild(s);
+  });
+}
+
+async function afterPayment(bookingId, extra) {
+  const out = await payApi('/api/pay-verify', { booking_id: bookingId, ...extra });
+  if (out.paid) {
+    showToast('Payment received. Your entry is confirmed.', 'success');
+    await loadRegistrations();
+    renderHeader();
+    renderRegistrations();
+  } else {
+    showToast('Payment not completed yet. If money was taken, it will show here within a few minutes.', 'warn');
+  }
+}
+
+async function startPayment(bookingId, btn) {
+  const label = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Opening payment…';
+  try {
+    const [order] = await Promise.all([payApi('/api/pay-create', { booking_id: bookingId }), loadRazorpay()]);
+    const rzp = new window.Razorpay({
+      key: order.key_id,
+      order_id: order.order_id,
+      amount: order.amount,
+      currency: order.currency,
+      name: 'SwimFest',
+      description: order.description,
+      prefill: order.prefill,
+      theme: { color: '#0b5cad' },
+      handler: resp => afterPayment(bookingId, {
+        razorpay_payment_id: resp.razorpay_payment_id,
+        razorpay_signature: resp.razorpay_signature,
+      }).catch(e => showToast(e.message, 'warn')),
+      modal: { ondismiss: () => { btn.disabled = false; btn.innerHTML = label; } },
+    });
+    rzp.on('payment.failed', r => showToast('Payment failed: ' + ((r.error && r.error.description) || 'try again'), 'warn'));
+    rzp.open();
+  } catch (e) {
+    showToast(e.message, 'warn');
+    btn.disabled = false;
+    btn.innerHTML = label;
+  }
+}
+
+// A payment started earlier (page closed mid-way) is picked up on the next visit
+async function reconcilePayments() {
+  const open = REGISTRATIONS.filter(r => r.status === 'APPROVED' && r.hasOrder);
+  if (!open.length) return;
+  let changed = false;
+  for (const r of open) {
+    try { const out = await payApi('/api/pay-verify', { booking_id: r.id }); if (out.paid) changed = true; } catch (_) {}
+  }
+  if (changed) { await loadRegistrations(); renderHeader(); renderRegistrations(); }
+}
 
 function renderRegistrations() {
   if (!REGISTRATIONS.length) {
@@ -277,12 +371,16 @@ function renderRegistrations() {
         <div class="pf-reg-date"><i class="fas fa-calendar-alt"></i> ${escHtml(r.when || 'Dates to be announced')}${r.where ? ' · ' + escHtml(r.where) : ''}</div>
         ${r.swimmer || r.races.length ? `<div class="pf-reg-races">${escHtml(r.swimmer)}${r.swimmer && r.races.length ? ': ' : ''}${escHtml(r.races.join(', '))}</div>` : ''}
         ${r.status === 'PENDING' ? '<div class="pf-reg-races">The organisers are checking the documents.</div>' : ''}
+        ${r.status === 'APPROVED' ? `<div class="pf-reg-races">Approved. Pay now to confirm the place.</div>
+          <button type="button" class="pf-reg-pay" data-pay="${escHtml(r.id)}"><i class="fas fa-lock"></i> Pay ${r.amount ? inr(r.amount) : ''} to confirm</button>` : ''}
+        ${r.status === 'CONFIRMED' ? '<div class="pf-reg-races">Paid. See you at the pool!</div>' : ''}
         ${r.status === 'REJECTED' && r.reason ? `<div class="pf-reg-reason"><b>Reason:</b> ${escHtml(r.reason)}</div>` : ''}
         ${r.status === 'REJECTED' ? `<a class="pf-reg-again" href="register.html?t=${encodeURIComponent(r.meetId)}">Fix and register again →</a>` : ''}
       </div>
       <span class="pf-reg-status ${st.cls}">${st.label}</span>
     </div>`;
   }).join('');
+  $('regList').querySelectorAll('[data-pay]').forEach(b => b.addEventListener('click', () => startPayment(b.dataset.pay, b)));
 }
 
 // One-time notice at the top of the page for decisions made since the last visit
@@ -298,7 +396,7 @@ function renderDecisionNotice() {
   box.innerHTML = `
     <i class="fas fa-${declined.length ? 'circle-exclamation' : 'circle-check'}" aria-hidden="true"></i>
     <div>
-      ${approved.length ? `<strong>Approved for ${approved.length === 1 ? 'this meet' : 'these meets'}:</strong><ul>${approved.map(line).join('')}</ul>` : ''}
+      ${approved.length ? `<strong>Approved for ${approved.length === 1 ? 'this meet' : 'these meets'}. Pay under My registrations to confirm:</strong><ul>${approved.map(line).join('')}</ul>` : ''}
       ${declined.length ? `<strong${approved.length ? ' style="display:block;margin-top:8px;"' : ''}>Declined. See the reason under My registrations:</strong><ul>${declined.map(line).join('')}</ul>` : ''}
     </div>
     <button type="button" class="pf-decision-close" aria-label="Dismiss"><i class="fas fa-times"></i></button>`;
@@ -472,6 +570,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderDetails();
   renderRegistrations();
   if (location.hash === '#registrations' && $('regList')) $('regList').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  reconcilePayments();
   renderAcademy();
   populateEditAcademy();
   initLogout();

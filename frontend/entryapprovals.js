@@ -104,6 +104,31 @@
       : '<span class="sa-action-done rejected-tag"><i class="fas fa-times-circle"></i> Declined</span>';
     if (window.SF) SF.toast(`${approve ? 'Approved' : 'Declined'}: ${name}`, approve ? 'success' : 'warn');
     if (onDecided) onDecided(bookingId, approve);
+    emailParent(bookingId, cell);
+  }
+
+  // Tell the parent by email (the server picks the address and checks permission)
+  async function emailParent(bookingId, cell) {
+    const note = text => {
+      const el = document.createElement('div');
+      el.style.cssText = 'font-size:0.72rem;color:#64748b;margin-top:4px;white-space:normal;';
+      el.textContent = text;
+      cell.appendChild(el);
+    };
+    try {
+      const { data } = await window.sb.auth.getSession();
+      const token = data && data.session && data.session.access_token;
+      if (!token) { note('Parent not emailed (sign in again).'); return; }
+      const r = await fetch('/api/notify-decision', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ booking_id: bookingId }),
+      });
+      const out = await r.json().catch(() => ({}));
+      note(r.ok ? `Parent emailed (${out.to || 'sent'})` : `Parent not emailed: ${out.error || 'error ' + r.status}`);
+    } catch (e) {
+      note('Parent not emailed: ' + e.message);
+    }
   }
 
   // Rows still showing buttons are still waiting

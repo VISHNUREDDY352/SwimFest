@@ -36,6 +36,9 @@ app.use('/api/leaderboard', leaderboardRouter);
 app.use('/api/heats', heatsRouter);
 // Staff assistant (the same file Vercel runs as a serverless function)
 app.post('/api/agent', require('../../api/agent'));
+app.post('/api/notify-decision', require('../../api/notify-decision'));
+app.post('/api/pay-create', require('../../api/pay-create'));
+app.post('/api/pay-verify', require('../../api/pay-verify'));
 
 // Serve Frontend Static Files
 const frontendPath = path.resolve(__dirname, '../../frontend');
