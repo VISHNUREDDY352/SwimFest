@@ -148,6 +148,28 @@ begin
 end $$;
 grant execute on function public.decide_booking(uuid, boolean, text) to authenticated;
 
+-- Every new registration also appears in Super Admin → History
+create or replace function public.log_new_booking()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then return new; end if;
+  insert into public.system_audit_logs (admin_id, action_type, target_entity, target_entity_id, notes)
+  select auth.uid(), 'REGISTRATION_SUBMITTED', 'TOURNAMENT', new.tournament_id::text,
+         coalesce(s.full_name, 'Swimmer') || ' · ' || coalesce(t.title, 'meet')
+         || coalesce(' · ' || new.booking_ref, '')
+         || case when new.approval_status = 'PENDING' then ' · waiting for approval' else '' end
+    from (select 1) one
+    left join public.swimmers s on s.swimmer_id = new.swimmer_id
+    left join public.tournaments t on t.tournament_id = new.tournament_id;
+  return new;
+exception when others then
+  return new;   -- logging must never block a registration
+end $$;
+
+drop trigger if exists bookings_log_new on public.bookings;
+create trigger bookings_log_new after insert on public.bookings
+  for each row execute function public.log_new_booking();
+
 -- ── 5. Login log ────────────────────────────────────────────
 create table if not exists public.login_logs (
   log_id       uuid primary key default gen_random_uuid(),

@@ -878,6 +878,7 @@ const HIST_KIND = {
   ENTRY_REMOVED: ['Removed an entry', 'entries'],
   RESULTS_SAVED: ['Saved results', 'results'],
   RESULTS_PUBLISHED: ['Published results', 'results'],
+  REGISTRATION_SUBMITTED: ['Registered for a meet', 'entries'],
   REGISTRATION_APPROVED: ['Approved an event entry', 'approvals'],
   REGISTRATION_REJECTED: ['Declined an event entry', 'approvals'],
 };

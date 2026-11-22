@@ -242,17 +242,18 @@ async function loadRegistrations() {
       when: [fmtDay(t.start_date), fmtDay(t.end_date)].filter(Boolean).join(' – '),
       where: [t.venue_name, t.city].filter(Boolean).join(', '),
       races: (b.event_entries || []).map(e => e.event_name),
-      status: b.approval_status || 'APPROVED',
+      status: b.approval_status || 'RECEIVED',   // no approval column yet: don't claim it was approved
       reason: b.decision_notes || '',
       isNew: !!(b.approval_status && b.approval_status !== 'PENDING' && decidedAt > SEEN_BEFORE),
     };
   });
   // Approved meets count toward the "Tournaments" stat
-  PROFILE.stats.tournaments = REGISTRATIONS.filter(r => r.status === 'APPROVED').length;
+  PROFILE.stats.tournaments = REGISTRATIONS.filter(r => r.status === 'APPROVED' || r.status === 'RECEIVED').length;
   try { localStorage.setItem(SEEN_KEY(s.userId), String(Date.now())); } catch (_) {}
 }
 
 const REG_STATUS = {
+  RECEIVED: { cls: 'reg-upcoming',  label: 'Registered',           icon: 'clipboard-check', color: '#2563eb' },
   PENDING:  { cls: 'reg-pending',   label: 'Waiting for approval', icon: 'clock',        color: '#d97706' },
   APPROVED: { cls: 'reg-confirmed', label: 'Approved',             icon: 'check',        color: '#16a34a' },
   REJECTED: { cls: 'reg-declined',  label: 'Declined',             icon: 'times',        color: '#dc2626' },
