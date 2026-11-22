@@ -200,8 +200,19 @@ window.approveSentBack = function (i) {
 async function loadEntryQueue() {
   const body = $('entriesBody');
   if (!window.sb || !body || !window.SwimEntries) return;
-  const { items, error } = await SwimEntries.loadPending();
+  const { items, error, notReady } = await SwimEntries.loadPending();
   if (error) console.warn('[SwimFest] entries queue:', error);
+  // Say so plainly when the database hasn't been set up for entry approval yet
+  let warn = $('saEntriesNotReady');
+  if (notReady && !warn && $('panel-dashboard')) {
+    warn = document.createElement('div');
+    warn.id = 'saEntriesNotReady';
+    warn.setAttribute('role', 'alert');
+    warn.style.cssText = 'background:#fef3c7;border:1px solid #fcd34d;color:#92400e;padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:0.9rem;line-height:1.5;';
+    warn.innerHTML = '<strong>Event entry approval is not switched on in the database.</strong> New registrations are saved but can\'t be approved yet. Run <code>backend/db/entry_approvals_and_login_logs.sql</code> in the Supabase SQL Editor.';
+    $('panel-dashboard').prepend(warn);
+  }
+  if (warn) warn.hidden = !notReady;
   setQueueCount('entries', items.length);
   body.innerHTML = items.length
     ? items.map(SwimEntries.rowHtml).join('')

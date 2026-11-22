@@ -37,8 +37,11 @@ begin
     add column if not exists approval_status text not null default 'APPROVED';
 
   if fresh then
+    -- Registrations made since entry approval went live (20 Nov 2026) stay
+    -- PENDING so they show up in Approvals → Event entries
     update public.bookings b set approval_status = 'APPROVED', decided_at = now()
-     where not exists (select 1 from public.swimmers s
+     where b.created_at < timestamptz '2026-11-20 00:00:00+05:30'
+       and not exists (select 1 from public.swimmers s
                         where s.swimmer_id = b.swimmer_id and s.status::text = 'PENDING_VERIFICATION');
     update public.event_entries e set approval_status = 'PENDING'
       from public.bookings b
@@ -211,3 +214,8 @@ end $$;
 grant execute on function public.record_login(text, text) to authenticated;
 
 notify pgrst, 'reload schema';
+
+-- ── Check: this result proves the script ran ────────────────
+select (select count(*) from public.bookings where approval_status = 'PENDING') as entries_waiting_for_approval,
+       (select count(*) from public.bookings where approval_status = 'APPROVED') as entries_approved,
+       (select count(*) from public.login_logs)                                 as sign_ins_logged;
